@@ -19,11 +19,15 @@ Valecium OS is a Unix-like, multi-architecture operating system kernel designed 
 
 Valecium OS is built with the following principles:
 
-* *Multi-architecture support* — Designed from the ground up to support multiple CPU architectures (i686, x86_64, ARM64, etc.)
-* *Clean separation of concerns* — Hardware abstraction layer (HAL) isolates platform-specific code
+* *Multi-architecture support* — Designed from the ground up to support multiple CPU architectures (i686, x86_64, ARM64, etc.). Currently i686 is fully implemented; other architectures are in planning.
+* *Clean separation of concerns* — Hardware abstraction layer (HAL) isolates platform-specific code behind function-pointer operation tables
 * *Modular design* — Each subsystem (memory, filesystem, drivers) is self-contained
 * *Well-documented* — Code and systems are documented for learning purposes
-* *Performance-oriented* — Practical optimizations without sacrificing clarity
+* *Custom bootloader* — A two-stage BIOS real-mode → protected mode bootloader is under development alongside GRUB support
+
+=== Current State (v0.28)
+
+The i686 BIOS path is the most mature. The kernel boots, initializes memory management (PMM, VMM, heap), sets up interrupt handling (GDT, IDT, ISR, IRQ), mounts a FAT12/16/32 root filesystem, and launches userspace processes (selftest, shell). The syscall layer supports file I/O, process creation (fork/execve), memory management (brk/sbrk), and process signaling (partial). The custom bootloader's stage1 (MBR) and stage2 (protected mode entry) exist but do not yet load the kernel.
 
 == Documentation Files
 
@@ -56,13 +60,16 @@ Building applications or utilities for Valecium OS?
 [width="100%",cols="50%,50%",options="header"]
 |===
 | Topic | Document
-| Code style & conventions | devel.ad
-| Memory management | kernel/index.ad
-| Building from source | building.ad
-| Running on QEMU | usage/index.ad
-| Contributing patches | devel.ad
-| Supported architectures | kernel/index.ad
-| BIOS and EFI boot | bootloader/index.ad
+| Code style & conventions | link:devel.html[devel.ad]
+| Memory management | link:kernel/mem.html[kernel/mem.ad]
+| Building from source | link:building.html[building.ad]
+| Running on QEMU | link:usage/index.html[usage/index.ad]
+| Contributing patches | link:devel.html[devel.ad]
+| Supported architectures | link:kernel/arch.html[kernel/arch.ad]
+| BIOS and EFI boot | link:bootloader/index.html[bootloader/index.ad]
+| Syscall reference | link:kernel/syscall.html[kernel/syscall.ad]
+| Filesystem stack | link:kernel/fs.html[kernel/fs.ad]
+| Crypto subsystem | link:kernel/index.html[kernel/index.ad]
 |===
 
 == Getting Help
@@ -74,10 +81,14 @@ Building applications or utilities for Valecium OS?
 
 == Revision History
 
-=== v1.0
+=== v2.0
 
-Initial comprehensive documentation welcome and index guide
+Updated to reflect project state as of v0.28: added crypto subsystem references, updated kernel subsystem descriptions, revised roadmap with current implementation status, added syscall and filesystem quick reference entries
 
 === v1.1
 
 Fixed AsciiDoc syntax and pandoc compatibility for PDF generation
+
+=== v1.0
+
+Initial comprehensive documentation welcome and index guide

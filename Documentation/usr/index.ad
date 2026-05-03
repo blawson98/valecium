@@ -9,10 +9,43 @@ This section documents Valecium userspace components by source directory. Each p
 
 == Userspace Components
 
-* link:libmath.html[libmath.ad] — Minimal shared math library for userspace
+* link:libmath.html[libmath.ad] — Shared math library for userspace (libmath.so)
 * link:sh.html[sh.ad] — Interactive shell userspace program
-* link:selftest.html[selftest.ad] — Syscall-based userspace self-test program
-* link:test.html[test.ad] — Legacy test directory (compatibility/transition)
+* link:selftest.html[selftest.ad] — Freestanding syscall self-test program
+
+== Component Details
+
+=== libmath (`usr/libmath/`)
+
+A dynamically-linked shared math library (`libmath.so`) providing:
+
+* Integer arithmetic (add, subtract, multiply, divide, modulo)
+* Trigonometric functions via Taylor series (sin, cos, tan)
+* Exponential and logarithmic functions (exp, log, log10)
+* Power and square root (pow, sqrt)
+* Rounding (floor, ceil, round)
+* Min/max and floating-point modulo
+* Init entry point: `libmath_init()`
+
+=== Shell (`usr/sh/`)
+
+An interactive shell with:
+
+* Built-in commands: `exit [code]`, `cd [dir]`, `help`
+* Variable assignment (`VAR=value`) and expansion (`$VAR`)
+* PATH-based executable lookup via `$PATH`
+* I/O redirection: `<`, `>`, `>>`
+* Pipeline support (`|`) with fork/exec/pipe
+* `&&` chaining
+* SIGINT handling
+
+=== Selftest (`usr/selftest/`)
+
+A pure-assembly, freestanding binary (no libc) that validates:
+
+* Syscall trap path (write to stdout, blocking read, open, close, exit)
+* FAT directory iteration via `SYS_OPEN` on `/`
+* Context switching and process lifecycle
 
 == Navigation Notes
 
@@ -21,6 +54,10 @@ This section documents Valecium userspace components by source directory. Each p
 * For build integration, see link:../building.html[building.ad] and `usr/SConscript`.
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component descriptions with feature lists, added note that test/ directory does not exist
 
 === v1.0
 

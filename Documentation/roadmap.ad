@@ -1,33 +1,34 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 = ValeciumOS Implementation Roadmap
+:toc: left
+:icons: font
 
 See also: link:index.html[Home], link:devel.html[Developer Guide]
 
-== Current todo
+== Current Status
 
-* [ ] Add Rust compilation support for kernel
-* [x] Refactor kernel dylib system to kernel modules
-* [ ] Add dynamic linker support for kernel
-* [x] Make kernel not use the reserved memory region and only BSS + Heap
-* [ ] FAT LFN support
-* [ ] ATAPI and ISO9660 optical driver support
-* [x] Fix usermode programs not able to read from stdin
-* [ ] Create custom bootloader
-* [ ] DMA mode hardware drivers
-* [x] External runtime dependencies compiled during build not toolchain
+Valecium OS is at version 0.28. The i686 BIOS path boots, initializes core subsystems, mounts a FAT root filesystem, and launches userspace processes. The custom bootloader has stage1 (MBR) and stage2 (protected mode entry) but does not yet load the kernel — GRUB is the current boot method.
+
+== Short-Term Todo
+
+* [ ] Ext2 filesystem driver (enum exists, no implementation)
+* [ ] FAT LFN (Long File Name) support
+* [ ] ATAPI and ISO9660 optical drive support
+* [ ] Signal delivery mechanism and signal syscall completion
+* [ ] Smart heap allocation that actually frees memory
 * [ ] Make kernel PIC & PIE
-* [ ] Smart heap allocation for kernel that actually "frees" the memory
-* [x] Add option for GRUB or default boot
-* [x] Not hard code GRUB install to be i386-pc
-* [x] Fix GitHub workflow
-* [ ] Kernel should detect partition filesysten *not* only base on partition ID
+* [ ] Kernel partition filesystem detection (not just partition ID)
+* [ ] Memory protection (read/write/execute permissions)
+* [ ] Complete custom bootloader (stage2 loads kernel)
 
-== Phase 1: Core OS Infrastructure (Current)
+== Phase 1: Core OS Infrastructure
 
 === Memory Management
 
-* [x] Virtual memory / paging (per-process address spaces)
-* [x] Heap management (brk/sbrk syscalls for malloc)
+* [x] Physical Memory Manager (PMM) — page frame allocation
+* [x] Virtual Memory Manager (VMM) — paging, per-process address spaces
+* [x] Kernel heap (kmalloc/kfree/kzalloc/calloc/realloc)
+* [x] Per-process heap (brk/sbrk syscalls)
 * [x] Stack management (per-process user stacks)
 ** [x] Refactor user stack allocation (move from process.c to stack.c)
 ** [x] Implement `Stack_CreateUser` using PMM/Paging (not kmalloc)
@@ -35,6 +36,7 @@ See also: link:index.html[Home], link:devel.html[Developer Guide]
 ** [x] Update TSS ESP0 on context switch
 * [ ] Memory protection (read/write/execute permissions)
 * [x] Page tables and MMU setup
+* [x] Kernel virtual memory layout (3 GB / 1 GB split)
 
 === Process Management
 
@@ -49,85 +51,103 @@ See also: link:index.html[Home], link:devel.html[Developer Guide]
 ** [x] Scheduler Registration
 * [x] Process scheduling & context switching (basic round-robin)
 * [x] Process termination (exit syscall)
+* [x] Fork implementation (Process_Clone)
+* [x] Exec implementation (Process_Execute)
 * [ ] Signal handling (signal syscalls)
 * [ ] User-mode ring 3 execution
 * [x] Kernel-mode execution
+* [x] Credentials (uid/gid/euid/egid per process)
 * [ ] User/kernel mode switching
 
 === Filesystem
 
-* [x] FAT filesystem read/write (basic done)
-* [x] `FAT_Create()` - create new files
-* [x] `FAT_Delete()` - delete files
+* [x] FAT12/16/32 filesystem read/write
+* [x] FAT_Create() — create new files
+* [x] FAT_Delete() — delete files
+* [x] FAT_Truncate() — truncate files
 * [x] Multi-cluster file support (files > 1 cluster)
-* [x] Device files abstraction
-* [x] File descriptors table per process
-* [ ] `FAT_Stat()` - file metadata
+* [x] Device filesystem (devfs) — /dev/tty0, /dev/null, /dev/zero
+* [x] Virtual Filesystem Switch (VFS) — open/read/write/seek/close/dispatch
+* [x] File descriptors table per process (16 entries)
+* [x] Disk abstraction layer (MBR/VBR parsing, partitions)
+* [ ] FAT_Stat() — file metadata
+* [ ] Ext2 filesystem driver
+* [x] FAT directory operations (readdir, create dir entry)
 
 === Terminal Support
 
 * [x] TTY driver for `/dev/tty0`
 * [x] Terminal line discipline (buffering, echo control)
 * [x] ANSI escape sequence support
-* [x] Keyboard input handling
+* [x] Keyboard input handling (platform-independent dispatcher)
 * [x] Terminal control ioctl calls
+* [x] Canonical/raw mode switching
+* [x] Line editing (backspace, CTRL+C/D/U/W/Z)
 
 == Phase 2: Syscalls Wrappers
 
 === File I/O Syscalls
 
-* [x] `read` - read from file descriptor
-* [x] `write` - write to file descriptor
-* [x] `open` - open file
-* [x] `close` - close file descriptor
-* [x] `lseek` - seek in file
-* [ ] `fstat`, `stat`, `lstat` - file metadata
-* [ ] `ioctl` - device control
-* [ ] `fcntl` - file control
-* [ ] `access` - check permissions
+* [x] `read` — read from file descriptor
+* [x] `write` — write to file descriptor
+* [x] `open` — open file
+* [x] `close` — close file descriptor
+* [x] `lseek` — seek in file
+* [x] `chmod` — change file mode (stub)
+* [x] `chown` — change file ownership (stub)
+* [ ] `fstat`, `stat`, `lstat` — file metadata
+* [ ] `ioctl` — device control
+* [ ] `fcntl` — file control
+* [ ] `access` — check permissions
 
 === Memory Syscalls
 
-* [x] `brk` - set data segment size (for malloc)
-* [ ] `mmap`, `munmap` - memory mapping
-* [ ] `mprotect` - set memory protection
-* [ ] `mremap` - remap memory region
+* [x] `brk` — set data segment size (for malloc)
+* [x] `sbrk` — increment data segment size
+* [ ] `mmap`, `munmap` — memory mapping
+* [ ] `mprotect` — set memory protection
+* [ ] `mremap` — remap memory region
 
 === Process Syscalls
 
-* [x] `exit` - process termination
-* [ ] `exit_group` - process termination group
-* [x] `fork` - process creation
-* [ ] `clone` - thread/process creation
-* [x] `execve` - execute program
-* [ ] `wait4`, `waitpid` - wait for child process
-* [ ] `getpid`, `getppid` - process IDs
-* [ ] `getuid`, `setuid` - user IDs
-* [ ] `geteuid`, `getgid`, `getegid` - group IDs
+* [x] `exit` — process termination
+* [x] `fork` — process creation
+* [x] `execve` — execute program
+* [x] `getpid` — get process ID
+* [x] `getppid` — get parent process ID
+* [x] `getuid` — get user ID
+* [x] `setuid` — set user ID
+* [x] `getgid` — get group ID
+* [x] `setgid` — set group ID
+* [x] `wait4` — wait for child process
+* [ ] `exit_group` — exit all threads in group
+* [ ] `clone` — create thread
 
 === Signal Syscalls
 
-* [ ] `signal`, `sigaction` - signal handlers
-* [ ] `sigprocmask`, `sigpending` - signal masking
-* [ ] `kill` - send signal
-* [ ] `pause` - wait for signal
-* [ ] `alarm` - timer signal
-* [ ] `sigreturn` - return from signal handler
+* [ ] `signal`, `sigaction` — signal handlers (partial: sigaction.c exists)
+* [ ] `sigprocmask`, `sigpending` — signal masking (partial: sigprocmask.c exists)
+* [ ] `kill` — send signal (partial: kill.c exists)
+* [ ] `pause` — wait for signal
+* [ ] `alarm` — timer signal
+* [ ] `sigreturn` — return from signal handler (arch stub exists)
+
+Note: Signal infrastructure files exist (`kernel/signal/` and `kernel/arch/i686/signal/`) but core signal delivery is not fully integrated with the scheduler and process lifecycle.
 
 === Time Syscalls
 
-* [ ] `time` - current time
-* [ ] `gettimeofday`, `clock_gettime` - precise time
-* [ ] `nanosleep` - sleep
-* [ ] `select`, `poll` - I/O multiplexing
+* [ ] `time` — current time
+* [ ] `gettimeofday`, `clock_gettime` — precise time
+* [ ] `nanosleep` — sleep
+* [ ] `select`, `poll` — I/O multiplexing
 
 === Miscellaneous Syscalls
 
-* [ ] `uname` - system info
-* [ ] `getpagesize` - page size
-* [ ] `prctl` - process control
-* [ ] `umask` - file creation mask
-* [ ] `nice`, `getpriority`, `setpriority` - scheduling
+* [ ] `uname` — system info
+* [ ] `getpagesize` — page size
+* [ ] `prctl` — process control
+* [ ] `umask` — file creation mask
+* [ ] `nice`, `getpriority`, `setpriority` — scheduling
 
 == Phase 3: Advanced Features
 
@@ -135,10 +155,10 @@ See also: link:index.html[Home], link:devel.html[Developer Guide]
 
 * [x] `/dev/null` device file
 * [x] `/dev/zero` device file
-* [ ] `/dev/random`, `/dev/urandom` - entropy
+* [x] Device node mounting (devfs)
+* [ ] `/dev/random`, `/dev/urandom` — entropy source
 * [ ] Block device interface
 * [ ] Character device interface
-* [x] Device node mounting
 
 === Filesystem Extended
 
@@ -151,11 +171,21 @@ See also: link:index.html[Home], link:devel.html[Developer Guide]
 
 === Dynamic Linking
 
-* [x] Custom dylib system (exists)
-* [x] `/lib`, `/usr/lib` layouts (done)
+* [x] Shared library loading via kmod
+* [x] `/lib`, `/usr/lib` layouts (staged in image)
+* [x] libmath.so shared library
+* [ ] Full userspace dynamic linker
 * [ ] LD_LIBRARY_PATH support
 * [ ] Symbol versioning
 * [ ] RPATH support
+
+=== Custom Bootloader
+
+* [x] Stage 1 (MBR) — loads stage2 via INT 13h LBA
+* [ ] Stage 2 (protected mode) — filesystem parser, kernel loader (stub: enters protected mode and halts)
+* [ ] Stage 2 common code — HAL and filesystem abstractions (empty stubs)
+* [ ] EFI boot (all architectures: stubs)
+* [ ] x86_64 BIOS boot (stub)
 
 === Networking
 
@@ -163,3 +193,21 @@ See also: link:index.html[Home], link:devel.html[Developer Guide]
 * [ ] UDP/TCP support
 * [ ] DNS resolution
 * [ ] Network device drivers
+
+=== Cryptography
+
+* [x] MD5 implementation
+* [x] SHA1 implementation
+* [x] Crypto self-tests
+* [ ] Additional algorithms (e.g., AES)
+* [ ] Kernel entropy pool
+
+== Revision History
+
+=== v2.0
+
+Complete overhaul to reflect v0.28 codebase state: marked items as done/undone based on actual source analysis, added crypto subsystem, custom bootloader status, detailed syscall and phase breakdowns, added signal implementation status notes, added section for short-term todo items
+
+=== v1.0
+
+Initial roadmap document

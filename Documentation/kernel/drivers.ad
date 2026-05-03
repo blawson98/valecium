@@ -5,21 +5,55 @@
 
 See also: link:index.html[Kernel Index], link:fs.html[Filesystem], link:sys.html[System Services]
 
-This directory contains device drivers for storage, input, and terminal output, including ATA/FDC disk access, keyboard handling, and TTY rendering.
+This directory contains device drivers for storage, input, and terminal output.
 
-== Summary
+== Components
 
-* Hardware-facing implementations for block and character devices.
-* TTY subsystem handles kernel/user text output to VGA-backed console.
-* Keyboard path provides input events into terminal line discipline.
+=== ATA Driver
+`ata/ata.c` — PATA (Parallel ATA) disk driver.
+
+* Primary and secondary channel support
+* Master/slave drive detection
+* Sector read/write (LBA28)
+* IDENTIFY command for drive parameters
+* Software reset
+
+=== Floppy Disk Controller (FDC) Driver
+`fdc/fdc.c` — Floppy disk controller driver.
+
+* LBA-based sector read/write
+* Seek, reset, and drive parameter detection
+
+=== Keyboard Driver
+`keyboard/keyboard.c` — Platform-independent generic keyboard input handler.
+
+* Scancode processing (receives scancodes from arch-specific PS/2 driver)
+* Forwards processed key events to TTY line discipline
+* Modifier key tracking (Shift, Ctrl, Alt)
+
+Platform-specific PS/2 controller driver lives at `kernel/arch/i686/drivers/ps2.c`.
+
+=== TTY Subsystem
+`tty/tty.c` — Full terminal/TTY driver with devfs integration.
+
+* Canonical and raw modes
+* Line editing (backspace, CTRL+C/D/U/W/Z)
+* Echo control
+* Circular input/output buffers
+* ANSI escape sequence support
+* `/dev/tty0` device node
 
 == Typical Work in This Area
 
-* Add or improve hardware support.
-* Debug IRQ-driven input/output behavior.
-* Extend terminal and console capabilities.
+* Add or improve hardware support
+* Debug IRQ-driven input/output behavior
+* Extend terminal and console capabilities
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component descriptions with feature listings for ATA, FDC, keyboard, and TTY
 
 === v1.0
 

@@ -12,7 +12,7 @@ See also: link:index.html[Main Boot Page], link:efi-boot.html[EFI Boot Process],
 |[.s1]#*Hardware/Software Mechanism*#
 
 |[.s1]#*Stage 1*# |[.s1]#*MBR / Boot Sector*# |[.s1]#The first 512 bytes
-on disk. Loads the stage2 bootloader in the reserved space of the MBR to 
+on disk. Loads the stage2 bootloader in the reserved space of the MBR to
 RAM.# |[.s1]#BIOS INT 0x13h (LBA); Signature 0xAA55 at byte 510.#
 
 |[.s1]#*Stage 2*# |[.s1]#*Memory Detection*# |[.s1]#Queries the BIOS for
@@ -21,7 +21,7 @@ memMapAddr.# |[.s1]#BIOS INT 0x15, EAX=0xE820.#
 
 |[.s1]#*Stage 2*# |[.s1]#*A20 Gate*# |[.s1]#Disables the "wraparound" at
 1MB to allow access to higher memory which is where the kernel will load
-normally.# |[.s1]#"Fast A20" via I/O Port 0x92 or BIOS INT 0x15, 
+normally.# |[.s1]#"Fast A20" via I/O Port 0x92 or BIOS INT 0x15,
 AX=0x2401.#
 
 |[.s1]#*Stage 2*# |[.s1]#*Video Setup*# |[.s1]#(Optional) Sets a
@@ -37,8 +37,8 @@ CPU from 16-bit Real Mode to 32-bit Protected Mode.# |[.s1]#Set Bit 0 in
 CR0 register; Far JMP to flush pipeline.#
 
 |[.s1]#*Stage 3*# |[.s1]#*Filesystem Parser*# |[.s1]#Navigates the
-storage (e.g., FAT32) to find the valeciumx-(version) file under `/boot`
-of the host filesystem.# |[.s1]#Custom code to read Root Directory and 
+storage (e.g., FAT32) to find the kernel file under `/boot`
+of the host filesystem.# |[.s1]#Custom code to read Root Directory and
 Clusters/Extents.#
 
 |[.s1]#*Stage 3*# |[.s1]#*Executable Loader*# |[.s1]#Copies the kernel
@@ -51,5 +51,21 @@ memory region (e.g., 0x7000) with packed data.#
 
 |[.s1]#*Handoff*# |[.s1]#*Final Jump*# |[.s1]#Sets EAX to your magic
 value, EBX to the info pointer, and jumps to the kernel.# |[.s1]#mov
-eax, MAGIC; mov ebx, INFO++_++PTR; jmp KERNEL++_++ENTRY.#
+eax, MAGIC; mov ebx, INFO_PTR; jmp KERNEL_ENTRY.#
 |===
+
+== Current Implementation Status
+
+* Stage 1: Full MBR bootsector with LBA INT 13h support, metadata patching via "VLSP" signature
+* Stage 2: A20 gate enable, GDT setup, protected mode switch, VGA text output — implemented but stops before filesystem parsing
+* Stage 3 (Filesystem Parser, Executable Loader, Handoff): Not yet implemented
+
+== Revision History
+
+=== v2.0
+
+Added implementation status section, corrected table formatting
+
+=== v1.0
+
+Initial BIOS boot process documentation

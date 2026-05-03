@@ -7,13 +7,32 @@ See also: link:index.html[Userspace Index], link:../kernel/syscall.html[Kernel S
 
 `usr/sh` contains the shell executable used for interactive command execution and userspace process launching.
 
-== Summary
+== Features
 
-* Provides command parsing and simple execution flow.
-* Exercises key process and file syscall paths from userspace.
-* Acts as the default interactive userspace application in typical boots.
+* **Built-in commands**: `exit [code]`, `cd [dir]`, `help`
+* **Variable assignment**: `VAR=value` syntax
+* **Variable expansion**: `$VAR` substitution in tokens
+* **PATH lookup**: Searches `$PATH` for executables
+* **I/O redirection**: `<` (input), `>` (output), `>>` (append)
+* **Pipelines**: `|` operator with proper fork/exec/pipe plumbing
+* **Chaining**: `&&` conditional command execution
+* **Signal handling**: SIGINT is ignored (children handle it)
+
+== Implementation
+
+* 755 lines of C (`sh.c`)
+* Exercises key process and file syscall paths from userspace
+* Acts as the default interactive userspace application
+
+== Current Status
+
+The shell is structurally complete. The `main()` function currently returns 0 (the init/loop functions are commented out), pending integration with the full init process flow.
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: added feature list with built-in commands, I/O redirection, pipelines, PATH lookup; noted current status
 
 === v1.0
 

@@ -5,21 +5,75 @@
 
 See also: link:index.html[Kernel Index], link:drivers.html[Drivers], link:syscall.html[Syscall]
 
-This directory provides the filesystem and file-descriptor pipeline, including VFS routing, FAT support, devfs device nodes, and disk partition metadata handling.
+This directory provides the filesystem and file-descriptor pipeline.
 
-== Summary
+== Components
 
-* VFS dispatches file operations to concrete filesystems.
-* FAT and disk layers provide persistent storage access.
-* devfs exposes runtime devices like `/dev/tty0` through a filesystem interface.
+=== Virtual Filesystem Switch (VFS)
+`vfs/vfs.c` — Dispatches file operations to concrete filesystems. Uses a `VFS_Operations` struct with Linux-style callbacks:
+
+* `open`, `create`, `readdir`, `read`, `write`, `seek`, `close`
+* `get_size`, `delete`, `access`, `chmod`, `chown`
+* Mount operations: `FS_Mount()`, `FS_Umount()`
+
+=== FAT Filesystem
+`fat/fat.c` — Full FAT12/16/32 implementation supporting:
+
+* File open, read, write, seek
+* File creation, deletion, truncation
+* Directory read/write, directory entry creation
+* Multi-cluster file support
+* VFS integration via `FAT_GetVFSOperations()`
+
+=== Device Filesystem (devfs)
+`devfs/devfs.c` — In-memory device filesystem exposing:
+
+* `/dev/tty0` — Terminal device
+* `/dev/null` — Null device (discards writes, returns EOF on read)
+* `/dev/zero` — Zero device (returns null bytes on read)
+* Dynamic device registration/unregistration/enumeration API
+
+=== File Descriptor Layer
+`fd/fd.c` — Per-process file descriptor table (16 entries per process).
+
+* `FD_Open()`, `FD_Close()`, `FD_Read()`, `FD_Write()`, `FD_Lseek()`
+* `FileDescriptor` struct: path, offset, readable/writable flags, inode, ref_count
+
+=== Disk Abstraction
+`disk/` — Low-level disk and partition handling:
+
+* `disk.c` — Disk struct, sector read/write, disk scanning
+* `mbr.c` — Master Boot Record parsing
+* `vbr.c` — Volume Boot Record parsing
+* `partition.c` — Partition metadata (offset, size, type, UUID, label)
+
+=== Shared Types
+`misc/fs_types.h` — `FilesystemType` enum: FAT12=1, FAT16=2, FAT32=3, EXT2=4, DEVFS=5
+
+`misc/fs.c` — `FS_Initialize()` — initializes devfs and scans disks
+
+`misc/std_dev.c` — Standard device node creation
+
+== Key Headers
+
+* `include/valecium/fs.h` — Public filesystem API
+* `kernel/fs/vfs/vfs.h` — VFS internal interface
+* `kernel/fs/devfs/devfs.h` — Device filesystem API
+* `kernel/fs/fd/fd.h` — File descriptor API
 
 == Typical Work in This Area
 
-* Add filesystem operations and metadata support.
-* Improve mount and partition probing logic.
-* Fix descriptor and seek/read/write semantics.
+* Add filesystem operations and metadata support
+* Implement Ext2 filesystem driver (enum exists, no implementation)
+* Add FAT LFN (Long File Name) support
+* Improve mount and partition probing logic
+* Fix descriptor and seek/read/write semantics
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component breakdown with function listings, added devfs, fd layer, disk abstraction, shared types
 
 === v1.0
 

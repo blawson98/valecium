@@ -5,21 +5,50 @@
 
 See also: link:index.html[Kernel Index], link:cpu.html[CPU], link:sys.html[System Services]
 
-This directory owns boot-time initialization flow after architecture entry: memory, devices, filesystems, userspace launch, and fallback control paths.
+This directory owns boot-time initialization flow after the architecture entry point.
 
-== Summary
+== Boot Flow
 
-* Coordinates subsystem initialization ordering.
-* Mounts and validates root and core runtime services.
-* Launches initial userspace process and handles fallback behavior.
+`start()` in `main.c` executes the following sequence:
+
+1. Copy boot info snapshot from bootloader
+2. Zero BSS section (`__bss_start` to `__end`)
+3. Zero `g_SysInfo` global system info structure
+4. `MEM_Initialize()` — Set up PMM and VMM using the memory map
+5. `TTY_Initialize()` — Initialize terminal output
+6. `SYS_Initialize()` — Set up system info structure
+7. `CPU_Initialize()` — Detect CPU features
+8. `HAL_Initialize()` — Set up GDT, TSS, IDT, ISR stubs, IRQ handlers, PS/2 controller, PIT timer, VGA text mode, syscall handler (int 0x80)
+9. `CmdLine_Initialize()` — Parse kernel command-line arguments
+10. `Crypto_SelfTest()` — Verify MD5 and SHA1 correctness
+11. `FS_Initialize()` — Initialize devfs, scan disks for partitions
+12. `Init_MountRoot()` — Mount root filesystem from boot partition
+13. `VFS_SelfTest()` — Verify VFS operations
+14. `Keyboard_Initialize()` — Set up keyboard input handler
+15. `KMOD_Initialize()` — Initialize kernel module loader
+16. `SYS_Finalize()` — Finalize system info with boot parameters
+17. `Process_SelfTest()` — Verify process creation and lifecycle
+18. `ELF_LoadProcess("/usr/bin/selftest")` — Load first userspace process
+19. Context switch to userspace (selftest runs, then shell)
+
+== Files
+
+* `main.c` — Kernel entry point (`start()`) and initialization orchestration
+* `mount.c` — `Init_MountRoot()` — mount root filesystem from boot partition
+* `interact.c` — `interact()` — interactive fallback shell for debugging
 
 == Typical Work in This Area
 
-* Adjust startup sequence dependencies.
-* Add boot diagnostics and self-test triggers.
-* Refine init process handoff and recovery logic.
+* Adjust startup sequence dependencies
+* Add boot diagnostics and self-test triggers
+* Refine init process handoff and recovery logic
+* Add initramfs support
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: complete boot flow with all 19 steps, file descriptions
 
 === v1.0
 
