@@ -13,6 +13,7 @@ Sources += [
 
 CoreSources += [
     File('core.S'),
+    File('detect.S'),
 ]
 
 BootSector = File('boot.S')

@@ -1,0 +1,280 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/*
+ * detect.S — Hardware detection for BIOS/i686 stage2 bootloader.
+ *
+ * Builds a Multiboot2 Boot Information structure at 0x6000 containing:
+ *   - Basic Memory Info tag   (type 4)
+ *   - Boot Device tag         (type 5)
+ *   - Memory Map tag          (type 6) — via INT 0x15 E820
+ *   - End tag                 (type 0)
+ *
+ * The pointer (0x6000) is saved to memory at 0x5000 so that
+ * 32-bit protected mode code can retrieve and display the data.
+ *
+ * Runs in 16-bit real mode.  Expects the BIOS boot-drive number
+ * in DL.  Clobbers AX, CX, DX, SI, DI, BX, ES, DS.
+ */
+
+.code16
+.section .text, "ax"
+.global detect_hardware
+
+/* ------------------------------------------------------------------ */
+/*  Memory layout constants                                            */
+/* ------------------------------------------------------------------ */
+.equ MBI_BASE,     0x6000          /* Multiboot2 info structure base   */
+.equ MBI_PTR_SAVE, 0x5000          /* Where to stash the pointer       */
+
+/* ------------------------------------------------------------------ */
+/*  detect_hardware                                                    */
+/* ------------------------------------------------------------------ */
+detect_hardware:
+	pushw	%bp
+	movw	%sp, %bp
+
+	/* Segment registers → 0 for physical addressing. */
+	xorw	%ax, %ax
+	movw	%ax, %ds
+	movw	%ax, %es
+
+	/* Save MBI pointer so 32-bit code can find it. */
+	movl	$MBI_BASE, %eax
+	movl	%eax, (MBI_PTR_SAVE)
+
+	/* DI = current write offset inside the MBI structure. */
+	movw	$MBI_BASE, %di
+
+	/* Skip the 8-byte header (total_size + reserved), fill later. */
+	addw	$8, %di
+
+	/* ============================================================ */
+	/*  Tag 1 — Basic Memory Info  (type 4, size 16)                */
+	/* ============================================================ */
+	movl	$4,  %es:(%di)          /* type                          */
+	movl	$16, %es:4(%di)         /* size                          */
+
+	/* Lower memory via INT 0x12.  Returns AX = KB. */
+	int	$0x12
+	movw	%ax, %es:8(%di)         /* mem_lower  low word           */
+	movw	$0,  %es:10(%di)        /* mem_lower  high word          */
+
+	/* mem_upper is filled from E820 when possible; init to 0. */
+	movw	$0,  %es:12(%di)
+	movw	$0,  %es:14(%di)
+
+.Lmeminfo_done:
+	addw	$16, %di                /* Advance past this tag        */
+
+	/* ============================================================ */
+	/*  Tag 2 — Boot Device  (type 5, size 20)                      */
+	/* ============================================================ */
+	movl	$5,  %es:(%di)          /* type                          */
+	movl	$20, %es:4(%di)         /* size                          */
+	movw	%dx, %es:8(%di)         /* biosdev  (DL = boot drive)   */
+	movw	$0,  %es:10(%di)        /* high word of biosdev         */
+	movl	$0,  %es:12(%di)        /* partition   = 0              */
+	movl	$0,  %es:16(%di)        /* subpartition = 0             */
+
+	addw	$20, %di
+
+	/* Align DI up to the next 8-byte boundary for the next tag. */
+	movw	%di, %ax
+	addw	$7, %ax
+	andw	$0xFFF8, %ax
+	movw	%ax, %di
+
+	/* ============================================================ */
+	/*  Tag 3 — Memory Map  (type 6)  —  E820 detection             */
+	/* ============================================================ */
+	movw	%di, %bp                /* Remember tag start offset    */
+
+	movl	$6,  %es:(%di)          /* type                          */
+	movl	$0,  %es:4(%di)         /* size    ← placeholder        */
+	movl	$24, %es:8(%di)         /* entry_size                   */
+	movl	$0,  %es:12(%di)        /* entry_version                */
+	addw	$16, %di                /* Advance past mmap header     */
+
+	/* Query the BIOS E820 memory map.
+	 * We fill entries directly into the MBI buffer.
+	 * SI = entry counter; DI = next entry offset;
+	 * BP = tag start offset.
+	 */
+	xorw	%si, %si                /* entry counter                */
+	movl	$0xE820, %eax
+	xorl	%ebx, %ebx              /* start at beginning           */
+	movl	$0x534D4150, %edx       /* 'SMAP'                       */
+	movl	$24, %ecx               /* request 24-byte entries      */
+	jmp	.Le820_first
+
+.Le820_loop:
+	int	$0x15
+	jc	.Le820_done             /* CF set → error / end        */
+	cmpl	$0x534D4150, %eax
+	jne	.Le820_done             /* SMAP mismatch → stop        */
+
+	/* ECX = bytes actually written (20 or 24).  Skip if zero. */
+	testl	%ecx, %ecx
+	jz	.Le820_skip
+	/* Record actual entry_size (20 or 24) in the tag header. */
+	movl	%ecx, %es:8(%bp)
+
+	addl	%ecx, %edi              /* advance past this entry     */
+	incw	%si                     /* one more valid entry        */
+
+.Le820_skip:
+	testl	%ebx, %ebx
+	jz	.Le820_done             /* EBX = 0 → no more entries  */
+
+.Le820_first:
+	/* Re-arm registers that INT 0x15 may have clobbered. */
+	movl	$0xE820, %eax
+	movl	$0x534D4150, %edx
+	movl	$24, %ecx
+	jmp	.Le820_loop
+
+.Le820_done:
+	/* Compute mmap tag size from actual bytes written.
+	 * tag_size = (DI - BP)  (total from mmap start to after entries)
+	 * This correctly handles both 20-byte and 24-byte entries.
+	 */
+	movw	%di, %ax
+	subw	%bp, %ax                /* AX = mmap tag + entries total */
+	movw	%ax, %es:4(%bp)         /* store real mmap tag size     */
+
+	/* If E820 returned no entries, use legacy INT 0x15 (E801/88). */
+	cmpw	$0, %si
+	jne	.Le820_has_entries
+
+	/* Extended memory — try INT 0x15, AX = 0xE801 first. */
+	movw	$0xE801, %ax
+	stc
+	int	$0x15
+	jc	.Ltry_int88_legacy
+
+	/* E801 succeeded.
+	 * AX = memory 1-16 MB  (KB)
+	 * BX = memory >16 MB   (64 KB blocks)
+	 * Upper = AX + (BX << 6)   KB
+	 */
+	movw	%bx, %cx
+	xorw	%bx, %bx
+	shlw	$6, %cx                 /* CX = BX * 64                 */
+	addw	%cx, %ax
+	movw	%ax, %es:(MBI_BASE + 12)
+	movw	$0,  %es:(MBI_BASE + 14)
+	jmp	.Lmeminfo_e820_done
+
+.Ltry_int88_legacy:
+	/* Fallback: INT 0x15, AH = 0x88.  Returns AX = KB (>1 MB). */
+	movw	$0x8800, %ax
+	stc
+	int	$0x15
+	movw	%ax, %es:(MBI_BASE + 12)
+	movw	$0,  %es:(MBI_BASE + 14)
+	jmp	.Lmeminfo_e820_done
+
+.Le820_has_entries:
+
+	/* Zero mem_lower/mem_upper (KB) before summing. */
+	movl	$0, %es:(MBI_BASE + 16)
+	movl	$0, %es:(MBI_BASE + 20)
+
+	/* Setup entry walk. */
+	movw	%si, %cx                /* entry count (16-bit)         */
+	movl	%ebp, %edi
+	addl	$16, %edi               /* EDI = first entry            */
+	movl	%es:8(%ebp), %ebx       /* entry_size                   */
+
+.Lmeminfo_e820_loop:
+	cmpw	$0, %cx
+	je	.Lmeminfo_e820_done
+
+	/* type == 1? */
+	movl	16(%edi), %eax
+	cmpl	$1, %eax
+	jne	.Lmeminfo_next
+
+	/* Skip if base_high or len_high are non-zero (beyond 4 GB). */
+	movl	4(%edi), %eax
+	testl	%eax, %eax
+	jne	.Lmeminfo_next
+	movl	12(%edi), %eax
+	testl	%eax, %eax
+	jne	.Lmeminfo_next
+
+	/* base_low -> ESI, len_low -> EAX, end_low -> EDX */
+	movl	(%edi), %esi
+	movl	8(%edi), %eax
+	movl	%esi, %edx
+	addl	%eax, %edx
+	jc	.Lmeminfo_end_overflow
+	shrl	$10, %esi               /* base_kb */
+	shrl	$10, %edx               /* end_kb  */
+	jmp	.Lmeminfo_have_kb
+
+.Lmeminfo_end_overflow:
+	shrl	$10, %esi
+	movl	$0x100000, %edx         /* 4 GB in KB */
+
+.Lmeminfo_have_kb:
+	/* Save end_kb on stack for reuse. */
+	pushl	%edx
+
+	/* mem_lower: overlap with [0, 1024) KB */
+	cmpl	$0x400, %esi
+	jge	.Lmeminfo_lower_done
+	movl	%edx, %eax
+	cmpl	$0x400, %eax
+	jle	.Lmeminfo_lower_end_ok
+	movl	$0x400, %eax
+.Lmeminfo_lower_end_ok:
+	cmpl	%esi, %eax
+	jle	.Lmeminfo_lower_done
+	subl	%esi, %eax
+	addl	%eax, %es:(MBI_BASE + 16)
+
+.Lmeminfo_lower_done:
+	/* mem_upper: overlap with [1024, end) KB */
+	popl	%eax                   /* end_kb */
+	cmpl	$0x400, %eax
+	jle	.Lmeminfo_next
+	movl	%esi, %edx
+	cmpl	$0x400, %edx
+	jge	.Lmeminfo_upper_ok
+	movl	$0x400, %edx
+.Lmeminfo_upper_ok:
+	subl	%edx, %eax
+	jle	.Lmeminfo_next
+	addl	%eax, %es:(MBI_BASE + 20)
+
+.Lmeminfo_next:
+	addl	%ebx, %edi              /* next entry */
+	decw	%cx
+	jmp	.Lmeminfo_e820_loop
+
+.Lmeminfo_e820_done:
+
+	/* Align DI up to 8-byte boundary for the end tag. */
+	movw	%di, %ax
+	addw	$7, %ax
+	andw	$0xFFF8, %ax
+	movw	%ax, %di
+
+	/* ============================================================ */
+	/*  End Tag  (type 0, size 8)                                    */
+	/* ============================================================ */
+	movl	$0, %es:(%di)
+	movl	$8, %es:4(%di)
+	addw	$8, %di
+
+	/* ============================================================ */
+	/*  Write total_size at the beginning of the structure.          */
+	/* ============================================================ */
+	movw	%di, %ax
+	subw	$MBI_BASE, %ax          /* AX = total size             */
+	movw	%ax, (MBI_BASE)         /* total_size low word         */
+	movw	$0,  (MBI_BASE + 2)     /* total_size high word        */
+	movl	$0,  (MBI_BASE + 4)     /* reserved = 0                */
+
+	popw	%bp
+	retw

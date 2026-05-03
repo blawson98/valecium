@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
+/* SPDX-License-Identifier: GPL-3.0-only */
 
 /*
  * i686 PC MBR stage1 loader.

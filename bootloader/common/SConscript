@@ -7,6 +7,5 @@ Import('Sources')
 
 
 Sources += [
-    File('filesystems.c'),
-    File('hal.c'),
+    File('print.c'),
 ]
