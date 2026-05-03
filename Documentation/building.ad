@@ -46,7 +46,7 @@ sudo apt-get install -y python3 scons
 **macOS (Partial Support):**
 
 * i686 builds supported but may require manual setup
-* x86_64 and ARM64 builds not fully tested
+* x86_64 and aarch64 builds not fully tested
 * Cross-compiler toolchain building may fail or require manual intervention
 * Consider using Docker or a Linux VM for production builds
 * Manual toolchain installation may be necessary (see <<Troubleshooting>>)
@@ -76,6 +76,10 @@ toolchain = '../os_toolchain'
 ImageName = 'valeciumos'
 ImageFormat = 'img'
 KernelName = 'valeciumx'
+BootSystem = 'grub'
+BootType = 'bios'
+DiskPartitionMap = 'mbr'
+ProjVersion = '0.28'
 ----
 
 === Step 1: Install Dependencies
@@ -103,7 +107,7 @@ Once dependencies are installed via `scons deps`, you can build the cross-compil
 scons toolchain
 ----
 
-This builds the cross-compiler for your target architecture based on the `BuildArch` variable in `.config` or if you explicitly set it via arguments. The toolchain build requires dependencies to be installed first. The path that the toolchain will install to is the directory the `toolchain` variable points to (You may need root privillages if you would like to install it system wide to locations like `/opt/cross`).
+This builds the cross-compiler for your target architecture based on the `BuildArch` variable in `.config` or if you explicitly set it via arguments. The toolchain build uses binutils 2.45, musl 1.2.6, and GCC 15.2.0. The path that the toolchain will install to is the directory the `toolchain` variable points to (You may need root privillages if you would like to install it system wide to locations like `/opt/cross`).
 
 === Step 3: Build
 
@@ -116,11 +120,11 @@ scons                    # Build with default settings (debug mode)
 
 This builds:
 
-* Kernel executable
-* Userspace libraries and utilities
-* Bootable disk image
+* Kernel executable (ELF, loaded via GRUB or custom bootloader)
+* Userspace libraries and utilities (libmath.so, sh, selftest)
+* Bootable disk image (GRUB-based or with custom bootloader)
 
-Build artifacts are placed in the `build/` directory.
+Build artifacts are placed in the `build/<arch>_<config>/` directory.
 
 === Step 4: Run or Debug
 
@@ -143,28 +147,23 @@ scons BuildArch=i686 toolchain
 # Build toolchain for x86_64
 scons BuildArch=x86_64 toolchain
 
-# Build toolchain for ARM64
+# Build toolchain for aarch64
 scons BuildArch=aarch64 toolchain
 
 # Now you can switch between architectures:
 scons BuildArch=i686 BuildType=kernel      # i686 kernel
-scons BuildArch=x86_64 BuildType=kernel       # x86_64 kernel
-scons BuildArch=aarch64 BuildType=kernel   # ARM64 kernel
+scons BuildArch=x86_64 BuildType=kernel    # x86_64 kernel (stub)
+scons BuildArch=aarch64 BuildType=kernel   # aarch64 kernel (stub)
 ----
 
 Each architecture's cross-compiler is stored separately, so switching architectures is as simple as changing the `BuildArch` variable.
-[source, python]
-----
-ImageFormat = 'img'
-KernelName = 'valeciumx'
-----
 
 You can edit `.config` directly to persist settings, or use command-line arguments (command-line takes precedence):
 
 [source,bash]
 ----
 scons BuildConfig=release      # Use release for this build only (still uses .config defaults for other vars)
-scons BuildArch=x86_64            # Use x86_64 for this build only
+scons BuildArch=x86_64         # Use x86_64 for this build only
 ----
 
 == Build Configuration
@@ -180,11 +179,14 @@ Pass variables to `scons` to customize the build. Common options:
 | `BuildArch` | `i686`, `x86_64`, `aarch64` | `i686`
 | `ImageFs` | `fat12`, `fat16`, `fat32`, `ext2` | `fat32`
 | `ImageSize` | Size with k/m/g suffix | `250m`
-| `BuildType` | `full`, `kernel`, `usr`, `image` | `full`
+| `BuildType` | `full`, `kernel`, `usr`, `image`, `bootloader` | `full`
 | `ImageFormat` | `img`, `iso` | `img`
+| `BootSystem` | `grub`, `system` | `grub`
 | `BootType` | `bios`, `efi` | `bios`
 | `DiskPartitionMap` | `mbr`, `gpt` | `mbr`
 | `ImageName` | Base name (no extension) | `valeciumos`
+| `KernelName` | Kernel binary name | `valeciumx`
+| `ProjVersion` | Version string | `0.28`
 |===
 
 === Examples
@@ -202,6 +204,9 @@ scons BuildType=kernel
 
 # Build only the disk image
 scons BuildType=image
+
+# Use custom bootloader instead of GRUB
+scons BootSystem=system
 
 # Specify output image name and filesystem
 scons ImageName=vk-debug ImageFs=ext2
@@ -261,7 +266,7 @@ scons BuildType=full
 scons BuildType=kernel
 ----
 
-Output: `build/kernel/valeciumx` (ELF executable with debug symbols)
+Output: `build/<arch>_<config>/kernel/valeciumx` (ELF executable with debug symbols)
 
 === Userspace Only
 
@@ -270,7 +275,11 @@ Output: `build/kernel/valeciumx` (ELF executable with debug symbols)
 scons BuildType=usr
 ----
 
-Builds system libraries and utilities without the kernel.
+Builds system libraries and utilities without the kernel. Produces:
+
+* `usr/libmath/libmath.so` — Shared math library
+* `usr/sh/sh` — Interactive shell
+* `usr/selftest/selftest` — Freestanding syscall test binary
 
 === Image Only
 
@@ -280,6 +289,15 @@ scons BuildType=image
 ----
 
 Generates bootable disk image from pre-built kernel and userspace.
+
+=== Bootloader Only
+
+[source,bash]
+----
+scons BuildType=bootloader
+----
+
+Builds the custom bootloader (stage1 `boot.bin` and stage2 `core.bin`) without the kernel or userspace. Only applicable when `BootSystem=system`.
 
 == Running and Testing
 
@@ -363,6 +381,8 @@ cd /valecium
 scons deps && scons toolchain && scons build
 ----
 
+Dockerfiles are provided under `scripts/` for i686, x86_64, and aarch64 targets.
+
 **Option 3: Use a Linux VM (VirtualBox, Parallels)**
 
 Running Valecium OS builds on Linux is more reliable. Consider setting up a development VM.
@@ -441,13 +461,22 @@ done
 
 The SCons build system consists of:
 
-* `SConstruct` — Top-level build configuration
+* `SConstruct` — Top-level build configuration (project version, environment creation, build dispatch)
 * `kernel/SConscript` — Kernel build rules
-* `usr/SConscript` — Userspace build rules
-* `image/SConscript` — Disk image generation
-* `scripts/scons/` — Helper modules (toolchain, arch detection, disk utilities)
+* `kernel/arch/<arch>/SConscript` — Architecture-specific build rules
+* `usr/SConscript` — Userspace build rules (libmath, sh, selftest)
+* `image/SConscript` — Disk image generation (GRUB/custom bootloader, staging, partition creation)
+* `bootloader/Sconscript` — Custom bootloader build (stage1 MBR, stage2 core)
+* `scripts/scons/` — Helper modules (arch detection, bootloader build, disk utilities)
+* `scripts/base/` — Standalone CLI tools (toolchain builder, QEMU runner, formatter, debugger)
 
-See the kernel configuration files for details on architecture-specific settings.
+=== Toolchain Components
+
+The cross-compiler toolchain built by `scons toolchain` includes:
+
+* **binutils 2.45** — Assembler, linker, and binary utilities for the target architecture
+* **musl 1.2.6** — Lightweight C library for the target (used instead of glibc)
+* **GCC 15.2.0** — C/C++ compiler targeting the architecture with musl
 
 == Building Documentation
 
@@ -475,14 +504,18 @@ All documentation files use AsciiDoc format (`.ad` files) and are processed thro
 
 == Revision History
 
-=== v1.0
+=== v2.0
 
-Initial comprehensive building guide with SCons quickstart, configuration options, running/debugging, and troubleshooting
+Updated for v0.28: added BootSystem variable, BuildType=bootloader target, toolchain component details, build system structure updates, kernel module loading info, documentation output paths clarification
+
+=== v1.2
+
+Clarified toolchain built based on 'arch' variable, added multiple architecture build instructions, added documentation building section
 
 === v1.1
 
 Added configuration file (`.config`) explanation, refined deps vs toolchain distinction, added macOS support warnings and Docker/VM alternatives
 
-=== v1.2
+=== v1.0
 
-Clarified toolchain built based on 'arch' variable, added multiple architecture build instructions, added documentation building section
+Initial comprehensive building guide with SCons quickstart, configuration options, running/debugging, and troubleshooting

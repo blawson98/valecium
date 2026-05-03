@@ -5,21 +5,81 @@
 
 See also: link:index.html[Kernel Index], link:arch.html[Arch], link:cpu.html[CPU]
 
-This directory contains kernel and process memory management primitives: PMM frame allocation, VMM mappings, heap behavior, and stack management.
+This directory contains kernel and process memory management primitives.
 
-== Summary
+== Components
 
-* PMM and VMM provide physical and virtual memory foundation.
-* Heap and stack layers expose allocation and process memory setup.
-* Shared headers define memory layout and subsystem contracts.
+=== Physical Memory Manager (PMM)
+`pmm.c` — Page frame allocator that manages physical memory pages. Provides allocation and freeing of physical frames. Initialized early in boot with the memory map from the bootloader.
+
+* `PMM_Initialize()` — Set up based on boot memory map
+* `PMM_AllocatePhysicalPage()` — Allocate a physical page frame
+* `PMM_FreePhysicalPage()` — Free a page frame
+
+=== Virtual Memory Manager (VMM)
+`vmm.c` — Virtual memory mapping layer built on top of the PMM. Supports both kernel-space and per-process page directories.
+
+* `VMM_Initialize()` — Set up kernel page directory
+* `VMM_Allocate()`, `VMM_Free()` — Kernel virtual memory operations
+* `VMM_Map()`, `VMM_Unmap()` — Map/unmap virtual pages
+* `VMM_AllocateInDir()`, `VMM_FreeInDir()`, `VMM_MapInDir()` — Per-process address space operations
+
+=== Kernel Heap
+`heap.c` — Kernel-space heap allocator used by the kernel and drivers.
+
+* `kmalloc()`, `kzalloc()`, `free()` — Standard kernel allocation
+* `malloc()`, `calloc()`, `realloc()` — Compatibility wrappers
+* `Heap_SelfTest()` — Heap allocator verification
+
+=== Per-Process Heap
+Managed via `brk()` / `sbrk()` syscalls (handled in `heap.c`). Each process has its own heap region set up during process creation.
+
+* `Heap_ProcessInitialize()` — Initialize per-process heap
+* `Heap_ProcessBrk()` — Set process break address
+* `Heap_ProcessSbrk()` — Adjust process break by increment
+
+=== Stack Management
+`stack.c` — Per-process user and kernel stack creation and destruction.
+
+* `Stack_Create()` — Allocate a stack (user or kernel)
+* `Stack_Destroy()` — Free a stack
+* `Stack_SetupProcess()` — Configure stack for process execution
+
+=== Memory Protection
+`protect.c` — Memory protection primitives (early stage).
+
+=== Utility Memory Operations
+`memory.c` — Low-level memory copy, set, compare, and move operations.
+
+* `memcpy()`, `memset()`, `memcmp()`, `memmove()`
+
+== Virtual Memory Layout (i686)
+
+* KERNEL_BASE = 0xC0000000 (3 GB)
+* USER_SPACE_END = 0xC0000000
+* USER_CODE_START = 0x08048000
+* USER_HEAP_START = 0x10000000 (256 MB)
+* USER_STACK_START = 0xBFFF0000 (just below 3 GB)
+* USER_STACK_SIZE = 0x10000 (64 KB)
+
+== Key Headers
+
+* `kernel/mem/mm_kernel.h` — Kernel-level memory API
+* `kernel/mem/mm_proc.h` — Per-process memory API
+* `kernel/arch/i686/mem/vm_layout.h` — Virtual memory layout constants
 
 == Typical Work in This Area
 
-* Improve allocation policies and fragmentation behavior.
-* Debug mapping/permission issues and page faults.
-* Expand memory safety and protection features.
+* Improve allocation policies and fragmentation behavior
+* Debug mapping/permission issues and page faults
+* Expand memory safety and protection features
+* Implement mmap/munmap syscalls
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component breakdown with function listings, added virtual memory layout, key headers section
 
 === v1.0
 

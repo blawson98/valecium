@@ -7,19 +7,49 @@ See also: link:index.html[Kernel Index], link:cpu.html[CPU], link:../usr/selftes
 
 This directory implements syscall dispatch and handler entry points that bridge userspace ABI requests to kernel subsystems.
 
-== Summary
+== Syscall Dispatch
 
-* Defines syscall numbers and dispatch tables.
-* Implements handlers for process, memory, and file-descriptor operations.
-* Connects architecture syscall traps to generic kernel services.
+`syscall.c` — `syscall_dispatch()` routes syscall numbers to handlers via a switch statement.
+
+Syscall entry is handled by the architecture layer (`kernel/arch/i686/syscall/syscall.c`) using `int 0x80`.
+
+== Implemented Syscalls
+
+[width="100%",cols="15%,30%,30%,25%",options="header"]
+|===
+| Number | Name | Handler | Status
+| 1 | `SYS_EXIT` | `sys_exit()` | Complete
+| 2 | `SYS_FORK` | `sys_fork()` | Complete
+| 3 | `SYS_READ` | `sys_read()` | Complete
+| 4 | `SYS_WRITE` | `sys_write()` | Complete
+| 5 | `SYS_OPEN` | `sys_open()` | Complete
+| 6 | `SYS_CLOSE` | `sys_close()` | Complete
+| 11 | `SYS_EXECVE` | `sys_execve()` | Complete
+| 15 | `SYS_CHMOD` | `sys_chmod()` | Stub
+| 19 | `SYS_LSEEK` | `sys_lseek()` | Complete
+| 20 | `SYS_GETPID` | `Syscall_GetPid()` | Complete
+| 23 | `SYS_SETUID` | `Syscall_SetUid()` | Complete
+| 24 | `SYS_GETUID` | `Syscall_GetUid()` | Complete
+| 45 | `SYS_BRK` | `sys_brk()` | Complete
+| 46 | `SYS_SETGID` | `Syscall_SetGid()` | Complete
+| 47 | `SYS_GETGID` | `Syscall_GetGid()` | Complete
+| 64 | `SYS_GETPPID` | `Syscall_GetPPid()` | Complete
+| 114 | `SYS_WAIT4` | `Syscall_Wait4()` | Complete
+| 182 | `SYS_CHOWN` | `sys_chown()` | Stub
+| 186 | `SYS_SBRK` | `sys_sbrk()` | Complete
+|===
 
 == Typical Work in This Area
 
-* Add new syscall handlers.
-* Improve ABI compatibility and argument validation.
-* Harden return/error behavior and scheduler interactions.
+* Add new syscall handlers (mmap, munmap, ioctl, fcntl, etc.)
+* Improve ABI compatibility and argument validation
+* Harden return/error behavior and scheduler interactions
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: complete syscall table with numbers, names, handlers, and status; added dispatch and architecture entry details
 
 === v1.0
 

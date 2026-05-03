@@ -5,21 +5,45 @@
 
 See also: link:index.html[Kernel Index], link:syscall.html[Syscall], link:cpu.html[CPU]
 
-This directory provides signal-related syscall handlers and internal signal state management.
+This directory provides signal-related infrastructure. Signal handling is currently in early development.
 
-== Summary
+== Components
 
-* Handles signal registration and dispatch semantics.
-* Integrates per-process signal masks and action tables.
-* Provides kernel-side implementations for signal syscalls.
+=== Core Signal Handling
+`signal.c` — Internal signal state management (early stage).
+
+=== Signal Syscall Implementations
+* `sigaction.c` — `sigaction` syscall implementation
+* `sigprocmask.c` — `sigprocmask` syscall implementation
+* `kill.c` — `kill` syscall implementation
+
+=== Architecture-Specific Signal Support
+Located at `kernel/arch/i686/signal/`:
+
+* `sigframe.c` — Signal frame setup on the user stack
+* `sigreturn_asm.S` — Sigreturn trampoline assembly
+
+== Current Status
+
+The signal infrastructure has source files in place but core signal delivery is not fully integrated with the scheduler and process lifecycle. The main `signal.h` header is mostly empty (include guard only). Key features still needed:
+
+* Pending signal queues per process
+* Signal delivery before returning to userspace
+* Proper signal mask handling in context switch
+* Integration with process lifecycle (exit, wait)
 
 == Typical Work in This Area
 
-* Extend POSIX-like signal behavior.
-* Add pending queue and delivery edge-case handling.
-* Improve interaction with process lifecycle and scheduler.
+* Complete POSIX-like signal behavior
+* Add pending queue and delivery edge-case handling
+* Improve interaction with process lifecycle and scheduler
+* Wire signal delivery into context switch path
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: reflected actual state (infrastructure files exist but core delivery is incomplete)
 
 === v1.0
 

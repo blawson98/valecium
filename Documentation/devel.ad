@@ -18,18 +18,20 @@ This part is also explained in link:building.html[Building Valecium OS]; see tha
 
 The kernel uses SCons for building. Key files:
 
+* `SConstruct` - Top-level build configuration (version 0.28)
 * `kernel/SConscript` - Kernel build configuration
-* `scripts/scons/arch.py` - Architecture detection and configuration
-* `SConstruct` - Top-level build configuration
+* `scripts/scons/arch.py` - Architecture detection and configuration (i686, x86_64, aarch64)
+* `scripts/base/toolchain.py` - Cross-compiler toolchain builder (binutils 2.45 + musl 1.2.6 + GCC 15.2.0)
 
 Common build commands:
 
 [source,bash]
 ----
 scons                        # Build everything (debug mode)
-scons BuildConfig=release              # Build release version
-scons BuildArch=i686 BuildConfig=debug # Specific architecture
-scons BuildType=kernel                 # Build only kernel
+scons BuildConfig=release    # Build release version
+scons BuildArch=i686 BuildConfig=debug  # Specific architecture
+scons BuildType=kernel       # Build only kernel
+scons BuildType=bootloader   # Build only custom bootloader
 ----
 
 == Testing and Debugging
@@ -45,13 +47,19 @@ scons debug
 
 === Self-tests
 
-Various subsystems include self-tests:
+Various subsystems include self-tests called during initialization:
 
 [source,c]
 ----
-void Heap_SelfTest(void);
-// Called during initialization to verify allocator
+void Crypto_SelfTest(void);    // MD5 and SHA1 algorithm verification
+void VFS_SelfTest(void);       // Virtual filesystem operations
+void Process_SelfTest(void);   // Process creation and scheduling
+void Heap_SelfTest(void);      // Kernel heap allocator
 ----
+
+=== QEMU Debugging
+
+The `scons debug` target launches QEMU with `-s -S` flags (wait for GDB on TCP port 1234) and opens GDB with kernel symbols pre-loaded from the build directory.
 
 == Git Workflow and Version Control
 
@@ -86,6 +94,7 @@ All source files must begin with a SPDX license identifier comment:
 * Kernel files: `// SPDX-License-Identifier: GPL-3.0-only`
 * Build scripts: `# SPDX-License-Identifier: BSD-3-Clause`
 * Assembly files: `# SPDX-License-Identifier: GPL-3.0-only`
+* Documentation: `// SPDX-License-Identifier: CC-BY-SA-4.0`
 
 [source,c]
 ----
@@ -173,8 +182,6 @@ if (desired_end < heap_start || desired_end > 0xFFFFFFFFu)
 }
 ----
 
-Inline comments within code should align logically and not clutter:
-
 ==== Assembly Comment Style
 Assembly uses hash/pound comments:
 
@@ -182,7 +189,7 @@ Assembly uses hash/pound comments:
 ----
 # make new call frame
 pushl %ebp             # save old call frame
-movl %esp, %ebp         # initialize new call frame
+movl %esp, %ebp        # initialize new call frame
 
 # load gdt
 movl 8(%ebp), %eax
@@ -278,7 +285,7 @@ typedef struct
 {
    uint16_t LimitLow;
    uint16_t BaseLow;
-   uint8_t BaeMiddle;
+   uint8_t BaseMiddle;
    uint8_t access;
    uint8_t FlagLimitHigh;
    uint8_t BaseHigh;
@@ -377,6 +384,17 @@ static inline FAT_Instance *fat_inst(const Partition *disk)
 === Architecture-Specific Code
 
 Architecture-specific implementations reside in `kernel/arch/<arch>/` directories.
+
+Currently only `kernel/arch/i686/` has implementations. The architecture directory structure includes:
+
+* `boot/` — Entry point, multiboot parsing
+* `cpu/` — GDT, IDT, ISR, IRQ, TSS, PIT, PIC, scheduler, usermode
+* `drivers/` — PS/2 controller, serial port
+* `io/` — Port I/O (inb/outb) and interrupt control
+* `mem/` — Paging, TLB, stack, memory layout
+* `signal/` — Signal frame setup, sigreturn
+* `syscall/` — Syscall IRQ handler (int 0x80)
+* `video/` — VGA text mode driver
 
 General pattern for architecture abstraction (HAL):
 
@@ -513,6 +531,36 @@ Conditional compilation for architecture-specific code:
 * Use explicit register keywords sparingly and only when necessary
 * Profile early and focus optimizations on measured bottlenecks
 
+=== Crypto Subsystem
+
+The kernel includes a cryptographic subsystem at `kernel/crypto/` with:
+
+* **MD5** — Init/Update/Final/Calculate/ToHex/SelfTest (16-byte digest)
+* **SHA1** — Init/Update/Final/Calculate/ToHex/SelfTest (20-byte digest)
+
+Self-tests run during kernel initialization to verify algorithm correctness.
+
+=== Kernel Module System
+
+The kernel supports dynamic loading of kernel modules (kmod) via `kernel/sys/kmod/`:
+
+* Loading modules from disk or memory image
+* Symbol resolution via global symbol table
+* Dependency tracking between modules
+* PLT/GOT relocation patching
+* Up to 16 modules, 256 symbols per module, 1024 global symbols
+
+=== Virtual Memory Layout
+
+The i686 virtual memory layout is defined in `kernel/arch/i686/mem/vm_layout.h`:
+
+* KERNEL_BASE = 0xC0000000 (3 GB)
+* USER_SPACE_END = 0xC0000000
+* USER_CODE_START = 0x08048000 (standard x86 ELF entry)
+* USER_HEAP_START = 0x10000000 (256 MB)
+* USER_STACK_START = 0xBFFF0000 (just below 3 GB)
+* USER_STACK_SIZE = 0x10000 (64 KB)
+
 == Documentation Standards
 
 === Versioning and Changelog
@@ -552,18 +600,22 @@ All documentation files use AsciiDoc (`.ad`) format:
 
 == Revision History
 
-=== v1.0
+=== v2.0
 
-Documented current kernel coding style and conventions
+Updated for v0.28: added crypto subsystem section, kernel module system section, virtual memory layout section, expanded architecture-specific code section with directory structure, updated debugging docs with self-test details
 
-=== v1.1 
+=== v1.3
 
-Clarified HAL assembly strategy for multi-architecture support, 3-space indentation
+Added Git version control part
 
 === v1.2
 
 Added structures for other components of this file including welcome message and Git version controls
 
-=== v1.3
+=== v1.1
 
-Added Git version control part
+Clarified HAL assembly strategy for multi-architecture support, 3-space indentation
+
+=== v1.0
+
+Documented current kernel coding style and conventions

@@ -5,21 +5,51 @@
 
 See also: link:index.html[Kernel Index], link:mem.html[Memory], link:sys.html[System Services]
 
-This directory contains lightweight libc-style helpers used inside the kernel (string, stdio, ctype, and basic utility headers).
+This directory contains lightweight libc-style helpers used inside the kernel without relying on the host C library.
 
-== Summary
+== Components
 
-* Supplies core utility functions without relying on host libc.
-* Provides formatting and basic type helpers used broadly across subsystems.
-* Supports deterministic behavior for low-level kernel use.
+=== String Library
+`string.c` / `string.h` — Basic string operations:
+
+* `strcpy()`, `strncpy()`, `strcmp()`, `strncmp()`
+* `strlen()`, `strcat()`, `strchr()`, `strrchr()`
+* `strstr()`, `strtok()`, `memcpy()`, `memset()`, `memmove()`
+
+=== Standard I/O
+`stdio.c` / `stdio.h` — Kernel-side formatted output:
+
+* `printf()` — Print formatted string to TTY
+* `logfmt()` — Formatted logging with severity levels (LOG_INFO, LOG_ERROR, etc.)
+* `sprintf()` — Format string to buffer
+* `puts()`, `putchar()`
+
+=== Character Types
+`ctype.c` / `ctype.h` — Character classification:
+
+* `isalpha()`, `isdigit()`, `isalnum()`, `isspace()`
+* `toupper()`, `tolower()`, `isprint()`
+
+=== Utility Headers
+* `binary.h` — Bit manipulation macros
+* `arrays.h` — Array utility macros
+* `minmax.h` — MIN/MAX macros
+
+== Key Design
+
+These utilities are designed to be minimal and deterministic for kernel-level use. They do not depend on userspace libc.
 
 == Typical Work in This Area
 
-* Add missing utility routines needed by kernel modules.
-* Optimize frequently used primitives.
-* Keep behavior stable and minimal for kernel constraints.
+* Add missing utility routines needed by kernel modules
+* Optimize frequently used primitives
+* Keep behavior stable and minimal for kernel constraints
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component breakdown with function listings, utility headers section
 
 === v1.0
 

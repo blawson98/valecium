@@ -1,0 +1,112 @@
+= Usage Guide
+:toc: left
+:icons: font
+:sectlinks:
+
+See also: link:../index.html[Home], link:../building.html[Build Guide], link:../kernel/index.html[Kernel Documentation]
+
+== Running Valecium OS
+
+=== Via QEMU (Recommended)
+
+After building, run:
+
+[source,bash]
+----
+scons run
+----
+
+This boots the built disk image in QEMU. The default configuration:
+
+* i686 CPU
+* 32 MB RAM
+* BIOS boot
+* MBR partition table
+* FAT32 root filesystem
+* GRUB bootloader
+
+=== Custom QEMU Options
+
+[source,bash]
+----
+scons run -- --memory=64M   # Increase RAM
+scons run -- --image=build/i686_debug/valeciumos.img  # Custom image path
+----
+
+=== Boot Flow
+
+1. QEMU starts and loads the BIOS
+2. BIOS loads GRUB (or the custom stage1 bootloader)
+3. GRUB loads the kernel via multiboot
+4. Kernel initializes (see link:../kernel/init.html[Kernel Init] for details)
+5. Kernel launches `/usr/bin/selftest` as the first userspace process
+6. Selftest performs syscall validation and directory listing
+7. Selftest exits (shell is available as the next init target)
+
+== Interactive Usage
+
+When the shell becomes the default init process, the following will be available:
+
+* Type commands and press Enter to execute
+* Use `cd <dir>` to change directories
+* Use `exit [code]` to exit
+* Use `|` to pipe between commands
+* Use `<`, `>`, `>>` for I/O redirection
+* Use `&&` to chain commands
+
+== Debugging
+
+=== GDB Session
+
+[source,bash]
+----
+scons debug
+----
+
+This opens GDB with kernel symbols loaded from the build directory and QEMU waiting on TCP port 1234.
+
+Useful GDB commands:
+
+[source,gdb]
+----
+(gdb) break start              # Break at kernel entry
+(gdb) break CPU_Initialize     # Break at CPU init
+(gdb) continue                 # Continue execution
+(gdb) info registers           # View CPU registers
+(gdb) print g_SysInfo          # Examine system info
+(gdb) backtrace                # View call stack
+----
+
+=== Log Output
+
+The kernel uses `logfmt()` for diagnostic output. Log messages appear on the VGA console and are visible in the QEMU window.
+
+Log levels:
+* `LOG_INFO` — Normal operation messages
+* `LOG_WARN` — Non-critical warnings
+* `LOG_ERROR` — Error conditions
+* `LOG_DEBUG` — Debug-level messages (debug builds only)
+
+== Testing
+
+The following self-tests run automatically during kernel boot:
+
+* **Crypto_SelfTest()** — MD5 and SHA1 algorithm verification
+* **VFS_SelfTest()** — Virtual filesystem operations
+* **Process_SelfTest()** — Process creation and scheduling
+* **Heap_SelfTest()** — Kernel heap allocator
+
+Userspace testing:
+
+* **selftest** — Verifies syscall trap path, file I/O, and FAT directory iteration
+* Running `selftest` and observing its output confirms the full kernel-to-userspace path works
+
+== Revision History
+
+=== v2.0
+
+Initial usage guide: QEMU instructions, boot flow, interactive usage, debugging, testing
+
+=== v1.0
+
+Initial placeholder

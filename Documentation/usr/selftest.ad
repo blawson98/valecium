@@ -5,15 +5,28 @@
 
 See also: link:index.html[Userspace Index], link:../kernel/syscall.html[Kernel Syscall], link:../kernel/init.html[Kernel Init]
 
-`usr/selftest` is a minimal freestanding userspace binary used to validate context switching and syscall handling.
+`usr/selftest` is a minimal freestanding userspace binary (pure assembly, no libc) used to validate context switching and syscall handling.
 
-== Summary
+== What It Tests
 
-* Performs a syscall write to stdout to verify userspace → kernel trap path.
-* Performs syscall exit to verify process termination and scheduler handoff.
-* Used by kernel init and process self-test flows for runtime validation.
+1. **Syscall write** to stdout — verifies the userspace-to-kernel trap path
+2. **Blocking read** from stdin — verifies input handling and TTY integration
+3. **Open `/` as a directory** and iterate FAT directory entries — verifies file system syscalls
+4. **FAT directory parsing** — parses 8.3 filenames, handles end markers (0x00), deleted entries (0xE5), and long filename entries (attr 0x0F)
+5. **Syscall exit** — verifies process termination and scheduler handoff
+
+== Implementation
+
+* 221 lines of assembly (`selftest.S`)
+* Built with `-ffreestanding -nostdlib -nostartfiles -nodefaultlibs -static -Wl,-e,_start -no-pie`
+* Used by kernel init flow as the initial userspace process
+* Launched via `ELF_LoadProcess("/usr/bin/selftest")`
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed test operations, assembly implementation notes, build flags
 
 === v1.0
 

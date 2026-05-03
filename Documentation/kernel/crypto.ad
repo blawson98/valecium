@@ -1,0 +1,45 @@
+= Cryptography Subsystem (`kernel/crypto`)
+:toc: left
+:icons: font
+:sectlinks:
+
+See also: link:index.html[Kernel Index], link:init.html[Init], link:sys.html[System Services]
+
+This directory contains cryptographic algorithm implementations used by the kernel.
+
+== Components
+
+=== MD5
+`md5.c` — MD5 message-digest algorithm.
+
+* 16-byte (128-bit) digest output
+* 64-byte block size
+* `MD5_Init()`, `MD5_Update()`, `MD5_Final()` — Streaming API
+* `MD5_Calculate()` — Single-call hash
+* `MD5_ToHex()` — Digest to hex string
+* `MD5_SelfTest()` — Known-answer test
+
+=== SHA1
+`sha1.c` — SHA-1 secure hash algorithm.
+
+* 20-byte (160-bit) digest output
+* 64-byte block size
+* `SHA1_Init()`, `SHA1_Update()`, `SHA1_Final()` — Streaming API
+* `SHA1_Calculate()` — Single-call hash
+* `SHA1_ToHex()` — Digest to hex string
+* `SHA1_SelfTest()` — Known-answer test
+
+=== Self-Test Runner
+`crypto.c` — `Crypto_SelfTest()` is called during kernel initialization to verify both MD5 and SHA1 implementations.
+
+== Typical Work in This Area
+
+* Add additional algorithms (AES, SHA256, etc.)
+* Implement kernel entropy pool
+* Use hash functions for module integrity verification
+
+== Revision History
+
+=== v1.0
+
+Initial crypto subsystem documentation

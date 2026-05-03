@@ -5,21 +5,58 @@
 
 See also: link:index.html[Kernel Index], link:init.html[Init], link:syscall.html[Syscall]
 
-This directory implements core process lifecycle and scheduling abstractions: creation, exec/fork behavior, state transitions, and scheduler orchestration.
+This directory implements core process lifecycle and scheduling abstractions.
 
-== Summary
+== Components
 
-* Defines and manages `Process` state and ownership.
-* Implements scheduler process queues and state machine.
-* Coordinates process address-space switching with HAL paging/TSS operations.
+=== Process Management
+`process.h` / `core.c` — Defines and manages the `Process` struct with fields for:
+
+* `pid`, `ppid`, `state` (READY/RUNNING/BLOCKED/ZOMBIE/WAITING)
+* `kernel_mode` flag to track execution mode
+* Credentials: `uid`, `gid`, `euid`, `egid`
+* Memory: `page_directory`, `heap_start/end`, `stack_start/end`
+* CPU state: `eip`, `esp`, `ebp`, `eax`–`edi`, `eflags`
+* File descriptor table: `fd_table[16]`
+* Scheduling: `priority`, `ticks_remaining`, `wait_channel`
+* Signal mask: `signal_mask`
+* Per-process kernel stack: `kernel_stack`, `kernel_stack_size`
+
+=== Scheduler
+`scheduler.c` / `scheduler.h` — Round-robin scheduler managing process state transitions and context switching.
+
+* Scheduler process queues (ready, blocked, zombie)
+* State machine transitions
+* Context switch orchestration with HAL
+
+=== Fork
+`fork.c` — `Process_Clone()` implementation for creating child processes with copied address space.
+
+=== Exec
+`exec.c` — `Process_Execute()` implementation for replacing process image with a new ELF binary.
+
+=== Kernel Process Management
+`kernel.c` — Kernel-mode process creation and management.
+
+=== User Process Management
+`user.c` — User-mode process operations.
+
+=== CPU Detection
+`cpu.c` — `CPU_Initialize()` detects CPU features and capabilities.
 
 == Typical Work in This Area
 
-* Add scheduling policies or process states.
-* Improve process creation and teardown behavior.
-* Integrate process self-tests and runtime validation hooks.
+* Add scheduling policies or process states
+* Improve process creation and teardown behavior
+* Integrate process self-tests and runtime validation hooks
+* Complete signal delivery integration with scheduler
+* Add user-mode switch support
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: added component breakdown with process struct fields, fork/exec separation, kernel/user process management
 
 === v1.0
 

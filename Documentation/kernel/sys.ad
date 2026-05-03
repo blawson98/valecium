@@ -5,21 +5,50 @@
 
 See also: link:index.html[Kernel Index], link:syscall.html[Syscall], link:init.html[Init]
 
-This directory groups high-level system services including kernel system info, command line parsing, ELF/dylib loading, and related runtime facilities.
+This directory groups high-level system services.
 
-== Summary
+== Components
 
-* Maintains global system state structures.
-* Implements executable and dynamic library loading support.
-* Provides utility services used during initialization and runtime.
+=== System Information
+`sys.c` / `sys.h` — Global system state:
+
+* `g_SysInfo` structure with kernel version, uptime, architecture/CPU info, memory info, IRQ info, disk partition table (up to 32 disks), boot parameters, and initialization status
+* `SYS_Initialize()` — Initialize system info during boot
+* `SYS_Finalize()` — Finalize after command line parsing
+
+=== Command Line Parser
+`cmdline.c` / `cmdline.h` — Parse kernel command-line arguments passed by the bootloader. Supports `key=value` and standalone flag format.
+
+=== ELF Loader
+`elf.c` / `elf.h` — ELF32 executable loader.
+
+* Loads ELF binaries into process address space
+* Sets up entry point, segments, and stack for new processes
+* Used by `Process_Execute()` (exec) and initial process launch
+
+=== Kernel Module Loader
+`kmod/kmod.c` / `kmod/kmod.h` — Dynamic kernel module system supporting:
+
+* Loading modules from disk or memory image
+* Symbol resolution via global symbol table (up to 1024 global symbols)
+* Dependency tracking between modules
+* PLT/GOT relocation patching
+* Memory allocation for module code/data
+* Loading/unloading and listing modules
+* Up to 16 concurrently loaded modules, 256 symbols per module
 
 == Typical Work in This Area
 
-* Extend loader behavior and relocation support.
-* Add system metadata and runtime inspection APIs.
-* Improve initialization robustness and diagnostics.
+* Extend loader behavior and relocation support
+* Add system metadata and runtime inspection APIs
+* Improve initialization robustness and diagnostics
+* Add userspace dynamic linker support
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: detailed component breakdown with feature listings, kernel module system details
 
 === v1.0
 

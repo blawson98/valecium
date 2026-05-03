@@ -9,17 +9,18 @@ This section documents the Valecium kernel implementation by subsystem. Each pag
 
 == Kernel Subsystems
 
-* link:arch.html[arch.ad] — Architecture-specific boot, CPU, and memory implementations
-* link:cpu.html[cpu.ad] — Process model and scheduling core
-* link:drivers.html[drivers.ad] — Hardware device drivers (storage, keyboard, tty)
-* link:fs.html[fs.ad] — Filesystem stack (VFS, FAT, devfs, disk abstractions)
-* link:hal.html[hal.ad] — Hardware abstraction layer interface and bindings
+* link:arch.html[arch.ad] — Architecture-specific boot, CPU, and memory implementations (i686 only)
+* link:cpu.html[cpu.ad] — Process model, scheduler, fork/exec
+* link:drivers.html[drivers.ad] — Hardware device drivers (ATA, FDC, keyboard, TTY)
+* link:fs.html[fs.ad] — Filesystem stack (VFS, FAT12/16/32, devfs, disk/partition abstractions)
+* link:hal.html[hal.ad] — Hardware abstraction layer interface and operation tables
 * link:init.html[init.ad] — Kernel startup flow and handoff logic
-* link:mem.html[mem.ad] — Heap, PMM, VMM, process memory primitives
-* link:signal.html[signal.ad] — Signal delivery and signal syscall support
+* link:mem.html[mem.ad] — PMM, VMM, kernel heap, process heap, stack management
+* link:signal.html[signal.ad] — Signal handling infrastructure (in progress)
 * link:std.html[std.ad] — Kernel-local libc-style utility implementations
-* link:sys.html[sys.ad] — System services, ELF loader, command line, dylib support
+* link:sys.html[sys.ad] — System services, ELF loader, command line, kernel modules
 * link:syscall.html[syscall.ad] — Syscall dispatch and handlers
+* link:crypto.html[crypto.ad] — Cryptographic algorithm implementations (MD5, SHA1)
 
 == Navigation Notes
 
@@ -28,6 +29,10 @@ This section documents the Valecium kernel implementation by subsystem. Each pag
 * Link this section with link:../usr/index.html[Userspace Documentation] to follow kernel ↔ userspace interactions.
 
 == Revision History
+
+=== v2.0
+
+Updated to reflect v0.28: added crypto subsystem entry, updated all subsystem descriptions with details, added crypto.ad reference
 
 === v1.0
 

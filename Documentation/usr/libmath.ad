@@ -5,15 +5,43 @@
 
 See also: link:index.html[Userspace Index], link:../kernel/sys.html[Kernel System Services]
 
-`usr/libmath` contains the userspace math support library used by userspace programs for baseline arithmetic and helper routines.
+`usr/libmath` contains the userspace math support library (`libmath.so`), a dynamically-linked shared library.
 
-== Summary
+== API
 
-* Builds the userspace math library artifact.
-* Exposes simple numeric helpers for program-level use.
-* Serves as an example userspace library integrated into the image.
+[width="100%",cols="25%,75%",options="header"]
+|===
+| Category | Functions
+| Constants | `M_PI`, `M_E`, `M_LN2`, `M_LN10`, `M_SQRT2`, `INFINITY`, `NAN`
+| Integer | `add()`, `subtract()`, `multiply()`, `divide()`, `modulo()`, `abs_int()`
+| Trigonometry | `sinf()`, `sin()`, `cosf()`, `cos()`, `tanf()`, `tan()`
+| Exponential/Log | `expf()`, `exp()`, `logf()`, `log()`, `log10f()`, `log10()`
+| Power | `powf()`, `pow()`, `sqrtf()`, `sqrt()`
+| Rounding | `floorf()`, `floor()`, `ceilf()`, `ceil()`, `roundf()`, `round()`
+| Min/Max | `fminf()`, `fmin()`, `fmaxf()`, `fmax()`
+| Float Mod | `fmodf()`, `fmod()`
+| Floating Abs | `fabsf()`, `fabs()`
+| Init | `libmath_init()`
+|===
+
+== Implementation
+
+* 291 lines of C (`math.c`)
+* Trigonometric functions use Taylor series expansion
+* Power functions implemented via `exp(y * log(|x|))`
+* Square root uses Newton's method
+* Logarithm uses Newton's method with a bit-hack initial guess
+* Built as a shared library (`-shared -Wl,-soname,libmath.so`, `-fPIC`)
+
+== Headers
+
+* `include/libmath/math.h` — Public API header (241 lines, Doxygen-style comments)
 
 == Revision History
+
+=== v2.0
+
+Updated for v0.28: full API table, implementation details, header location
 
 === v1.0
 
