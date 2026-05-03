@@ -74,7 +74,6 @@ def BuildDisk(
     Filesystem = EnvironmentObject['ImageFs']
     OutputFormat = EnvironmentObject.get('ImageFormat', 'img')
     Architecture = EnvironmentObject.get('BuildArch', 'i686')
-    BootSystem = EnvironmentObject.get('BootSystem', 'grub')
     BootType = EnvironmentObject.get('BootType', 'bios')
     PartitionMap = EnvironmentObject.get('DiskPartitionMap', 'mbr')
     BuildConfig = EnvironmentObject.get('BuildConfig', 'release')
@@ -142,7 +141,7 @@ def BuildDisk(
     print(f"   STAGE {os.path.basename(KernelExecutablePath)} -> /boot")
     shutil.copy2(KernelExecutablePath, BootDir)
 
-    if BootSystem == 'grub':
+    if OutputFormat == 'iso':
         GenerateGrubConfig(
             os.path.join(BootDir, 'grub'),
             OutputFormat,
@@ -178,10 +177,6 @@ def BuildDisk(
             shutil.copy2(Src, Dst)
 
     if OutputFormat == 'iso':
-        if BootSystem == 'system':
-            raise RuntimeError(
-                "BootSystem 'system' currently supports only ImageFormat='img'"
-            )
         CreateBootableIso(Stage, ImagePath, Volume)
     else:
         CreateBootableDisk(
@@ -193,7 +188,6 @@ def BuildDisk(
             TotalMb,
             PartStartSector,
             PartitionTypeIdentifier,
-            BootSystem,
             BootType,
             Architecture,
             PartitionMap,
@@ -268,7 +262,7 @@ Root = Env.Dir('root')
 RootFiles = GlobRecursive(Env, '*', Root)
 
 BootloaderInputs = []
-if Env.get('BootSystem', 'grub') == 'system':
+if Env.get('ImageFormat', 'img') == 'img':
     for Component in Env.get('BootloaderComponents', {}).values():
         if hasattr(Component, 'get_abspath'):
             BootloaderInputs.append(Component)

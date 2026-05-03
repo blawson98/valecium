@@ -12,18 +12,12 @@ GptSignature = b'EFI PART'
 BiosBootPartitionGuid = uuid.UUID('21686148-6449-6E6F-744E-656564454649')
 
 AllowedBootSetups = (
-    ('aarch64', 'gpt', 'grub', 'efi'),
-    ('aarch64', 'gpt', 'system', 'efi'),
-    ('x86_64', 'gpt', 'grub', 'bios'),
-    ('x86_64', 'gpt', 'grub', 'efi'),
-    ('x86_64', 'gpt', 'system', 'bios'),
-    ('x86_64', 'gpt', 'system', 'efi'),
-    ('x86_64', 'mbr', 'grub', 'bios'),
-    ('x86_64', 'mbr', 'system', 'bios'),
-    ('i686', 'gpt', 'grub', 'bios'),
-    ('i686', 'gpt', 'system', 'bios'),
-    ('i686', 'mbr', 'grub', 'bios'),
-    ('i686', 'mbr', 'system', 'bios'),
+    ('aarch64', 'gpt', 'efi'),
+    ('x86_64', 'gpt', 'bios'),
+    ('x86_64', 'gpt', 'efi'),
+    ('x86_64', 'mbr', 'bios'),
+    ('i686', 'gpt', 'bios'),
+    ('i686', 'mbr', 'bios'),
 )
 
 
@@ -40,34 +34,19 @@ BootloaderProfiles = {
     },
 }
 
-BootSystemProfiles = {
-    'grub': {
-        'BuildSystemBootloader': False,
-    },
-    'system': {
-        'BuildSystemBootloader': True,
-    },
-}
-
 
 def GetSupportedBootTypes() -> list:
     return list(BootloaderProfiles.keys())
 
 
-def GetSupportedBootSystems() -> list:
-    return list(BootSystemProfiles.keys())
-
-
 def ValidateBootSetup(
     Architecture: str,
     PartitionMap: str,
-    BootSystem: str,
     BootType: str,
 ) -> None:
     Config = (
         Architecture.lower(),
         PartitionMap.lower(),
-        BootSystem.lower(),
         BootType.lower(),
     )
     if Config not in AllowedBootSetups:
@@ -75,19 +54,8 @@ def ValidateBootSetup(
             f"Unsupported boot setup: "
             f"Architecture={Architecture}, "
             f"PartitionMap={PartitionMap}, "
-            f"BootSystem={BootSystem}, "
             f"BootType={BootType}. "
-            f"Allowed configurations defined in Documentation/bootloader/allowed-boot-setups.csv"
         )
-
-
-def ShouldBuildSystemBootloader(BootSystem: str) -> bool:
-    if BootSystem not in BootSystemProfiles:
-        raise ValueError(
-            f"Unsupported boot system: {BootSystem}. Supported: {list(BootSystemProfiles.keys())}"
-        )
-
-    return bool(BootSystemProfiles[BootSystem]['BuildSystemBootloader'])
 
 
 def GetBootloaderBuildConfig(BootType: str, Architecture: str) -> dict:
@@ -264,7 +232,7 @@ def InstallSystemBootloader(
 ):
     if BootType != 'bios':
         raise ValueError(
-            f"BootSystem 'system' currently supports only BootType='bios', got: {BootType}"
+            f"System bootloader currently supports only BootType='bios', got: {BootType}"
         )
 
     Stage1Path = _ResolveBootloaderComponentPath(BootloaderComponents.get('Stage1'))

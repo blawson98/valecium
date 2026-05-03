@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-import io
 import os
 import subprocess
-import tarfile
 import textwrap
 
 from scripts.scons.bootloader import InstallSystemBootloader, ValidateBootSetup
@@ -19,7 +17,6 @@ FilesystemConfigurations = {
         'PartitionTypeIdentifier': '0x04',
         'MakeFilesystemCommand': 'mkfs.fat',
         'MakeFilesystemArguments': ['-F', '12'],
-        'GrubFilesystemModule': 'fat',
         'SupportsSymlinks': False,
     },
     'fat16': {
@@ -27,7 +24,6 @@ FilesystemConfigurations = {
         'PartitionTypeIdentifier': '0x06',
         'MakeFilesystemCommand': 'mkfs.fat',
         'MakeFilesystemArguments': ['-F', '16'],
-        'GrubFilesystemModule': 'fat',
         'SupportsSymlinks': False,
     },
     'fat32': {
@@ -35,7 +31,6 @@ FilesystemConfigurations = {
         'PartitionTypeIdentifier': '0x0c',
         'MakeFilesystemCommand': 'mkfs.fat',
         'MakeFilesystemArguments': ['-F', '32'],
-        'GrubFilesystemModule': 'fat',
         'SupportsSymlinks': False,
     },
     'ext2': {
@@ -43,33 +38,11 @@ FilesystemConfigurations = {
         'PartitionTypeIdentifier': '0x83',
         'MakeFilesystemCommand': 'mkfs.ext2',
         'MakeFilesystemArguments': [],
-        'GrubFilesystemModule': 'ext2',
         'SupportsSymlinks': True,
     },
 }
 
-BootCommonGrubModules = [
-    'normal',
-    'configfile',
-    'multiboot',
-    'search',
-    'search_label',
-    'search_fs_uuid',
-    'search_fs_file',
-]
-
-GrubPartitionMapModule = {
-    'mbr': 'part_msdos',
-    'gpt': 'part_gpt',
-}
-
-GrubTargetByBootAndArch = {
-    ('bios', 'i686'): 'i386-pc',
-    ('bios', 'x86_64'): 'i386-pc',
-    ('efi', 'i686'): 'i386-efi',
-    ('efi', 'x86_64'): 'x86_64-efi',
-    ('efi', 'aarch64'): 'arm64-efi',
-}
+PartitionMapModules = ['mbr', 'gpt']
 
 EfiDefaultBinaryByArch = {
     'i686': 'BOOTIA32.EFI',
@@ -90,20 +63,11 @@ def GetSupportedFilesystems() -> list:
 
 
 def GetSupportedPartitionMaps() -> list:
-    return list(GrubPartitionMapModule.keys())
+    return list(PartitionMapModules)
 
 
 def GetPartitionTypeIdentifier(Filesystem: str) -> str:
     return GetFilesystemConfig(Filesystem)['PartitionTypeIdentifier']
-
-
-def GetGrubTarget(BootType: str, Architecture: str) -> str:
-    Key = (BootType, Architecture)
-    if Key not in GrubTargetByBootAndArch:
-        raise ValueError(
-            f"Unsupported GRUB target for BootType={BootType}, BuildArch={Architecture}"
-        )
-    return GrubTargetByBootAndArch[Key]
 
 
 def GetEfiDefaultBinaryName(Architecture: str) -> str:
@@ -112,37 +76,10 @@ def GetEfiDefaultBinaryName(Architecture: str) -> str:
     return EfiDefaultBinaryByArch[Architecture]
 
 
-def GetGrubPrefix(PartitionMap: str, RootPartitionIndex: int = 1) -> str:
-    if PartitionMap == 'mbr':
-        return f'(hd0,msdos{RootPartitionIndex})/boot/grub'
-    if PartitionMap == 'gpt':
-        return f'(hd0,gpt{RootPartitionIndex})/boot/grub'
-    raise ValueError(f"Unsupported partition map: {PartitionMap}")
-
-
 def GetGptPartitionTypeGuid(BootType: str) -> str:
     if BootType == 'efi':
         return EfiSystemPartitionGuid
     return LinuxFilesystemPartitionGuid
-
-
-def GetGrubModules(Filesystem: str, BootType: str, PartitionMap: str) -> list:
-    FilesystemModule = GetFilesystemConfig(Filesystem)['GrubFilesystemModule']
-    if PartitionMap not in GrubPartitionMapModule:
-        raise ValueError(f"Unsupported partition map: {PartitionMap}")
-
-    Modules = [
-        *BootCommonGrubModules,
-        GrubPartitionMapModule[PartitionMap],
-        FilesystemModule,
-    ]
-    if BootType == 'bios':
-        Modules.insert(0, 'biosdisk')
-    UniqueModules = []
-    for Module in Modules:
-        if Module not in UniqueModules:
-            UniqueModules.append(Module)
-    return UniqueModules
 
 
 def RunCommand(Arguments: list, InputText: str = None):
@@ -155,15 +92,6 @@ def RunCommand(Arguments: list, InputText: str = None):
 
 
 def CreateBootableIso(StagingDirectory: str, OutputIso: str, VolumeLabelName: str = VolumeLabel):
-    """Create a bootable ISO image using grub-mkrescue.
-
-    The staging directory must already contain boot/grub/grub.cfg.
-
-    Args:
-        StagingDirectory: Directory tree to include in the ISO root
-        OutputIso: Output ISO file path
-        VolumeLabelName: ISO volume label
-    """
     print("   GRUB-MKRESCUE")
     RunCommand(['grub-mkrescue', '-o', OutputIso, StagingDirectory, '--', '-volid', VolumeLabelName])
 
@@ -177,83 +105,15 @@ def CreateBootableDisk(
     TotalMb: int,
     PartStartSector: int,
     PartitionTypeIdentifier: str,
-    BootSystem: str,
     BootType: str,
     Architecture: str,
     PartitionMap: str,
     BootloaderComponents: dict,
 ):
-    ValidateBootSetup(Architecture, PartitionMap, BootSystem, BootType)
+    ValidateBootSetup(Architecture, PartitionMap, BootType)
 
-    ImgDir = os.path.dirname(ImagePath) or '.'
-    GrubCore = os.path.join(ImgDir, 'grub.core')
     NeedsBiosBootPartition = (PartitionMap == 'gpt' and BootType == 'bios')
     RootPartitionIndex = 2 if NeedsBiosBootPartition else 1
-    CoreImgLba = 34 if NeedsBiosBootPartition else 1
-    GeneratedEfiBinary = None
-    MemdiskTar = None
-
-    if BootSystem == 'grub':
-        GrubTarget = GetGrubTarget(BootType, Architecture)
-        GrubPath = os.path.join('/usr/lib/grub', GrubTarget)
-        GrubPrefix = GetGrubPrefix(PartitionMap, RootPartitionIndex)
-
-        print("   GRUB-MKIMAGE")
-        if BootType == 'bios':
-            if PartitionMap == 'gpt':
-                GrubCfgPath = os.path.join(Stage, 'boot', 'grub', 'grub.cfg')
-                GrubCfgContent = ''
-                if os.path.exists(GrubCfgPath):
-                    with open(GrubCfgPath, 'r') as FileHandle:
-                        GrubCfgContent = FileHandle.read()
-                else:
-                    GrubCfgContent = BuildGrubConfigContent(
-                        Config='debug',
-                        KernelName='valeciumx',
-                        VolumeLabelName=Volume,
-                    )
-
-                MemdiskBuffer = io.BytesIO()
-                with tarfile.open(fileobj=MemdiskBuffer, mode='w:gz') as Tar:
-                    TarInfo = tarfile.TarInfo(name='boot/grub/grub.cfg')
-                    TarBytes = GrubCfgContent.encode('utf-8')
-                    TarInfo.size = len(TarBytes)
-                    Tar.addfile(TarInfo, io.BytesIO(TarBytes))
-
-                MemdiskTar = os.path.join(ImgDir, 'memdisk.tar.gz')
-                with open(MemdiskTar, 'wb') as FileHandle:
-                    FileHandle.write(MemdiskBuffer.getvalue())
-
-                RunCommand([
-                    'grub-mkimage',
-                    '-O', GrubTarget,
-                    '-o', GrubCore,
-                    '--memdisk', MemdiskTar,
-                    *GetGrubModules(Filesystem, BootType, PartitionMap),
-                ])
-            else:
-                RunCommand([
-                    'grub-mkimage',
-                    '-O', GrubTarget,
-                    '-o', GrubCore,
-                    '-p', GrubPrefix,
-                    *GetGrubModules(Filesystem, BootType, PartitionMap),
-                ])
-        elif BootType == 'efi':
-            EfiDirectory = os.path.join(Stage, 'EFI', 'BOOT')
-            os.makedirs(EfiDirectory, exist_ok=True)
-            GeneratedEfiBinary = os.path.join(EfiDirectory, GetEfiDefaultBinaryName(Architecture))
-            RunCommand([
-                'grub-mkimage',
-                '-O', GrubTarget,
-                '-o', GeneratedEfiBinary,
-                '-p', GrubPrefix,
-                *GetGrubModules(Filesystem, BootType, PartitionMap),
-            ])
-        else:
-            raise ValueError(f"Unsupported boot type: {BootType}")
-    elif BootSystem != 'system':
-        raise ValueError(f"Unsupported boot system: {BootSystem}")
 
     try:
         print(f"   CREATE DISK ({PartitionMap.upper()} + {Filesystem})")
@@ -301,34 +161,14 @@ def CreateBootableDisk(
         Commands.extend(['quit', ''])
         RunCommand(['guestfish', '-a', ImagePath], InputText='\n'.join(Commands))
 
-        if BootSystem == 'grub' and BootType == 'bios':
-            print("   WRITE BOOTLOADER")
-            BootImgPath = os.path.join(GrubPath, 'boot.img')
-            RunCommand([
-                'dd', f'if={BootImgPath}', f'of={ImagePath}',
-                'bs=446', 'count=1', 'conv=notrunc', 'status=none',
-            ])
-            RunCommand([
-                'dd', f'if={GrubCore}', f'of={ImagePath}',
-                'bs=512', f'seek={CoreImgLba}',
-                'conv=notrunc', 'status=none',
-            ])
-            with open(ImagePath, 'r+b') as ImgFile:
-                ImgFile.seek(96)
-                ImgFile.write(CoreImgLba.to_bytes(4, byteorder='little'))
-                ImgFile.flush()
-                os.fsync(ImgFile.fileno())
-        elif BootSystem == 'system':
-            InstallSystemBootloader(
-                ImagePath,
-                BootType,
-                BootloaderComponents,
-                PartStartSector,
-            )
+        InstallSystemBootloader(
+            ImagePath,
+            BootType,
+            BootloaderComponents,
+            PartStartSector,
+        )
     finally:
-        for Tmp in (GrubCore, MemdiskTar, GeneratedEfiBinary):
-            if Tmp is not None and os.path.exists(Tmp):
-                os.remove(Tmp)
+        pass
 
 
 def BuildGrubConfigContent(
@@ -336,17 +176,8 @@ def BuildGrubConfigContent(
     KernelName: str = 'valeciumx',
     VolumeLabelName: str = VolumeLabel,
 ) -> str:
-    """Generate GRUB configuration content based on build configuration.
-    
-    Args:
-        Config: 'debug' or 'release'
-        KernelName: kernel executable name under /boot
-    
-    Returns:
-        GRUB configuration content as string
-    """
     Timeout = '0' if Config == 'debug' else '10'
-    
+
     return textwrap.dedent(f"""\
 # Set a variable to prevent recursion loops
 if [ -z "$configLoaded" ]; then
@@ -380,17 +211,6 @@ def GenerateGrubConfig(
     KernelName: str = 'valeciumx',
     VolumeLabelName: str = VolumeLabel,
 ) -> str:
-    """Generate grub.cfg for the given output format and build configuration.
-
-    Args:
-        GrubDirectory: Directory to write grub.cfg into
-        OutputFormat: 'img' or 'iso' (currently equivalent)
-        Config: 'debug' or 'release'
-        KernelName: kernel executable name under /boot
-
-    Returns:
-        Path to the generated grub.cfg
-    """
     _ = OutputFormat
     os.makedirs(GrubDirectory, exist_ok=True)
     ConfigPath = os.path.join(GrubDirectory, 'grub.cfg')
