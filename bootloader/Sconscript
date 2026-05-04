@@ -92,6 +92,10 @@ else:
 
 TargetEnvironment['BootloaderComponents'] = BootloaderComponents
 
+# Add the video source directory to the include path so generated font.c
+# can find its companion header font.h.
+MainBootloaderEnv.Append(CPPPATH=[os.path.join(SourcePath, 'bios', 'video')])
+
 Objects = MainBootloaderEnv.Object(Sources)
 
 

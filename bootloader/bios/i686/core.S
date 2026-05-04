@@ -24,6 +24,7 @@ _start_code:
 	 * structure while BIOS services are still available. */
 	movb	boot_drive, %dl
 	call	detect_hardware
+	movb	%al, available_outputs  /* Save output bitmask for C entry */
 
 	movw	$stage2_message, %si
 
@@ -64,13 +65,11 @@ protected_mode_entry:
 	movw %ax, %ss
 	movl $0x9fc00, %esp
 
-	/* Initialise video/serial and pass MBI pointer to C entry point. */
-	call	VGATEXT_Initialize
-	call    Serial_Initialize
-
+	movzbl	available_outputs, %eax /* Pass output bitmask to C */
+	pushl	%eax
 	pushl	$MBI_BASE
 	call	main
-	addl	$4, %esp
+	addl	$8, %esp
 
 hang:
 	hlt
@@ -95,6 +94,9 @@ gdt_descriptor:
 
 	.balign 4
 boot_drive:
+	.byte 0
+
+available_outputs:
 	.byte 0
 
 	/* Multiboot2 Boot Information structure base (matches detect.S). */

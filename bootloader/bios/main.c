@@ -7,6 +7,10 @@
 #define MBI_TAG_END       0
 #define MBI_TAG_MMAP      6
 
+int g_PrimaryOutputSystem = 0;
+
+int preferedOutput = OUTPUT_VGATEXT;
+
 void print_memory_map(uint8_t *ptr)
 {
    puts("Memory Map:\n");
@@ -57,14 +61,65 @@ void print_memory_map(uint8_t *ptr)
    }
 }
 
+/* Print which output systems are reported as available. */
+void print_available_outputs(uint8_t availableOutputs)
+{
+   puts("Available outputs:\n");
+
+   if (availableOutputs & (1 << OUTPUT_VBE))
+      puts("  VBE\n");
+   if (availableOutputs & (1 << OUTPUT_VGA))
+      puts("  VGA graphics\n");
+   if (availableOutputs & (1 << OUTPUT_VGATEXT))
+      puts("  VGA text\n");
+   if (availableOutputs & (1 << OUTPUT_SERIAL))
+      puts("  Serial (COM1)\n");
+
+   putc('\n');
+}
+
 /* Walk the Multiboot2 Boot Information structure at @mbi_addr
  * and print the memory map entries. */
-int main(uint32_t mbi_addr)
+int main(uint32_t mbi_addr, uint8_t availableOutputs)
 {
    uint8_t *ptr = (uint8_t *)(uintptr_t)mbi_addr + 8;  /* skip total_size + reserved */
 
+   /* Determine preferred output — highest available wins.
+      Priority (ascending): serial → VGA text → VGA graphics → VBE. */
+   preferedOutput = OUTPUT_SERIAL;                          /* fallback  */
+   if (availableOutputs & (1 << OUTPUT_VGATEXT))
+      preferedOutput = OUTPUT_VGATEXT;
+   if (availableOutputs & (1 << OUTPUT_VGA))
+      preferedOutput = OUTPUT_VGA;
+   if (availableOutputs & (1 << OUTPUT_VBE))
+      preferedOutput = OUTPUT_VBE;
+
+   preferedOutput = OUTPUT_VGA;
+
+   /* Initialise ONLY the chosen output system.
+      VGA/VBE switch the hardware to graphics mode, which destroys text-mode
+      output — so they must NOT be initialised unless they are the final pick. */
+   switch (preferedOutput)
+   {
+   case OUTPUT_SERIAL:
+      Serial_Initialize();
+      break;
+   case OUTPUT_VGATEXT:
+      VGATEXT_Initialize();
+      break;
+   case OUTPUT_VGA:
+      VGA_Initialize();
+      break;
+   case OUTPUT_VBE:
+      VBE_Initialize();
+      break;
+   }
+
+   g_PrimaryOutputSystem = availableOutputs;
+
    puts("Valecium Bootloader loaded.\n");
 
+   print_available_outputs(availableOutputs);
    print_memory_map(ptr);
    return 0;
 }

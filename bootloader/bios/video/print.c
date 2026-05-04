@@ -7,8 +7,24 @@
 
 void putc(char c)
 {
-   VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-   Serial_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+   switch (preferedOutput)
+   {
+   case OUTPUT_VBE:
+      VBE_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_VGA:
+      VGA_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_VGATEXT:
+      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_SERIAL:
+      Serial_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   default:
+      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   }
 }
 
 static const char g_HexLower[] = "0123456789abcdef";

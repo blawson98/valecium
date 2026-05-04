@@ -1,12 +1,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-from SCons.Script import File, Return
+from SCons.Script import Command, Dir, File, Return
 
 
 Import('Sources')
 Import('CoreSources')
 
+# Generate font.c from the bitmap font script.
+FontScript = File('genfont.sh')
+FontTarget = Command(target='font.c', source=FontScript,
+                     action=f'bash {FontScript.srcnode().abspath} $TARGET')[0]
+
 Sources += [
+    FontTarget,
     File('serial.c'),
     File('vbe.c'),
     File('vga_text.c'),
@@ -15,6 +21,7 @@ Sources += [
 ]
 
 CoreSources += [
+    FontTarget,
     File('serial.c'),
     File('vbe.c'),
     File('vga_text.c'),

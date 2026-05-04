@@ -9,8 +9,18 @@
 #define EINVAL  (-22)
 #define ENODEV  (-19)
 
+/* Output system identifiers — used as bit positions in the availability
+ * mask and as the value of preferedOutput. */
+#define OUTPUT_VBE      0
+#define OUTPUT_VGA      1
+#define OUTPUT_VGATEXT  2
+#define OUTPUT_SERIAL   3
+
 extern void outb(uint16_t port, uint8_t val);
 extern uint8_t inb(uint16_t port);
+
+/** Preferred output system – set by the bootloader entry code. */
+extern int preferedOutput;
 
 /* ================================================================== */
 /*  VGA text-mode driver                                               */
@@ -69,6 +79,50 @@ int Serial_Initialize(void);
  * Returns 0 on success, or a negative error code.
  */
 int Serial_PutChar(char c, int x, int y, char color);
+
+/* ================================================================== */
+/*  VBE graphics driver (stub)                                         */
+/* ================================================================== */
+
+/**
+ * VBE_Initialize  –  Set up VBE framebuffer.
+ *
+ * Returns 0 on success or a negative error code.
+ */
+int VBE_Initialize(void);
+
+/**
+ * VBE_PutChar  –  Write one character via VBE framebuffer.
+ *
+ * @c      Character to write.
+ * @x, @y  Pixel position (or -1 for stream mode).
+ * @color  Ignored in stub.
+ *
+ * Returns 0 on success, or a negative error code.
+ */
+int VBE_PutChar(char c, int x, int y, char color);
+
+/* ================================================================== */
+/*  VGA graphics driver (stub)                                         */
+/* ================================================================== */
+
+/**
+ * VGA_Initialize  –  Set up VGA graphics mode.
+ *
+ * Returns 0 on success or a negative error code.
+ */
+int VGA_Initialize(void);
+
+/**
+ * VGA_PutChar  –  Write one character in VGA graphics mode.
+ *
+ * @c      Character to write.
+ * @x, @y  Pixel position (or -1 for stream mode).
+ * @color  Ignored in stub.
+ *
+ * Returns 0 on success, or a negative error code.
+ */
+int VGA_PutChar(char c, int x, int y, char color);
 
 /* ================================================================== */
 /*  Character / string / number output (print.c)                       */

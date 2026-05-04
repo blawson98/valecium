@@ -276,5 +276,59 @@ detect_hardware:
 	movw	$0,  (MBI_BASE + 2)     /* total_size high word        */
 	movl	$0,  (MBI_BASE + 4)     /* reserved = 0                */
 
+	/* ============================================================ */
+	/*  Output System Availability Checks                            */
+	/*  Builds an 8-bit bitmask in AL:                                */
+	/*    bit 0: VBE (VESA BIOS Extensions)                          */
+	/*    bit 1: VGA graphics mode                                   */
+	/*    bit 2: VGA text mode                                       */
+	/*    bit 3: UART serial port (COM1)                             */
+	/* ============================================================ */
+
+	xorw	%cx, %cx                /* CX = bitmask accumulator     */
+
+	/* --- VBE (bit 0) via INT 0x10, AX = 0x4F00 ------------------ */
+	movw	$0x4F00, %ax
+	movw	$0x0500, %di            /* ES:DI → VBE info buffer       */
+	int	$0x10
+	cmpw	$0x004F, %ax
+	jne	.Lout_vbe_no
+	orw	$0x01, %cx              /* Set bit 0                     */
+.Lout_vbe_no:
+
+	/* --- VGA Graphics (bit 1) via INT 0x10, AX = 0x1A00 --------- */
+	/* Get Display Combination Code — supported by VGA BIOSes. */
+	movw	$0x1A00, %ax
+	int	$0x10
+	cmpb	$0x1A, %al
+	jne	.Lout_vga_gfx_no
+	orw	$0x02, %cx              /* Set bit 1                     */
+.Lout_vga_gfx_no:
+
+	/* --- VGA Text (bit 2) via INT 0x10, AH = 0x0F -------------- */
+	/* Get current video mode — confirms INT 0x10 text I/O works. */
+	movb	$0x0F, %ah
+	int	$0x10
+	orw	$0x04, %cx              /* Set bit 2 (always succeeds)   */
+
+	/* --- UART Serial (bit 3) via COM1 scratch register --------- */
+	/* Probe the UART scratch register at COM1 + 7 = 0x3FF. */
+	movw	$0x3FF, %dx
+	inb	%dx, %al                /* Save original                 */
+	movb	%al, %ah
+	movb	$0xA5, %al              /* Test pattern                  */
+	outb	%al, %dx                /* Write to scratch register     */
+	inb	%dx, %al                 /* Read back                     */
+	cmpb	$0xA5, %al
+	jne	.Lout_uart_no
+	orw	$0x08, %cx              /* Set bit 3                     */
+.Lout_uart_no:
+	/* Restore scratch register to original value. */
+	movb	%ah, %al
+	outb	%al, %dx
+
+	/* Move final bitmask from CL to AL for return. */
+	movw	%cx, %ax
+
 	popw	%bp
 	retw
