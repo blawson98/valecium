@@ -22,7 +22,9 @@ LinkModeByArchitecture = {
 }
 
 
-CoreSources = []
+CoreSources = [
+    File('main.c'),
+]
 
 SConscript('video/SConscript', exports=['Sources', 'CoreSources'])
 
