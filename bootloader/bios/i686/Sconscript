@@ -12,6 +12,7 @@ Sources += [
 ]
 
 CoreSources += [
+    File('i686.S'),
     File('core.S'),
     File('detect.S'),
 ]

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-License-Identifier: BSD-3-Clause
+
+from SCons.Script import File, Return
+
+
+Import('Sources')
+Import('CoreSources')
+
+CoreSources += [
+    File('serial.c'),
+    File('vbe.c'),
+    File('vga_text.c'),
+    File('vga.c'),
+    File('print.c'),
+]

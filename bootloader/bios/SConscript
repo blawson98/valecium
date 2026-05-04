@@ -24,8 +24,10 @@ LinkModeByArchitecture = {
 
 CoreSources = []
 
+SConscript('video/SConscript', exports=['Sources', 'CoreSources'])
+
 if Architecture == 'i686':
-    BootSector = SConscript('i686/Sconscript', exports=['Sources', 'CoreSources'])
+    BootSector = SConscript('i686/SConscript', exports=['Sources', 'CoreSources'])
 elif Architecture == 'x86_64':
     BootSector = SConscript('x86_64/SConscript', exports=['Sources', 'CoreSources'])
 else:
@@ -65,6 +67,7 @@ CoreEnv.AppendUnique(LINKFLAGS=[
     f'-Wl,-T,{CoreLinkerScript.path}',
     '-Wl,--oformat,binary',
 ])
+CoreEnv.Append(LIBS=['gcc'])
 
 BootSectorObject = BootEnv.Object(BootSector)
 CoreObjects = CoreEnv.Object(CoreSources)
