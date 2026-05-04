@@ -1,85 +1,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+import shutil
 import subprocess
 import textwrap
 
-from scripts.scons.bootloader import InstallSystemBootloader, ValidateBootSetup
+from scripts.scons.bootloader import (
+    PrepareElToritoBootImage,
+)
 
 VolumeLabel = 'VALECIUM'
-EfiSystemPartitionGuid = 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B'
-LinuxFilesystemPartitionGuid = '0FC63DAF-8483-4772-8E79-3D69D8477DE4'
-BiosBootPartitionGuid = '21686148-6449-6E6F-744E-656564454649'
-
-FilesystemConfigurations = {
-    'fat12': {
-        'PartedType': 'fat12',
-        'PartitionTypeIdentifier': '0x04',
-        'MakeFilesystemCommand': 'mkfs.fat',
-        'MakeFilesystemArguments': ['-F', '12'],
-        'SupportsSymlinks': False,
-    },
-    'fat16': {
-        'PartedType': 'fat16',
-        'PartitionTypeIdentifier': '0x06',
-        'MakeFilesystemCommand': 'mkfs.fat',
-        'MakeFilesystemArguments': ['-F', '16'],
-        'SupportsSymlinks': False,
-    },
-    'fat32': {
-        'PartedType': 'fat32',
-        'PartitionTypeIdentifier': '0x0c',
-        'MakeFilesystemCommand': 'mkfs.fat',
-        'MakeFilesystemArguments': ['-F', '32'],
-        'SupportsSymlinks': False,
-    },
-    'ext2': {
-        'PartedType': 'ext2',
-        'PartitionTypeIdentifier': '0x83',
-        'MakeFilesystemCommand': 'mkfs.ext2',
-        'MakeFilesystemArguments': [],
-        'SupportsSymlinks': True,
-    },
-}
-
-PartitionMapModules = ['mbr', 'gpt']
-
-EfiDefaultBinaryByArch = {
-    'i686': 'BOOTIA32.EFI',
-    'x86_64': 'BOOTx86_64.EFI',
-    'aarch64': 'BOOTAA64.EFI',
-}
-
-
-def GetFilesystemConfig(Filesystem: str) -> dict:
-    if Filesystem not in FilesystemConfigurations:
-        raise ValueError(f"Unsupported filesystem: {Filesystem}. "
-                        f"Supported: {list(FilesystemConfigurations.keys())}")
-    return FilesystemConfigurations[Filesystem]
-
-
-def GetSupportedFilesystems() -> list:
-    return list(FilesystemConfigurations.keys())
-
-
-def GetSupportedPartitionMaps() -> list:
-    return list(PartitionMapModules)
-
-
-def GetPartitionTypeIdentifier(Filesystem: str) -> str:
-    return GetFilesystemConfig(Filesystem)['PartitionTypeIdentifier']
-
-
-def GetEfiDefaultBinaryName(Architecture: str) -> str:
-    if Architecture not in EfiDefaultBinaryByArch:
-        raise ValueError(f"Unsupported EFI architecture: {Architecture}")
-    return EfiDefaultBinaryByArch[Architecture]
-
-
-def GetGptPartitionTypeGuid(BootType: str) -> str:
-    if BootType == 'efi':
-        return EfiSystemPartitionGuid
-    return LinuxFilesystemPartitionGuid
 
 
 def RunCommand(Arguments: list, InputText: str = None):
@@ -91,84 +21,56 @@ def RunCommand(Arguments: list, InputText: str = None):
     )
 
 
-def CreateBootableIso(StagingDirectory: str, OutputIso: str, VolumeLabelName: str = VolumeLabel):
-    print("   GRUB-MKRESCUE")
-    RunCommand(['grub-mkrescue', '-o', OutputIso, StagingDirectory, '--', '-volid', VolumeLabelName])
-
-
-def CreateBootableDisk(
-    Stage: str,
-    ImagePath: str,
-    Volume: str,
-    Filesystem: str,
-    PartMb: int,
-    TotalMb: int,
-    PartStartSector: int,
-    PartitionTypeIdentifier: str,
-    BootType: str,
-    Architecture: str,
-    PartitionMap: str,
-    BootloaderComponents: dict,
+def CreateBootableIso(
+    StagingDirectory: str,
+    OutputIso: str,
+    VolumeLabelName: str = VolumeLabel,
+    BootType: str = 'bios',
+    BootSystem: str = 'grub',
+    BootloaderComponents: dict = None,
 ):
-    ValidateBootSetup(Architecture, PartitionMap, BootType)
+    """Create a bootable ISO 9660 image.
 
-    NeedsBiosBootPartition = (PartitionMap == 'gpt' and BootType == 'bios')
-    RootPartitionIndex = 2 if NeedsBiosBootPartition else 1
+    When *BootSystem* is ``'system'`` and *BootloaderComponents* provides Stage1
+    and Stage2, the system bootloader is embedded via El Torito "no emulation"
+    boot using ``xorriso`` directly.  Otherwise ``grub-mkrescue`` is used.
+    """
+    UseSystemBootloader = (
+        BootSystem == 'system'
+        and BootloaderComponents
+        and BootloaderComponents.get('Stage1')
+        and BootloaderComponents.get('Stage2')
+    )
 
-    try:
-        print(f"   CREATE DISK ({PartitionMap.upper()} + {Filesystem})")
-        RunCommand(['truncate', '-s', f'{TotalMb}M', ImagePath])
+    if not UseSystemBootloader:
+        print("   GRUB-MKRESCUE")
+        RunCommand(['grub-mkrescue', '-o', OutputIso, StagingDirectory, '--', '-volid', VolumeLabelName])
+        return
 
-        PartitionEndSector = '-1'
-        if PartitionMap == 'gpt':
-            PartitionEndSector = str((TotalMb * 2048) - 34)
+    Stage1Path = str(BootloaderComponents['Stage1'])
+    Stage2Path = str(BootloaderComponents['Stage2'])
 
-        GfFsType = {
-            'mkfs.fat': 'fat',
-            'mkfs.ext2': 'ext2',
-        }[GetFilesystemConfig(Filesystem)['MakeFilesystemCommand']]
+    ElToritoPath = PrepareElToritoBootImage(Stage1Path, Stage2Path)
+    LoadSectors = (os.path.getsize(ElToritoPath) + 511) // 512
 
-        Commands = ['run']
-        Commands.append(f'part-init /dev/sda {PartitionMap}')
+    print(f"   XORRISO (El Torito: {os.path.basename(ElToritoPath)}, {LoadSectors} sectors)")
 
-        if NeedsBiosBootPartition:
-            if PartStartSector - 1 < 34:
-                raise RuntimeError(
-                    'Not enough room before root partition for GPT BIOS boot partition'
-                )
-            Commands.extend([
-                f'part-add /dev/sda p 34 {PartStartSector - 1}',
-                f'part-set-gpt-type /dev/sda 1 {BiosBootPartitionGuid}',
-            ])
+    # The boot image must be inside the staging tree so xorriso can find it
+    # relative to the staging root.
+    BootImageInStage = os.path.join(StagingDirectory, 'boot', os.path.basename(ElToritoPath))
+    os.makedirs(os.path.dirname(BootImageInStage), exist_ok=True)
+    shutil.copy2(ElToritoPath, BootImageInStage)
 
-        Commands.append(f'part-add /dev/sda p {PartStartSector} {PartitionEndSector}')
-
-        if PartitionMap == 'mbr':
-            Commands.append(f'part-set-mbr-id /dev/sda 1 {PartitionTypeIdentifier}')
-        elif PartitionMap == 'gpt' and not NeedsBiosBootPartition:
-            Commands.append(f'part-set-gpt-type /dev/sda 1 {GetGptPartitionTypeGuid(BootType)}')
-        elif PartitionMap == 'gpt' and NeedsBiosBootPartition:
-            Commands.append(f'part-set-gpt-type /dev/sda 2 {GetGptPartitionTypeGuid(BootType)}')
-
-        FsPartition = f'/dev/sda{RootPartitionIndex}'
-        Commands.append(f'mkfs {GfFsType} {FsPartition}')
-        Commands.append(f'set-label {FsPartition} {Volume}')
-
-        Commands.extend([
-            f'mount {FsPartition} /',
-            f'copy-in {Stage}/. /',
-        ])
-        Commands.extend(['quit', ''])
-        RunCommand(['guestfish', '-a', ImagePath], InputText='\n'.join(Commands))
-
-        InstallSystemBootloader(
-            ImagePath,
-            BootType,
-            BootloaderComponents,
-            PartStartSector,
-        )
-    finally:
-        pass
+    RunCommand([
+        'xorriso', '-as', 'mkisofs',
+        '-o', OutputIso,
+        '-b', os.path.relpath(BootImageInStage, StagingDirectory),
+        '-no-emul-boot',
+        '-boot-load-size', str(LoadSectors),
+        '-boot-info-table',
+        '-volid', VolumeLabelName,
+        StagingDirectory,
+    ])
 
 
 def BuildGrubConfigContent(
@@ -206,12 +108,10 @@ fi
 
 def GenerateGrubConfig(
     GrubDirectory: str,
-    OutputFormat: str = 'img',
     Config: str = 'release',
     KernelName: str = 'valeciumx',
     VolumeLabelName: str = VolumeLabel,
 ) -> str:
-    _ = OutputFormat
     os.makedirs(GrubDirectory, exist_ok=True)
     ConfigPath = os.path.join(GrubDirectory, 'grub.cfg')
     Content = BuildGrubConfigContent(Config, KernelName, VolumeLabelName)

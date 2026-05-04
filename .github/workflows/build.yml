@@ -20,10 +20,7 @@ jobs:
       BUILD_ARCH: i686
       BUILD_CONFIG: debug
       BUILD_TYPE: image
-      BUILD_FORMAT_IMG: img
-      BUILD_FORMAT_ISO: iso
       KERNEL_ARTIFACT_PATTERN: valeciumx-*
-      IMG_ARTIFACT_PATTERN: valeciumos-*.img
       ISO_ARTIFACT_PATTERN: valeciumos-*.iso
       ARTIFACT_STAGE_DIR: artifact
       TARBALL_PREFIX: valecium-nightly
@@ -54,13 +51,11 @@ jobs:
           set -euo pipefail
           docker pull "$DOCKER_IMAGE_REPOSITORY:$DOCKER_IMAGE_TAG"
 
-      - name: 04 - Build IMG format
-        env:
-          CURRENT_FORMAT: ${{ env.BUILD_FORMAT_IMG }}
+      - name: 04 - Build ISO
         run: |
           set -euo pipefail
 
-          echo "Building format: $CURRENT_FORMAT"
+          echo "Building ISO"
 
           docker run --rm \
             -v "$GITHUB_WORKSPACE:$CONTAINER_WORKDIR" \
@@ -68,7 +63,6 @@ jobs:
             -e BUILD_ARCH \
             -e BUILD_CONFIG \
             -e BUILD_TYPE \
-            -e CURRENT_FORMAT \
             -e SHORT_HASH \
             "$DOCKER_IMAGE_REPOSITORY:$DOCKER_IMAGE_TAG" \
             bash -c '
@@ -77,57 +71,27 @@ jobs:
                 BuildArch="$BUILD_ARCH" \
                 BuildConfig="$BUILD_CONFIG" \
                 BuildType="$BUILD_TYPE" \
-                ImageFormat="$CURRENT_FORMAT" \
                 ProjVersion="$SHORT_HASH"
             '
 
-      - name: 05 - Build ISO format
-        env:
-          CURRENT_FORMAT: ${{ env.BUILD_FORMAT_ISO }}
-        run: |
-          set -euo pipefail
-
-          echo "Building format: $CURRENT_FORMAT"
-
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:$CONTAINER_WORKDIR" \
-            -w "$CONTAINER_WORKDIR" \
-            -e BUILD_ARCH \
-            -e BUILD_CONFIG \
-            -e BUILD_TYPE \
-            -e CURRENT_FORMAT \
-            -e SHORT_HASH \
-            "$DOCKER_IMAGE_REPOSITORY:$DOCKER_IMAGE_TAG" \
-            bash -c '
-              set -euo pipefail
-              scons -Q \
-                BuildArch="$BUILD_ARCH" \
-                BuildConfig="$BUILD_CONFIG" \
-                BuildType="$BUILD_TYPE" \
-                ImageFormat="$CURRENT_FORMAT" \
-                ProjVersion="$SHORT_HASH"
-            '
-
-      - name: 06 - Gather build artifacts
+      - name: 05 - Gather build artifacts
         run: |
           set -euo pipefail
 
           kernel_file=$(find build -type f -name "$KERNEL_ARTIFACT_PATTERN" | sort | head -n 1)
-          img_file=$(find build -type f -name "$IMG_ARTIFACT_PATTERN" | sort | head -n 1)
           iso_file=$(find build -type f -name "$ISO_ARTIFACT_PATTERN" | sort | head -n 1)
 
-          if [ -z "$kernel_file" ] || [ -z "$img_file" ] || [ -z "$iso_file" ]; then
+          if [ -z "$kernel_file" ] || [ -z "$iso_file" ]; then
             echo "ERROR: artifacts not found"
             echo "KERNEL_ARTIFACT_PATTERN=$KERNEL_ARTIFACT_PATTERN"
-            echo "IMG_ARTIFACT_PATTERN=$IMG_ARTIFACT_PATTERN"
             echo "ISO_ARTIFACT_PATTERN=$ISO_ARTIFACT_PATTERN"
             exit 1
           fi
 
           mkdir -p "$ARTIFACT_STAGE_DIR"
-          cp -- "$kernel_file" "$img_file" "$iso_file" "$ARTIFACT_STAGE_DIR/"
+          cp -- "$kernel_file" "$iso_file" "$ARTIFACT_STAGE_DIR/"
 
-      - name: 07 - Create nightly tarball
+      - name: 06 - Create nightly tarball
         run: |
           set -euo pipefail
 
@@ -135,7 +99,7 @@ jobs:
           tar -cJf "$tarball" -C "$ARTIFACT_STAGE_DIR" .
           echo "TARBALL_NAME=$tarball" >> "$GITHUB_ENV"
 
-      - name: 08 - Deploy tarball to remote server
+      - name: 07 - Deploy tarball to remote server
         run: |
           set -euo pipefail
 
@@ -148,7 +112,7 @@ jobs:
 
           scp -o StrictHostKeyChecking=no "$TARBALL_NAME" "$REMOTE_USER@$REMOTE_IP:$REMOTE_PATH/"
 
-      - name: 09 - Prune old remote nightly tarballs
+      - name: 08 - Prune old remote nightly tarballs
         run: |
           set -euo pipefail
 

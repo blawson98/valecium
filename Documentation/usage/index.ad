@@ -30,7 +30,7 @@ This boots the built disk image in QEMU. The default configuration:
 [source,bash]
 ----
 scons run -- --memory=64M   # Increase RAM
-scons run -- --image=build/i686_debug/valeciumos.img  # Custom image path
+scons run -- --image=build/i686_debug/valeciumos-*.iso  # Custom image path
 ----
 
 === Boot Flow

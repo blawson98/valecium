@@ -87,12 +87,7 @@ Common SCons variables:
 - `BuildConfig`: `debug` (default) or `release`
 - `BuildArch`: `i686` (default), `x86_64`, `aarch64`
 - `BuildType`: `full` (default), `kernel`, `usr`, `image`
-- `ImageFs`: `fat12`, `fat16`, `fat32` (default), `ext2`
-- `ImageSize`: image size (for example `250m`)
-- `ImageFormat`: `img` (default) or `iso`
 - `BootType`: `bios` (default) or `efi`
-- `DiskPartitionMap`: `mbr` (default) or `gpt`
-- `ImageName`: base name of output image
 
 Examples:
 
@@ -100,8 +95,7 @@ Examples:
 scons BuildConfig=release
 scons BuildArch=x86_64 BuildConfig=release
 scons BuildType=kernel
-scons ImageFormat=iso
-scons BootType=efi DiskPartitionMap=gpt BuildArch=x86_64
+scons BootType=efi BuildArch=x86_64
 ```
 
 For full build and platform notes, read [`Documents/building.ad`](Documents/building.ad).

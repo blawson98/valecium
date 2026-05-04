@@ -17,9 +17,6 @@ from scripts.scons.arch import GetArchConfig, GetSupportedArchitectures
 from scripts.scons.bootloader import (
     GetSupportedBootTypes,
 )
-from scripts.scons.disk import GetSupportedFilesystems, GetSupportedPartitionMaps
-from scripts.scons.utility import ParseSize
-
 
 def GetGitHash() -> str:
     try:
@@ -81,14 +78,10 @@ if not ConfigPath.exists():
         'BuildConfig': 'debug',
         'BuildArch': 'i686',
         'ProjVersion': '0.28',
-        'ImageFs': 'fat32',
         'BuildType': 'full',
-        'ImageSize': '250m',
-        'ImageName': 'valeciumos',
-        'ImageFormat': 'img',
         'KernelName': 'valeciumx',
         'BootType': 'bios',
-        'DiskPartitionMap': 'mbr',
+        'BootSystem': 'grub',
     }
     with open(ConfigPath, 'w', encoding='utf-8') as CfgFile:
         for Key, Value in DefaultConfig.items():
@@ -107,38 +100,20 @@ Vars.AddVariables(
                  default='i686',
                  allowed_values=tuple(GetSupportedArchitectures())),
     
-    EnumVariable('ImageFs',
-                 help='Filesystem type for disk image',
-                 default='fat32',
-                 allowed_values=tuple(GetSupportedFilesystems())),
-    
     EnumVariable('BuildType',
                  help='What to build',
                  default='full',
                  allowed_values=('full', 'kernel', 'usr', 'image', 'bootloader')),
 
-    EnumVariable('ImageFormat',
-                 help='Output image format',
-                 default='img',
-                 allowed_values=('img', 'iso')),
     EnumVariable('BootType',
                  help='Boot type',
                  default='bios',
                  allowed_values=tuple(GetSupportedBootTypes())),
-    EnumVariable('DiskPartitionMap',
-                 help='Disk partition map',
-                 default='mbr',
-                 allowed_values=tuple(GetSupportedPartitionMaps())),
+    EnumVariable('BootSystem',
+                 help='Bootloader system',
+                 default='grub',
+                 allowed_values=('grub', 'system')),
 )
-
-Vars.Add('ImageSize',
-         help='Disk image size (supports k/m/g suffixes)',
-         default='250m',
-         converter=ParseSize)
-
-Vars.Add('ImageName',
-         help='Output image filename (without extension)',
-         default='valeciumos')
 
 Vars.Add('KernelName',
          help='Kernel executable name',

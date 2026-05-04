@@ -69,16 +69,11 @@ Example contents:
 ----
 BuildConfig = 'debug'
 BuildArch = 'i686'
-ImageFs = 'fat32'
 BuildType = 'full'
-ImageSize = '250m'
 toolchain = '../os_toolchain'
-ImageName = 'valeciumos'
-ImageFormat = 'img'
 KernelName = 'valeciumx'
-BootSystem = 'grub'
+BootSystem = 'system'
 BootType = 'bios'
-DiskPartitionMap = 'mbr'
 ProjVersion = '0.28'
 ----
 
@@ -177,14 +172,9 @@ Pass variables to `scons` to customize the build. Common options:
 | Variable | Values | Default
 | `BuildConfig` | `debug`, `release` | `debug`
 | `BuildArch` | `i686`, `x86_64`, `aarch64` | `i686`
-| `ImageFs` | `fat12`, `fat16`, `fat32`, `ext2` | `fat32`
-| `ImageSize` | Size with k/m/g suffix | `250m`
 | `BuildType` | `full`, `kernel`, `usr`, `image`, `bootloader` | `full`
-| `ImageFormat` | `img`, `iso` | `img`
-| `BootSystem` | `grub`, `system` | `grub`
+| `BootSystem` | `grub`, `system` | `system`
 | `BootType` | `bios`, `efi` | `bios`
-| `DiskPartitionMap` | `mbr`, `gpt` | `mbr`
-| `ImageName` | Base name (no extension) | `valeciumos`
 | `KernelName` | Kernel binary name | `valeciumx`
 | `ProjVersion` | Version string | `0.28`
 |===
@@ -202,23 +192,14 @@ scons BuildArch=x86_64 BuildConfig=release
 # Build only the kernel (skip userspace)
 scons BuildType=kernel
 
-# Build only the disk image
+# Build only the ISO image
 scons BuildType=image
 
 # Use custom bootloader instead of GRUB
 scons BootSystem=system
 
-# Specify output image name and filesystem
-scons ImageName=vk-debug ImageFs=ext2
-
-# Large image (512 MB)
-scons ImageSize=512m
-
-# ISO format instead of hard disk
-scons ImageFormat=iso
-
-# EFI image with GPT partition table (x86_64 example)
-scons BuildArch=x86_64 BootType=efi DiskPartitionMap=gpt
+# EFI boot for x86_64
+scons BuildArch=x86_64 BootType=efi
 ----
 
 === Build Modes
@@ -323,7 +304,7 @@ This starts a QEMU virtual machine with:
 scons run -- --memory=64M
 
 # Use specific output image
-scons run -- --image=build/valeciumos.img
+scons run -- --image=build/i686_debug/valeciumos-*.iso
 ----
 
 === Debugging with GDB

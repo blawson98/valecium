@@ -38,13 +38,9 @@ DEPENDENCIES = {
             'grep',
             'coreutils',
             
-            # === Filesystem & Disk Tools ===
-            'dosfstools',
-            'xorriso',
-            
             # === Boot & Image Creation ===
+            'xorriso',
             'grub-pc-bin',
-            'guestfish',
             
             # === Emulation & Debugging ===
             'qemu-system-x86',
@@ -82,14 +78,10 @@ DEPENDENCIES = {
             'grep',
             'coreutils',
             
-            # === Filesystem & Disk Tools ===
-            'dosfstools',
-            'xorriso',
-            
             # === Boot & Image Creation ===
+            'xorriso',
             'grub2-tools',
             'grub2-tools-extra',
-            'guestfs-tools',
             
             # === Emulation & Debugging ===
             'qemu-system-x86',
@@ -127,13 +119,9 @@ DEPENDENCIES = {
             'grep',
             'coreutils',
             
-            # === Filesystem & Disk Tools ===
-            'dosfstools',
-            'xorriso',
-            
             # === Boot & Image Creation ===
+            'xorriso',
             'grub',
-            'libguestfs',
             
             # === Emulation & Debugging ===
             'qemu-system-x86',
@@ -171,14 +159,10 @@ DEPENDENCIES = {
             'grep',
             'coreutils',
             
-            # === Filesystem & Disk Tools ===
-            'dosfstools',
-            'xorriso',
-            
             # === Boot & Image Creation ===
+            'xorriso',
             'grub2',
             'grub2-i386-pc',
-            'guestfs-tools',
             
             # === Emulation & Debugging ===
             'qemu-x86',
@@ -216,13 +200,9 @@ DEPENDENCIES = {
             'grep',
             'coreutils',
             
-            # === Filesystem & Disk Tools ===
-            'dosfstools',
-            'xorriso',
-            
             # === Boot & Image Creation ===
+            'xorriso',
             'grub',
-            'libguestfs-tools',
             
             # === Emulation & Debugging ===
             'qemu-system-x86_64',
