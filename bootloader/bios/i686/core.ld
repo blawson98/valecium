@@ -5,7 +5,7 @@ ENTRY(_start)
 SECTIONS
 {
     /* Core stage is loaded by stage1 to linear address 0x8000. */
-    . = 0x8000;
+    . = 0x7E00;
 
     .entry : AT(0)
     {

@@ -12,12 +12,13 @@ from scripts.scons.bootloader import (
 VolumeLabel = 'VALECIUM'
 
 
-def RunCommand(Arguments: list, InputText: str = None):
+def RunCommand(Arguments: list, InputText: str = None, **kwargs):
     subprocess.run(
         Arguments,
         check=True,
         input=InputText,
         text=(InputText is not None),
+        **kwargs,
     )
 
 
@@ -44,7 +45,14 @@ def CreateBootableIso(
 
     if not UseSystemBootloader:
         print("   GRUB-MKRESCUE")
-        RunCommand(['grub-mkrescue', '-o', OutputIso, StagingDirectory, '--', '-volid', VolumeLabelName])
+        RunCommand(
+            ['grub-mkrescue', 
+            '-o', OutputIso, 
+            StagingDirectory, 
+            '--', 
+            '-volid', VolumeLabelName], 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL)
         return
 
     Stage1Path = str(BootloaderComponents['Stage1'])
@@ -70,7 +78,7 @@ def CreateBootableIso(
         '-boot-info-table',
         '-volid', VolumeLabelName,
         StagingDirectory,
-    ])
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def BuildGrubConfigContent(

@@ -5,6 +5,14 @@
 .global _start
 
 _start:
+	/*
+	 * El Torito detection signature — must be the first 6 bytes
+	 * at 0x7E00.  Stage1 checks for "VLSC" at offset +2 to decide
+	 * whether to load from disk or jump directly.
+	 */
+	jmp _start_code
+	.ascii "VLSC"
+_start_code:
 	/* Save the BIOS boot-drive number (passed in DL) immediately. */
 	movb	%dl, boot_drive
 
