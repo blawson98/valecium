@@ -65,7 +65,7 @@ static void set_mode_0x13(void)
 
     /* Sequencer */
     seq_w(0x00, 0x01);      /* synchronous reset */
-    seq_w(0x01, 0x0F);      /* clocking mode — 8 dot font */
+    seq_w(0x01, 0x01);      /* clocking mode */
     seq_w(0x02, 0x0F);      /* map mask — enable all 4 planes */
     seq_w(0x03, 0x00);      /* character map select */
     seq_w(0x04, 0x0E);      /* memory mode — chain 4, extended */
@@ -80,24 +80,25 @@ static void set_mode_0x13(void)
     crtc_w(0x03, 0x82);     /* end horizontal blank */
     crtc_w(0x04, 0x54);     /* start horizontal sync */
     crtc_w(0x05, 0x80);     /* end horizontal sync */
-    crtc_w(0x06, 0x0B);     /* vertical total */
-    crtc_w(0x07, 0x3E);     /* overflow */
+    crtc_w(0x06, 0xBF);     /* vertical total */
+    crtc_w(0x07, 0x1F);     /* overflow */
     crtc_w(0x08, 0x00);     /* preset row scan */
-    crtc_w(0x09, 0x40);     /* maximum scan line */
+    crtc_w(0x09, 0x41);     /* maximum scan line */
     crtc_w(0x0A, 0x00);     /* cursor start */
     crtc_w(0x0B, 0x00);     /* cursor end */
     crtc_w(0x0C, 0x00);     /* start address high */
     crtc_w(0x0D, 0x00);     /* start address low */
     crtc_w(0x0E, 0x00);     /* cursor location high */
     crtc_w(0x0F, 0x00);     /* cursor location low */
-    crtc_w(0x10, 0xEA);     /* vertical retrace start */
-    crtc_w(0x11, 0x8E);     /* vertical retrace end + re-protect CR0-7 */
-    crtc_w(0x12, 0xDF);     /* vertical display end */
-    crtc_w(0x13, 0x50);     /* offset — logical line width (320/4) */
-    crtc_w(0x14, 0x00);     /* underline location */
-    crtc_w(0x15, 0xE7);     /* start vertical blank */
-    crtc_w(0x16, 0x04);     /* end vertical blank */
-    crtc_w(0x17, 0xC3);     /* mode control */
+    crtc_w(0x10, 0x9C);     /* vertical retrace start */
+    crtc_w(0x11, 0x0E);     /* vertical retrace end + re-protect CR0-7 */
+    crtc_w(0x12, 0x8F);     /* vertical display end */
+    crtc_w(0x13, 0x28);     /* offset — logical line width (320/8 * 4) */
+    crtc_w(0x14, 0x40);     /* underline location */
+    crtc_w(0x15, 0x96);     /* start vertical blank */
+    crtc_w(0x16, 0xB9);     /* end vertical blank */
+    crtc_w(0x17, 0xA3);     /* mode control */
+    crtc_w(0x18, 0xFF);     /* line compare */
 
     /* Graphics Controller */
     gc_w(0x00, 0x00);       /* set/reset */
