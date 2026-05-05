@@ -1,10 +1,9 @@
 #!/opt/local/bin/python3
 """Generate the Valecium boot logo C header from the source PNG.
 
-Usage: genlogo.py [output_path]
+Usage: mklogo.py <logo_gen.h>
 
 Output: 640x640, 3 colours (white, blue, black), 4bpp format.
-If output_path is omitted, writes to logo.h next to this script.
 """
 
 import sys
@@ -14,7 +13,12 @@ from PIL import Image
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, '..', '..', '..'))
 SRC_PNG = os.path.join(REPO_ROOT, 'Documentation', 'assets', 'ValeciumOS.png')
-OUT_H   = sys.argv[1] if len(sys.argv) > 1 else os.path.join(SCRIPT_DIR, 'logo_gen.h')
+
+if len(sys.argv) < 2:
+    print('Usage: mklogo.py <logo_gen.h>')
+    sys.exit(1)
+
+OUT_H = sys.argv[1]
 
 # Target colours (R, G, B)
 WHITE = (252, 252, 252)
@@ -49,7 +53,7 @@ def quantize_to_3colours(img):
         for x in range(w):
             r, g, b, a = pixels[x, y][:4]
             if a < 128:
-                opixels[x, y] = 2  # transparent → black
+                opixels[x, y] = 2  # transparent -> black
             else:
                 opixels[x, y] = nearest_colour(r, g, b)
     return out

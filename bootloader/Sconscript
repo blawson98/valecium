@@ -4,6 +4,8 @@ Bootloader build configuration.
 """
 
 import os
+import subprocess
+import sys
 
 from SCons.Environment import Environment
 from SCons.Script import Dir, Export, SConscript
@@ -39,6 +41,23 @@ ConfigureBootloaderEnvironment(
     ArchitectureConfig,
     BootloaderBuildConfig,
 )
+
+# =============================================================================
+# Generated Source Files
+# =============================================================================
+
+if BootType == 'bios':
+    VideoPath = os.path.join(SourcePath, 'bios', 'video')
+
+    MkfontPath = os.path.join(VideoPath, 'mkfont.py')
+    FontGenC = os.path.join(VideoPath, 'font_gen.c')
+    if os.path.exists(MkfontPath) and not os.path.exists(FontGenC):
+        subprocess.run([sys.executable, MkfontPath, FontGenC], check=True)
+
+    MklogoPath = os.path.join(VideoPath, 'mklogo.py')
+    LogoGenH = os.path.join(VideoPath, 'logo_gen.h')
+    if os.path.exists(MklogoPath) and not os.path.exists(LogoGenH):
+        subprocess.run([sys.executable, MklogoPath, LogoGenH], check=True)
 
 # =============================================================================
 # Source Files

@@ -9,7 +9,7 @@ RUN dpkg --add-architecture i386 && \
     gcc g++ make libmpfr-dev libgmp-dev \
     libmpc-dev coreutils grep \
     xorriso qemu-system-x86 \
-    gdb texinfo git qemu-user-static \
+    git qemu-user-static \
     # Install the x86 version of grub-pc-bin specifically
     grub-pc-bin:i386 \
     && rm -rf /var/lib/apt/lists/*

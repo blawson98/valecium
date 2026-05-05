@@ -1,30 +1,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-from SCons.Script import Command, Dir, File, Return
+from SCons.Script import Dir, File
 import os
-import subprocess
 
 Import('Sources')
 Import('CoreSources')
 
-# Generate font_gen.c from the bitmap font script.
-FontScript = File('genfont.sh')
-FontTarget = Command(target='font_gen.c', source=FontScript,
-                     action=f'bash {FontScript.srcnode().abspath} $TARGET')[0]
-
-# =============================================================================
-# Generated Source Files
-# =============================================================================
-
-GenfontPath = os.path.join('genfont.sh')
-if os.path.exists(GenfontPath):
-    GenfontC = os.path.join('font_gen.c')
-    
-    if not os.path.exists(GenfontC):
-        subprocess.run(['bash', GenfontPath, GenfontC], check=True)
+SourcePath = Dir('#bootloader').abspath
+VideoPath = os.path.join(SourcePath, 'bios', 'video')
+GenfontC = os.path.join(VideoPath, 'font_gen.c')
 
 Sources += [
-    FontTarget,
+    GenfontC,
     File('serial.c'),
     File('vbe.c'),
     File('vga_text.c'),
@@ -33,7 +20,7 @@ Sources += [
 ]
 
 CoreSources += [
-    FontTarget,
+    GenfontC,
     File('serial.c'),
     File('vbe.c'),
     File('vga_text.c'),

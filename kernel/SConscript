@@ -4,6 +4,7 @@ Kernel build configuration.
 """
 
 import os
+import sys
 
 from SCons.Environment import Environment
 from SCons.Script import Dir, Export, SConscript
@@ -67,13 +68,13 @@ Env.Append(
 
 import subprocess
 
-MkisrsPath = os.path.join(ArchitecturePath, 'cpu', 'mkisrs.sh')
+MkisrsPath = os.path.join(ArchitecturePath, 'cpu', 'mkisrs.py')
 if os.path.exists(MkisrsPath):
     IsrsGenC = os.path.join(ArchitecturePath, 'cpu', 'isrs_gen.c')
     IsrsGenInc = os.path.join(ArchitecturePath, 'cpu', 'isrs_gen.inc')
-    
+
     if not os.path.exists(IsrsGenC) or not os.path.exists(IsrsGenInc):
-        subprocess.run(['bash', MkisrsPath, IsrsGenC, IsrsGenInc], check=True)
+        subprocess.run([sys.executable, MkisrsPath, IsrsGenC, IsrsGenInc], check=True)
 
 # =============================================================================
 # Source Files
