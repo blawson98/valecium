@@ -78,6 +78,28 @@ void print_available_outputs(uint8_t availableOutputs)
    putc('\n');
 }
 
+void print_boot_drive_number(int bootDrive)
+{
+   char *driveType;
+   if (bootDrive == 0xe0)
+      driveType = "CD/DVD";
+   else if (bootDrive < 0x80)
+      driveType = "Floppy Disk";
+   else
+      driveType = "Hard Disk";
+
+   puts("Boot drive information:\n");
+
+   puts("  Boot Drive Number: ");
+   puts("0x");
+   putx(bootDrive);
+   puts(".\n");
+   
+   puts("  Booted from a ");
+   puts(driveType);
+   puts(".\n");
+}
+
 /* Walk the Multiboot2 Boot Information structure at @mbi_addr
  * and print the memory map entries. */
 int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
@@ -94,7 +116,7 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
    if (availableOutputs & (1 << OUTPUT_VBE))
       preferedOutput = OUTPUT_VBE;
 
-   preferedOutput = OUTPUT_VGA;
+   preferedOutput = OUTPUT_VGATEXT;
 
    /* Initialise ONLY the chosen output system.
       VGA/VBE switch the hardware to graphics mode, which destroys text-mode
@@ -121,5 +143,6 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
 
    print_available_outputs(availableOutputs);
    print_memory_map(ptr);
+   print_boot_drive_number(bootDrive);
    return 0;
 }
