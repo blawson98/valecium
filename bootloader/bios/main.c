@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "video/video.h"
-#include "video/logo.h"
+#include "video/logo_gen.h"
 
 /* Multiboot2 tag types */
 #define MBI_TAG_END          0
@@ -32,15 +32,12 @@ struct mbi_tag_framebuffer
    uint8_t  rgb_reserved[2];
 };
 
-#define BOOT_LOGO_SCALE 5
-
-static void draw_boot_logo(int origin_x)
+static void draw_boot_logo(int origin_x, int scale)
 {
    uint32_t palette[VALECIUM_LOGO_PALETTE_SIZE];
    uint32_t screen_w;
    uint32_t screen_h;
    uint32_t i;
-   int scale;
    int origin_y;
    int x, y, sx, sy;
 
@@ -55,19 +52,10 @@ static void draw_boot_logo(int origin_x)
       palette[i] = VBE_PackRGB(r, g, b);
    }
 
-   scale = BOOT_LOGO_SCALE;
    screen_w = VBE_GetWidth();
    screen_h = VBE_GetHeight();
-   if (screen_w && screen_h)
-   {
-      int max_scale_x = (int)(screen_w / (uint32_t)VALECIUM_LOGO_W);
-      int max_scale_y = (int)(screen_h / (uint32_t)VALECIUM_LOGO_H);
-      int max_scale = (max_scale_x < max_scale_y) ? max_scale_x : max_scale_y;
-      if (max_scale < 1)
-         max_scale = 1;
-      if (scale > max_scale)
-         scale = max_scale;
-   }
+   if (scale < 1)
+      scale = 1;
 
    origin_y = ((int)screen_h - (int)VALECIUM_LOGO_H * scale) / 2;
    if (origin_y < 0)
@@ -262,6 +250,6 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
    print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
    if (preferedOutput == OUTPUT_VBE)
-      draw_boot_logo(VBE_GetWidth() - 720);
+      draw_boot_logo(VBE_GetWidth() - 720, 2);
    return 0;
 }
