@@ -6,9 +6,9 @@ from SCons.Script import Command, Dir, File, Return
 Import('Sources')
 Import('CoreSources')
 
-# Generate font.c from the bitmap font script.
+# Generate font_gen.c from the bitmap font script.
 FontScript = File('genfont.sh')
-FontTarget = Command(target='font.c', source=FontScript,
+FontTarget = Command(target='font_gen.c', source=FontScript,
                      action=f'bash {FontScript.srcnode().abspath} $TARGET')[0]
 
 Sources += [

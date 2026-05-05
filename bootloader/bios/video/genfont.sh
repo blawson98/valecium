@@ -1,12 +1,12 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# genfont.sh – Generate font.c with the standard VGA 8×16 bitmap font.
+# genfont.sh – Generate font_gen.c with the standard VGA 8×16 bitmap font.
 #
 # Invoked by SCons during the build.  Accepts one optional argument:
-# the output path (defaults to font.c in the script's directory).
+# the output path (defaults to font_gen.c in the script's directory).
 
-OUTPUT="${1:-$(cd "$(dirname "$0")" && pwd)/font.c}"
+OUTPUT="${1:-$(cd "$(dirname "$0")" && pwd)/font_gen.c}"
 
 cat > "$OUTPUT" << 'FONTEOF'
 // SPDX-License-Identifier: GPL-3.0-only
