@@ -4,12 +4,69 @@
 #include "video/video.h"
 
 /* Multiboot2 tag types */
-#define MBI_TAG_END       0
-#define MBI_TAG_MMAP      6
+#define MBI_TAG_END          0
+#define MBI_TAG_MMAP         6
+#define MBI_TAG_FRAMEBUFFER  8
 
 int g_PrimaryOutputSystem = 0;
-
 int preferedOutput = OUTPUT_VGATEXT;
+
+struct mbi_tag_framebuffer
+{
+   uint32_t type;
+   uint32_t size;
+   uint64_t framebuffer_addr;
+   uint32_t framebuffer_pitch;
+   uint32_t framebuffer_width;
+   uint32_t framebuffer_height;
+   uint8_t  framebuffer_bpp;
+   uint8_t  framebuffer_type;
+   uint16_t reserved;
+   uint8_t  red_field_position;
+   uint8_t  red_mask_size;
+   uint8_t  green_field_position;
+   uint8_t  green_mask_size;
+   uint8_t  blue_field_position;
+   uint8_t  blue_mask_size;
+   uint8_t  rgb_reserved[2];
+};
+
+static void init_framebuffer_info(uint8_t *ptr)
+{
+   for (;;)
+   {
+      uint32_t type = *(uint32_t *)ptr;
+      uint32_t size = *(uint32_t *)(ptr + 4);
+
+      if (type == MBI_TAG_END)
+         break;
+
+      if (type == MBI_TAG_FRAMEBUFFER && size >= sizeof(struct mbi_tag_framebuffer))
+      {
+         const struct mbi_tag_framebuffer *tag = (const struct mbi_tag_framebuffer *)ptr;
+         if (tag->framebuffer_type == 1)
+         {
+            VBE_Info info;
+            info.framebuffer_addr = tag->framebuffer_addr;
+            info.pitch = tag->framebuffer_pitch;
+            info.width = tag->framebuffer_width;
+            info.height = tag->framebuffer_height;
+            info.bpp = tag->framebuffer_bpp;
+            info.red_field_position = tag->red_field_position;
+            info.red_mask_size = tag->red_mask_size;
+            info.green_field_position = tag->green_field_position;
+            info.green_mask_size = tag->green_mask_size;
+            info.blue_field_position = tag->blue_field_position;
+            info.blue_mask_size = tag->blue_mask_size;
+            VBE_SetInfo(&info);
+         }
+      }
+
+      /* Advance to next tag (8-byte aligned) */
+      ptr += size;
+      ptr = (uint8_t *)(((uintptr_t)ptr + 7) & ~(uintptr_t)7);
+   }
+}
 
 void print_memory_map(uint8_t *ptr)
 {
@@ -108,15 +165,15 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
 
    /* Determine preferred output — highest available wins.
       Priority (ascending): serial → VGA text → VGA graphics → VBE. */
+   init_framebuffer_info(ptr);
+
    preferedOutput = OUTPUT_SERIAL;                          /* fallback  */
    if (availableOutputs & (1 << OUTPUT_VGATEXT))
       preferedOutput = OUTPUT_VGATEXT;
    if (availableOutputs & (1 << OUTPUT_VGA))
       preferedOutput = OUTPUT_VGA;
-   if (availableOutputs & (1 << OUTPUT_VBE))
+   if ((availableOutputs & (1 << OUTPUT_VBE)) && VBE_HasInfo())
       preferedOutput = OUTPUT_VBE;
-
-   preferedOutput = OUTPUT_VGATEXT;
 
    /* Initialise ONLY the chosen output system.
       VGA/VBE switch the hardware to graphics mode, which destroys text-mode

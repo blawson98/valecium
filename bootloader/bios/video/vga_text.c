@@ -165,3 +165,11 @@ int VGATEXT_PutChar(char c, int x, int y, char color)
 
    return SUCCESS;
 }
+
+int VGATEXT_PutPixel(int pixel, int x, int y)
+{
+   (void)pixel;
+   (void)x;
+   (void)y;
+   return EINVAL;
+}

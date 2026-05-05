@@ -61,3 +61,11 @@ int Serial_PutChar(char c, int x, int y, char color)
    outb(SERIAL_DATA, (uint8_t)c);
    return SUCCESS;
 }
+
+int Serial_PutPixel(int pixel, int x, int y)
+{
+   (void)pixel;
+   (void)x;
+   (void)y;
+   return EINVAL;
+}

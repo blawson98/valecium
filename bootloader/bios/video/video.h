@@ -4,168 +4,80 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Global error codes (negative errno convention) */
+/* Error codes (negative errno convention). */
 #define SUCCESS   0
 #define EINVAL  (-22)
 #define ENODEV  (-19)
 
-/* Output system identifiers — used as bit positions in the availability
- * mask and as the value of preferedOutput. */
+/* Output system identifiers (availability bit positions). */
 #define OUTPUT_VBE      0
 #define OUTPUT_VGA      1
 #define OUTPUT_VGATEXT  2
 #define OUTPUT_SERIAL   3
 
-extern void outb(uint16_t port, uint8_t val);
-extern uint8_t inb(uint16_t port);
-
-/** Preferred output system – set by the bootloader entry code. */
-extern int preferedOutput;
-
-/* ================================================================== */
-/*  VGA text-mode driver                                               */
-/* ================================================================== */
-
-/* Default color: light green (0x0A) on black */
+/* VGA text-mode defaults. */
 #define VGATEXT_DEFAULT_COLOR 0x0A
-
-/* VGA text-mode dimensions */
-#define VGATEXT_WIDTH   80
-#define VGATEXT_HEIGHT  25
-
-/**
- * VGATEXT_Initialize  –  Set up VGA text mode state.
- *
- * Clears the VGA buffer at 0xB8000, resets the internal cursor to (0,0),
- * and sets the default attribute.  Returns 0 on success or a negative
- * error code.
- */
-int VGATEXT_Initialize(void);
-
-/**
- * VGATEXT_PutChar  –  Write one character to the VGA text-mode display.
- *
- * @c      Character to write.
- * @x      Column (0 … VGATEXT_WIDTH-1).  If negative together with @y, write
- *         at the current cursor position and advance it.
- * @y      Row (0 … VGATEXT_HEIGHT-1).   If negative together with @x, write
- *         at the current cursor position and advance it.
- * @color  Foreground/background attribute byte.
- *
- * If exactly one of @x / @y is negative (but not both), returns -EINVAL.
- *
- * Returns 0 on success, or a negative error code.
- */
-int VGATEXT_PutChar(char c, int x, int y, char color);
+#define VGATEXT_WIDTH         80
+#define VGATEXT_HEIGHT        25
 
 /* ================================================================== */
-/*  Serial port driver (serial.c)                                      */
+/*  Structures                                                         */
 /* ================================================================== */
 
-/**
- * Serial_Initialize  –  Set up COM1 serial port (115200, 8N1).
- *
- * Returns 0 on success or a negative error code.
- */
-int Serial_Initialize(void);
-
-/**
- * Serial_PutChar  –  Send one character over the serial port.
- *
- * @c      Character to transmit.
- * @x, @y Ignored (serial is a stream).
- * @color Ignored.
- *
- * Returns 0 on success, or a negative error code.
- */
-int Serial_PutChar(char c, int x, int y, char color);
+/* VBE framebuffer details (populated from boot-time mode selection). */
+typedef struct VBE_Info
+{
+   uint64_t framebuffer_addr;
+   uint32_t pitch;
+   uint32_t width;
+   uint32_t height;
+   uint8_t  bpp;
+   uint8_t  red_field_position;
+   uint8_t  red_mask_size;
+   uint8_t  green_field_position;
+   uint8_t  green_mask_size;
+   uint8_t  blue_field_position;
+   uint8_t  blue_mask_size;
+} VBE_Info;
 
 /* ================================================================== */
-/*  VBE graphics driver (stub)                                         */
+/*  Functions                                                          */
 /* ================================================================== */
 
-/**
- * VBE_Initialize  –  Set up VBE framebuffer.
- *
- * Returns 0 on success or a negative error code.
- */
-int VBE_Initialize(void);
+extern void outb(uint16_t port, uint8_t val); /* Write port byte. */
+extern uint8_t inb(uint16_t port); /* Read port byte. */
 
-/**
- * VBE_PutChar  –  Write one character via VBE framebuffer.
- *
- * @c      Character to write.
- * @x, @y  Pixel position (or -1 for stream mode).
- * @color  Ignored in stub.
- *
- * Returns 0 on success, or a negative error code.
- */
-int VBE_PutChar(char c, int x, int y, char color);
+extern int preferedOutput; /* Preferred output system. */
 
-/* ================================================================== */
-/*  VGA graphics driver (stub)                                         */
-/* ================================================================== */
+int VGATEXT_Initialize(void); /* Initialize VGA text mode. */
+int VGATEXT_PutChar(char c, int x, int y, char color); /* Put text char. */
+int VGATEXT_PutPixel(int pixel, int x, int y); /* Text mode: -EINVAL. */
 
-/**
- * VGA_Initialize  –  Set up VGA graphics mode.
- *
- * Returns 0 on success or a negative error code.
- */
-int VGA_Initialize(void);
+int Serial_Initialize(void); /* Initialize COM1 serial. */
+int Serial_PutChar(char c, int x, int y, char color); /* Put serial char. */
+int Serial_PutPixel(int pixel, int x, int y); /* Serial: -EINVAL. */
 
-/**
- * VGA_PutChar  –  Write one character in VGA graphics mode.
- *
- * @c      Character to write.
- * @x, @y  Pixel position (or -1 for stream mode).
- * @color  Ignored in stub.
- *
- * Returns 0 on success, or a negative error code.
- */
-int VGA_PutChar(char c, int x, int y, char color);
+int VBE_Initialize(void); /* Initialize VBE framebuffer. */
+int VBE_PutChar(char c, int x, int y, char color); /* Put VBE char. */
+int VBE_PutPixel(int pixel, int x, int y); /* Put VBE pixel. */
+void VBE_SetInfo(const VBE_Info *info); /* Set VBE info before init. */
+int VBE_HasInfo(void); /* Check if VBE info is available. */
 
-/* ================================================================== */
-/*  Character / string / number output (print.c)                       */
-/* ================================================================== */
+int VGA_Initialize(void); /* Initialize VGA graphics. */
+int VGA_PutChar(char c, int x, int y, char color); /* Put VGA char. */
+int VGA_PutPixel(int pixel, int x, int y); /* Put VGA pixel. */
 
-/** Write a single character. */
-void putc(char c);
-
-/** Write a null-terminated string. */
-void puts(const char *str);
-
-/** Write a signed int as decimal. */
-void puti(int val);
-
-/** Write a signed int as decimal (alias for puti). */
-void putd(int val);
-
-/** Write a signed long as decimal. */
-void putl(long val);
-
-/** Write a signed long long as decimal. */
-void putll(long long val);
-
-/** Write an unsigned int as decimal. */
-void putu(unsigned val);
-
-/** Write an unsigned long as decimal. */
-void putul(unsigned long val);
-
-/** Write an unsigned long long as decimal. */
-void putull(unsigned long long val);
-
-/** Write an unsigned long long as lowercase hex. */
-void putx(unsigned long long val);
-
-/** Write an unsigned long long as UPPERCASE hex. */
-void putX(unsigned long long val);
-
-/** Write an unsigned long long as octal. */
-void puto(unsigned long long val);
-
-/** Write an unsigned long long as binary. */
-void putb(unsigned long long val);
-
-/** Write a pointer as 0x-prefixed hex. */
-void putp(const void *ptr);
+void putc(char c); /* Write a single character. */
+void puts(const char *str); /* Write a null-terminated string. */
+void puti(int val); /* Write signed int as decimal. */
+void putd(int val); /* Write signed int as decimal. */
+void putl(long val); /* Write signed long as decimal. */
+void putll(long long val); /* Write signed long long as decimal. */
+void putu(unsigned val); /* Write unsigned int as decimal. */
+void putul(unsigned long val); /* Write unsigned long as decimal. */
+void putull(unsigned long long val); /* Write unsigned long long as decimal. */
+void putx(unsigned long long val); /* Write unsigned long long as hex. */
+void putX(unsigned long long val); /* Write unsigned long long as HEX. */
+void puto(unsigned long long val); /* Write unsigned long long as octal. */
+void putb(unsigned long long val); /* Write unsigned long long as binary. */
+void putp(const void *ptr); /* Write pointer as 0x hex. */
