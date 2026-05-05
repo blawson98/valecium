@@ -65,11 +65,13 @@ protected_mode_entry:
 	movw %ax, %ss
 	movl $0x9fc00, %esp
 
+	movzbl	boot_drive, %eax        /* Pass boot drive to C */
+	pushl	%eax
 	movzbl	available_outputs, %eax /* Pass output bitmask to C */
 	pushl	%eax
 	pushl	$MBI_BASE
 	call	main
-	addl	$8, %esp
+	addl	$12, %esp               /* 3 args × 4 bytes */
 
 hang:
 	hlt

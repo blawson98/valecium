@@ -80,7 +80,7 @@ void print_available_outputs(uint8_t availableOutputs)
 
 /* Walk the Multiboot2 Boot Information structure at @mbi_addr
  * and print the memory map entries. */
-int main(uint32_t mbi_addr, uint8_t availableOutputs)
+int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
 {
    uint8_t *ptr = (uint8_t *)(uintptr_t)mbi_addr + 8;  /* skip total_size + reserved */
 
