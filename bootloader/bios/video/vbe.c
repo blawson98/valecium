@@ -172,7 +172,7 @@ int VBE_PutChar(char c, int x, int y, char color)
    return SUCCESS;
 }
 
-int VBE_PutPixel(int pixel, int x, int y)
+int VBE_PutPixel(uint32_t pixel, int x, int y)
 {
    if (!s_Initialized)
       return ENODEV;
@@ -181,6 +181,28 @@ int VBE_PutPixel(int pixel, int x, int y)
        (uint32_t)x >= s_Info.width || (uint32_t)y >= s_Info.height)
       return EINVAL;
 
-   put_pixel(x, y, (uint32_t)pixel);
+   put_pixel(x, y, pixel);
    return SUCCESS;
+}
+
+uint32_t VBE_PackRGB(uint8_t r, uint8_t g, uint8_t b)
+{
+   if (!s_HasInfo)
+      return 0;
+   return pack_rgb(r, g, b);
+}
+
+uint32_t VBE_GetWidth(void)
+{
+   return s_HasInfo ? s_Info.width : 0;
+}
+
+uint32_t VBE_GetHeight(void)
+{
+   return s_HasInfo ? s_Info.height : 0;
+}
+
+void VBE_ClearScreen(uint32_t pixel)
+{
+   clear_screen(pixel);
 }

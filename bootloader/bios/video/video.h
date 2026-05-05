@@ -59,9 +59,13 @@ int Serial_PutPixel(int pixel, int x, int y); /* Serial: -EINVAL. */
 
 int VBE_Initialize(void); /* Initialize VBE framebuffer. */
 int VBE_PutChar(char c, int x, int y, char color); /* Put VBE char. */
-int VBE_PutPixel(int pixel, int x, int y); /* Put VBE pixel. */
+int VBE_PutPixel(uint32_t pixel, int x, int y); /* Put VBE pixel. */
+uint32_t VBE_PackRGB(uint8_t r, uint8_t g, uint8_t b); /* Pack RGB for VBE. */
 void VBE_SetInfo(const VBE_Info *info); /* Set VBE info before init. */
 int VBE_HasInfo(void); /* Check if VBE info is available. */
+uint32_t VBE_GetWidth(void); /* Get current VBE width. */
+uint32_t VBE_GetHeight(void); /* Get current VBE height. */
+void VBE_ClearScreen(uint32_t pixel); /* Clears the current VBE screen */
 
 int VGA_Initialize(void); /* Initialize VGA graphics. */
 int VGA_PutChar(char c, int x, int y, char color); /* Put VGA char. */

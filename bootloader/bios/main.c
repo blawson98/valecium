@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "video/video.h"
+#include "video/valecium_logo_128_q16.h"
 
 /* Multiboot2 tag types */
 #define MBI_TAG_END          0
@@ -30,6 +31,74 @@ struct mbi_tag_framebuffer
    uint8_t  blue_mask_size;
    uint8_t  rgb_reserved[2];
 };
+
+#define BOOT_LOGO_SCALE 5
+
+static uint8_t boot_logo_get_index(int x, int y)
+{
+   uint32_t i = (uint32_t)y * (uint32_t)VALECIUM_LOGO_W + (uint32_t)x;
+   uint8_t b = g_ValeciumLogo_Data4bpp[i >> 1];
+   return (i & 1u) ? (b & 0x0Fu) : (uint8_t)((b >> 4) & 0x0Fu);
+}
+
+static void draw_boot_logo(int origin_x)
+{
+   uint32_t palette[VALECIUM_LOGO_PALETTE_SIZE];
+   uint32_t screen_w;
+   uint32_t screen_h;
+   uint32_t i;
+   int scale;
+   int origin_y;
+   int x, y, sx, sy;
+   uint32_t black;
+
+   if (!VBE_HasInfo() || origin_x < 0)
+      return;
+
+   for (i = 0; i < VALECIUM_LOGO_PALETTE_SIZE; i++)
+   {
+      uint8_t r = g_ValeciumLogo_PaletteRGB[i * 3u + 0u];
+      uint8_t g = g_ValeciumLogo_PaletteRGB[i * 3u + 1u];
+      uint8_t b = g_ValeciumLogo_PaletteRGB[i * 3u + 2u];
+      palette[i] = VBE_PackRGB(r, g, b);
+   }
+
+   black = VBE_PackRGB(0x00, 0x00, 0x00);
+   VBE_ClearScreen(black);
+
+   scale = BOOT_LOGO_SCALE;
+   screen_w = VBE_GetWidth();
+   screen_h = VBE_GetHeight();
+   if (screen_w && screen_h)
+   {
+      int max_scale_x = (int)(screen_w / (uint32_t)VALECIUM_LOGO_W);
+      int max_scale_y = (int)(screen_h / (uint32_t)VALECIUM_LOGO_H);
+      int max_scale = (max_scale_x < max_scale_y) ? max_scale_x : max_scale_y;
+      if (max_scale < 1)
+         max_scale = 1;
+      if (scale > max_scale)
+         scale = max_scale;
+   }
+
+   origin_y = ((int)screen_h - (int)VALECIUM_LOGO_H * scale) / 2;
+   if (origin_y < 0)
+      origin_y = 0;
+
+   for (y = 0; y < VALECIUM_LOGO_H; y++)
+   {
+      for (x = 0; x < VALECIUM_LOGO_W; x++)
+      {
+         uint8_t idx = boot_logo_get_index(x, y);
+         uint32_t color = palette[idx & 0x0Fu];
+
+         for (sy = 0; sy < scale; sy++)
+            for (sx = 0; sx < scale; sx++)
+               VBE_PutPixel(color,
+                  origin_x + x * scale + sx,
+                  origin_y + y * scale + sy);
+      }
+   }
+}
 
 static void init_framebuffer_info(uint8_t *ptr)
 {
@@ -201,5 +270,7 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
    print_available_outputs(availableOutputs);
    print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
+   if (preferedOutput == OUTPUT_VBE)
+      draw_boot_logo(16);
    return 0;
 }
