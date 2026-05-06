@@ -15,8 +15,6 @@ ENV PATH="/opt/cross/bin:${PATH}"
 
 WORKDIR /build
 
-# Ensure the toolchain script builds a CROSS-compiler (aarch64) 
-# rather than a native one.
 RUN --mount=type=bind,source=.,target=/build \
     python3 ./scripts/base/toolchain.py /opt/cross -a aarch64
 
