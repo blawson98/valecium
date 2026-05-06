@@ -32,11 +32,8 @@ DEPENDENCIES = {
             
             # === Python & Scripting ===
             'python3',
-            'python3-pip',
+            'python3-pil',
             'scons',
-            'bash',
-            'grep',
-            'coreutils',
             
             # === Boot & Image Creation ===
             'xorriso',
@@ -45,7 +42,6 @@ DEPENDENCIES = {
             # === Emulation & Debugging ===
             'qemu-system-x86',
             'qemu-system-aarch64',
-            'gdb',
             
             # === Code Quality ===
             'clang-format',

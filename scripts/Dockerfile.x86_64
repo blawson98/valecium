@@ -1,17 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 FROM debian:stable-slim
 
-RUN native_arch="$(dpkg --print-architecture)" && \
-    dpkg --add-architecture i386 && \
-    if [ "$native_arch" != "amd64" ]; then dpkg --add-architecture amd64; fi && \
+RUN dpkg --add-architecture amd64 && \
     apt-get update && apt-get install -y \
-    scons python3 build-essential \
-    gcc g++ make libmpfr-dev libgmp-dev \
-    libmpc-dev coreutils grep \
-    xorriso qemu-system-x86 \
-    gdb texinfo git qemu-user-static \
-    gnu-efi \
-    grub-pc-bin:i386 \
+    build-essential gcc g++ make \
+    libgmp-dev libmpc-dev libmpfr-dev python3 \
+    python3-pil scons xorriso \
+    grub-pc-bin:amd64 \
     grub-efi-amd64-bin:amd64 \
     && rm -rf /var/lib/apt/lists/*
 
