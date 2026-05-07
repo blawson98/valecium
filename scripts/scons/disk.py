@@ -59,9 +59,7 @@ def CreateBootableIso(
             '-o', OutputIso, 
             StagingDirectory, 
             '--', 
-            '-volid', VolumeLabelName], 
-            stdout=subprocess.DEVNULL, 
-            stderr=subprocess.DEVNULL)
+            '-volid', VolumeLabelName])
         return
 
     Stage1Path = str(BootloaderComponents['Stage1'])

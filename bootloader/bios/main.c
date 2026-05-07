@@ -32,16 +32,18 @@ struct mbi_tag_framebuffer
    uint8_t  rgb_reserved[2];
 };
 
-static void draw_boot_logo(int origin_x, int scale)
+static void draw_boot_logo(void)
 {
    uint32_t palette[VALECIUM_LOGO_PALETTE_SIZE];
    uint32_t screen_w;
    uint32_t screen_h;
    uint32_t i;
-   int origin_y;
-   int x, y, sx, sy;
+   uint32_t target_w;
+   uint32_t target_h;
+   int origin_x, origin_y;
+   int x, y;
 
-   if (!VBE_HasInfo() || origin_x < 0)
+   if (!VBE_HasInfo())
       return;
 
    for (i = 0; i < VALECIUM_LOGO_PALETTE_SIZE; i++)
@@ -54,27 +56,46 @@ static void draw_boot_logo(int origin_x, int scale)
 
    screen_w = VBE_GetWidth();
    screen_h = VBE_GetHeight();
-   if (scale < 1)
-      scale = 1;
 
-   origin_y = ((int)screen_h - (int)VALECIUM_LOGO_H * scale) / 2;
-   if (origin_y < 0)
-      origin_y = 0;
+   target_h = (screen_h * 6u) / 10u;
+   if (target_h < 1u)
+      target_h = 1u;
+   target_w = (uint32_t)(((uint64_t)VALECIUM_LOGO_W * target_h) / VALECIUM_LOGO_H);
+   if (target_w < 1u)
+      target_w = 1u;
 
-   for (y = 0; y < VALECIUM_LOGO_H; y++)
+   origin_x = ((int)screen_w - (int)target_w) / 2;
+   origin_y = ((int)screen_h - (int)target_h) / 2;
+
+   for (y = 0; y < (int)target_h; y++)
    {
-      for (x = 0; x < VALECIUM_LOGO_W; x++)
-      {
-         uint32_t i = (uint32_t)y * (uint32_t)VALECIUM_LOGO_W + (uint32_t)x;
-         uint8_t b = g_ValeciumLogo_Data4bpp[i >> 1];
-         uint8_t idx = (i & 1u) ? (b & 0x0Fu) : (uint8_t)((b >> 4) & 0x0Fu);
-         uint32_t color = palette[idx & 0x0Fu];
+      int dest_y = origin_y + y;
+      uint32_t src_y;
 
-         for (sy = 0; sy < scale; sy++)
-            for (sx = 0; sx < scale; sx++)
-               VBE_PutPixel(color,
-                  origin_x + x * scale + sx,
-                  origin_y + y * scale + sy);
+      if (dest_y < 0 || dest_y >= (int)screen_h)
+         continue;
+
+      src_y = (uint32_t)(((uint64_t)y * VALECIUM_LOGO_H) / target_h);
+
+      for (x = 0; x < (int)target_w; x++)
+      {
+         int dest_x = origin_x + x;
+         uint32_t src_x;
+         uint32_t src_i;
+         uint8_t b;
+         uint8_t idx;
+         uint32_t color;
+
+         if (dest_x < 0 || dest_x >= (int)screen_w)
+            continue;
+
+         src_x = (uint32_t)(((uint64_t)x * VALECIUM_LOGO_W) / target_w);
+         src_i = src_y * (uint32_t)VALECIUM_LOGO_W + src_x;
+         b = g_ValeciumLogo_Data4bpp[src_i >> 1];
+         idx = (src_i & 1u) ? (b & 0x0Fu) : (uint8_t)((b >> 4) & 0x0Fu);
+         color = palette[idx & 0x0Fu];
+
+         VBE_PutPixel(color, dest_x, dest_y);
       }
    }
 }
@@ -250,6 +271,6 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
    print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
    if (preferedOutput == OUTPUT_VBE)
-      draw_boot_logo(VBE_GetWidth() - 720, 2);
+      draw_boot_logo();
    return 0;
 }
