@@ -12,6 +12,15 @@
 int g_PrimaryOutputSystem = 0;
 int preferedOutput = OUTPUT_VGATEXT;
 
+struct fs_operations
+{
+   uint32_t magic;
+   uint32_t fs_init;
+   uint32_t fs_open;
+   uint32_t fs_read;
+   uint32_t fs_close;
+}
+
 struct mbi_tag_framebuffer
 {
    uint32_t type;
@@ -264,5 +273,6 @@ int main(uint32_t mbi_addr, uint8_t availableOutputs, uint8_t bootDrive)
    print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
    if (preferedOutput == OUTPUT_VBE) draw_boot_logo();
-   return 0;
+
+   struct fs_operations return 0;
 }
