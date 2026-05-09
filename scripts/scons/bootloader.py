@@ -7,8 +7,6 @@ import struct
 from SCons.Environment import Environment
 
 AllowedBootSetups = (
-    # ISO is the only supported image format, so the boot setup is defined by
-    # (architecture, boot type, bootloader).
     ('aarch64', 'efi', 'system'),
     ('aarch64', 'efi', 'grub'),
     ('x86_64', 'bios', 'system'),

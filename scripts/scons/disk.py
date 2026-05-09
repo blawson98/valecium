@@ -59,7 +59,18 @@ def CreateBootableIso(
             '-o', OutputIso, 
             StagingDirectory, 
             '--', 
-            '-volid', VolumeLabelName])
+            # These are NATIVE xorriso commands
+            '-volid', VolumeLabelName,
+            # This is the "Magic Bullet": Exclude these specific paths 
+            # that GRUB injects for Apple compatibility.
+            '-not_paths', 
+            '/mach_kernel', 
+            '/System', 
+            '/Library', 
+            '/.disk',
+            # Ensure we don't fail if the files don't exist in a specific build
+            '-ok_mips', 'on' 
+            ])
         return
 
     Stage1Path = str(BootloaderComponents['Stage1'])
@@ -75,8 +86,6 @@ def CreateBootableIso(
 
     print(f"   XORRISO (El Torito: {os.path.basename(ElToritoPath)}, {LoadSectors} sectors)")
 
-    # The boot image must be inside the staging tree so xorriso can find it
-    # relative to the staging root.
     BootImageInStage = os.path.join(StagingDirectory, 'boot', os.path.basename(ElToritoPath))
     os.makedirs(os.path.dirname(BootImageInStage), exist_ok=True)
     shutil.copy2(ElToritoPath, BootImageInStage)
