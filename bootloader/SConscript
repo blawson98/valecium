@@ -64,7 +64,8 @@ if BootType == 'bios':
 # =============================================================================
 
 Sources = []
-SConscript('common/SConscript', exports='Sources')
+CoreFsSources = []
+SConscript('common/SConscript', exports=['Sources', 'CoreFsSources'])
 
 BootloaderComponents = {
     'BootType': BootType,
@@ -110,6 +111,55 @@ else:
     raise RuntimeError(f'Unsupported boot type: {BootType}')
 
 TargetEnvironment['BootloaderComponents'] = BootloaderComponents
+
+# =============================================================================
+# Core Filesystem Modules
+# =============================================================================
+
+CoreFsBinaries = []
+if BootType == 'bios' and CoreFsSources:
+    LinkModeByArchitecture = {
+        'i686': 'elf_i386',
+        'x86_64': 'elf_x86_64',
+    }
+
+    CoreFsLinkerScript = TargetEnvironment.File(
+        f'{BootType}/{Architecture}/corefs.ld'
+    ).srcnode()
+    CoreFsDiskSource = TargetEnvironment.File(
+        f'{BootType}/{Architecture}/disk.S'
+    )
+
+    CoreFsEnvironment = TargetEnvironment.Clone()
+    ConfigureBootloaderEnvironment(
+        CoreFsEnvironment,
+        SourcePath,
+        ArchitecturePath,
+        ArchitectureConfig,
+        BootloaderBuildConfig,
+    )
+
+    CoreFsEnvironment.AppendUnique(LINKFLAGS=[
+        '-nostdlib',
+        '-Wl,-N',
+        f'-Wl,-m,{LinkModeByArchitecture[Architecture]}',
+        f'-Wl,-T,{CoreFsLinkerScript.path}',
+        '-Wl,--oformat,binary',
+    ])
+    CoreFsEnvironment.Append(OBJPREFIX='corefs_')
+    CoreFsEnvironment.Append(LIBS=['gcc'])
+
+    DiskObjects = CoreFsEnvironment.Object(CoreFsDiskSource)
+
+    for FsSource in CoreFsSources:
+        FsName = os.path.splitext(FsSource.name)[0]
+        FsObjects = CoreFsEnvironment.Object(FsSource)
+        FsBinary = CoreFsEnvironment.Program(
+            MainEnvironment.File(f'corefs_{FsName}.bin'),
+            DiskObjects + FsObjects,
+        )
+        CoreFsEnvironment.Depends(FsBinary, CoreFsLinkerScript)
+        CoreFsBinaries.append(FsBinary)
 
 MainEnvironment.Append(OBJPREFIX='main_')
 Objects = MainEnvironment.Object(Sources)
