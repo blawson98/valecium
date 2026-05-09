@@ -1,35 +1,33 @@
 # Build artifacts
-build/
-out/
-dist/
+*.bin
+*.elf
 *.img
 *.iso
-*.elf
-*.bin
+build/
+dist/
+out/
 
 # Toolchain and external binaries
-toolchain/
 .sconsign.dblite
+toolchain/
 
 # Compiled object and archives
-*.o
 *.a
+*.o
 *.so
 
 # Python
-.venv/
-venv/
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg-info/
-pip-wheel-metadata/
-/.cache
-.pytest_cache/
+.cache
 .mypy_cache/
-dist/
-build/
+.pytest_cache/
+.venv/
+__pycache__/
+*.egg-info/
+*.py[cod]
+*.pyd
+*.pyo
+pip-wheel-metadata/
+venv/
 
 # Logs
 *.log
@@ -39,17 +37,17 @@ build/
 *.aux
 *.bbl
 *.blg
-*.toc
 *.synctex.gz
+*.toc
 
 # Editors and IDEs
 .DS_Store
 .idea/
 .vscode/
-*.iml
 *~
-.#*
+.*#
 *.*#
+*.iml
 *.swp
 
 # Node
@@ -57,15 +55,14 @@ node_modules/
 
 # Coverage and test
 .coverage
-coverage.*
 .tox/
+coverage.*
 
 # Misc
-tags
-cscope.*
+.config
+*_gen.*
 core
 *.core
-.config
+cscope.*
+tags
 test.*
-
-*_gen.*
