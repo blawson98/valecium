@@ -6,7 +6,7 @@ import subprocess
 import textwrap
 
 from scripts.scons.bootloader import (
-    PrepareElToritoBootImage,
+    CreateElTorito,
     ValidateBootSetup,
 )
 
@@ -65,7 +65,12 @@ def CreateBootableIso(
     Stage1Path = str(BootloaderComponents['Stage1'])
     Stage2Path = str(BootloaderComponents['Stage2'])
 
-    ElToritoPath = PrepareElToritoBootImage(Stage1Path, Stage2Path)
+    ElToritoPath = CreateElTorito(
+        Stage1Path,
+        Stage2Path,
+        FileSystemType='iso9660',
+        CoreFsBinaries=BootloaderComponents.get('CoreFsBinaries') if BootloaderComponents else None,
+    )
     LoadSectors = (os.path.getsize(ElToritoPath) + 511) // 512
 
     print(f"   XORRISO (El Torito: {os.path.basename(ElToritoPath)}, {LoadSectors} sectors)")

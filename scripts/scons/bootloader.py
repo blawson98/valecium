@@ -2,6 +2,7 @@
 
 import copy
 import os
+import struct
 
 from SCons.Environment import Environment
 
@@ -31,6 +32,11 @@ BootloaderProfiles = {
         'AssemblerFlags': ['-DBOOTLOADER_EFI=1'],
     },
 }
+
+CoreFsPatchSignature = b'VLSF'
+CoreFsPatchOffset = 4
+ElToritoLoadAddress = 0x7C00
+CoreFsLoadAddress = 0x57E00
 
 
 def GetSupportedBootTypes() -> list:
@@ -113,15 +119,82 @@ def ConfigureBootloaderEnvironment(
     env.Append(ASFLAGS=bootloader_config.get('AssemblerFlags', []))
 
 
-def PrepareElToritoBootImage(
-    Stage1Path: str,
+def PatchBinaryValue(
+    BinaryPath: str,
+    Signature: bytes,
+    Value: int,
+    ValueFormat: str,
+    ValueOffset: int = 4,
+) -> None:
+    if not isinstance(Signature, (bytes, bytearray)):
+        raise TypeError('Signature must be bytes')
+
+    with open(BinaryPath, 'rb') as FileHandle:
+        Data = bytearray(FileHandle.read())
+
+    SignatureOffset = Data.find(Signature)
+    if SignatureOffset == -1:
+        raise ValueError(f"Signature {Signature!r} not found in {BinaryPath}")
+    if Data.find(Signature, SignatureOffset + 1) != -1:
+        raise ValueError(f"Signature {Signature!r} appears multiple times in {BinaryPath}")
+
+    ValueSize = struct.calcsize(ValueFormat)
+    PatchOffset = SignatureOffset + ValueOffset
+    if PatchOffset + ValueSize > len(Data):
+        raise ValueError(f"Patch offset {PatchOffset} exceeds size of {BinaryPath}")
+
+    struct.pack_into(ValueFormat, Data, PatchOffset, Value)
+
+    with open(BinaryPath, 'wb') as FileHandle:
+        FileHandle.write(Data)
+
+
+def PatchCoreFsStartAddress(
+    CorePath: str,
+    StartAddress: int,
+) -> None:
+    PatchBinaryValue(
+        BinaryPath=CorePath,
+        Signature=CoreFsPatchSignature,
+        Value=StartAddress,
+        ValueFormat='<I',
+        ValueOffset=CoreFsPatchOffset,
+    )
+
+
+def ResolveCoreFsBinaryPath(
+    FileSystemType: str,
+    CoreFsBinaries: list,
     Stage2Path: str,
 ) -> str:
-    """Create a combined El Torito boot image from stage1 and stage2 binaries.
+    TargetName = f'corefs_{FileSystemType}.bin'
 
-    Concatenates stage1 (padded to a full 512-byte sector) with stage2 to produce
-    a flat binary suitable for El Torito "no emulation" boot.  The resulting image
-    is placed alongside the stage1 file as ``<stage1_name>-eltorito.bin``.
+    for Node in CoreFsBinaries or []:
+        NodePath = Node.get_abspath() if hasattr(Node, 'get_abspath') else str(Node)
+        if os.path.basename(NodePath) == TargetName:
+            return NodePath
+
+    CandidatePath = os.path.join(os.path.dirname(Stage2Path), TargetName)
+    if os.path.exists(CandidatePath):
+        return CandidatePath
+
+    raise FileNotFoundError(
+        f"Filesystem module not found: {TargetName} (stage2 dir: {os.path.dirname(Stage2Path)})"
+    )
+
+
+def CreateElTorito(
+    Stage1Path: str,
+    Stage2Path: str,
+    FileSystemType: str,
+    CoreFsBinaries: list = None,
+) -> str:
+    """Create a combined El Torito boot image from stage1, stage2, and corefs.
+
+    Concatenates stage1 (padded to a full 512-byte sector), stage2, and the
+    filesystem module to produce a flat binary suitable for El Torito
+    "no emulation" boot. The resulting image is placed alongside the stage1
+    file as ``<stage1_name>-eltorito.bin``.
 
     The El Torito Boot Info Table (patched by xorriso at ISO creation time) will
     occupy bytes 8--31 of the first sector, so stage1 must not place critical
@@ -137,15 +210,41 @@ def PrepareElToritoBootImage(
 
     with open(Stage1Path, 'rb') as Stage1File:
         Stage1Data = Stage1File.read()
+
+    PatchCoreFsStartAddress(Stage2Path, CoreFsLoadAddress)
+
     with open(Stage2Path, 'rb') as Stage2File:
         Stage2Data = Stage2File.read()
+
+    CoreFsPath = ResolveCoreFsBinaryPath(
+        FileSystemType=FileSystemType,
+        CoreFsBinaries=CoreFsBinaries,
+        Stage2Path=Stage2Path,
+    )
+    with open(CoreFsPath, 'rb') as CoreFsFile:
+        CoreFsData = CoreFsFile.read()
 
     # Pad stage1 to a full 512-byte sector so the Boot Info Table (bytes 8-31)
     # has a well-defined home and stage2 begins on a sector boundary.
     if len(Stage1Data) < 512:
         Stage1Data = Stage1Data + b'\x00' * (512 - len(Stage1Data))
 
-    Combined = Stage1Data + Stage2Data
+    if CoreFsLoadAddress <= ElToritoLoadAddress:
+        raise ValueError(
+            f"Invalid corefs load address: {CoreFsLoadAddress:#x} <= {ElToritoLoadAddress:#x}"
+        )
+
+    corefs_offset = CoreFsLoadAddress - ElToritoLoadAddress
+    corefs_start = len(Stage1Data) + len(Stage2Data)
+    if corefs_start > corefs_offset:
+        raise ValueError(
+            f"core.bin exceeds corefs load boundary: {corefs_start:#x} > {corefs_offset:#x}"
+        )
+
+    if corefs_start < corefs_offset:
+        Stage2Data = Stage2Data + b'\x00' * (corefs_offset - corefs_start)
+
+    Combined = Stage1Data + Stage2Data + CoreFsData
 
     OutputPath = os.path.join(
         os.path.dirname(Stage1Path),

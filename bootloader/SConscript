@@ -110,13 +110,11 @@ elif BootType == 'efi':
 else:
     raise RuntimeError(f'Unsupported boot type: {BootType}')
 
-TargetEnvironment['BootloaderComponents'] = BootloaderComponents
-
 # =============================================================================
 # Core Filesystem Modules
 # =============================================================================
 
-CoreFsBinaries = []
+CoreFs = []
 if BootType == 'bios' and CoreFsSources:
     LinkModeByArchitecture = {
         'i686': 'elf_i386',
@@ -159,7 +157,9 @@ if BootType == 'bios' and CoreFsSources:
             DiskObjects + FsObjects,
         )
         CoreFsEnvironment.Depends(FsBinary, CoreFsLinkerScript)
-        CoreFsBinaries.append(FsBinary)
+        CoreFs.append(FsBinary)
+
+TargetEnvironment['BootloaderComponents'] = BootloaderComponents
 
 MainEnvironment.Append(OBJPREFIX='main_')
 Objects = MainEnvironment.Object(Sources)
@@ -170,5 +170,7 @@ Objects = MainEnvironment.Object(Sources)
 # =============================================================================
 
 Bootloader = MainEnvironment.Library(BootloaderBuildConfig['OutputName'], Objects)
+BootloaderComponents['Main'] = Bootloader
+BootloaderComponents['CoreFs'] = CoreFs
 
 Export('Bootloader')

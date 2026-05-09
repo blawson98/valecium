@@ -28,6 +28,19 @@ TargetEnvironment: Environment
 Env: Environment = TargetEnvironment
 
 
+def IterBootloaderComponentNodes(Components: dict):
+    for ComponentName, Component in Components.items():
+        if hasattr(Component, 'get_abspath'):
+            yield ComponentName, Component
+            continue
+
+        for Item in Flatten([Component]):
+            if not hasattr(Item, 'get_abspath'):
+                continue
+            ItemName = f'{ComponentName}:{os.path.basename(str(Item))}'
+            yield ItemName, Item
+
+
 def BuildDisk(
     ImagePath,
     KernelExecutablePath,
@@ -172,10 +185,8 @@ def BuildImageAction(*_Args, **KeywordArguments):
     BootloaderComponentNodes = EnvObj.get('BootloaderComponents', {})
     BootloaderComponentPaths = {}
     BootloaderComponentSet = set()
-    for ComponentName, Component in BootloaderComponentNodes.items():
-        if not hasattr(Component, 'get_abspath'):
-            continue
 
+    for ComponentName, Component in IterBootloaderComponentNodes(BootloaderComponentNodes):
         AbsolutePath = Component.get_abspath()
         BootloaderComponentPaths[ComponentName] = AbsolutePath
         BootloaderComponentSet.add(str(Component))
@@ -205,9 +216,10 @@ RootFiles = GlobRecursive(Env, '*', Root)
 
 BootloaderInputs = []
 if Env.get('BootType', 'grub') in ('bios', 'efi'):
-    for Component in Env.get('BootloaderComponents', {}).values():
-        if hasattr(Component, 'get_abspath'):
-            BootloaderInputs.append(Component)
+    for _, Component in IterBootloaderComponentNodes(
+        Env.get('BootloaderComponents', {})
+    ):
+        BootloaderInputs.append(Component)
 
 Inputs = [Kernel] + UserLibraries + UserApplications + RootFiles + BootloaderInputs
 
