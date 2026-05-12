@@ -24,6 +24,10 @@
 /* ------------------------------------------------------------------ */
 .equ MBI_BASE,     0x6000          /* Multiboot2 info structure base   */
 .equ MBI_PTR_SAVE, 0x5000          /* Where to stash the pointer       */
+/* BIOS drive list (real-mode, identity). */
+.equ BIOS_DRIVE_LIST_BASE,  0x5100 /* u8[] drive numbers               */
+.equ BIOS_DRIVE_LIST_PTR,   0x5004 /* Where to stash list pointer      */
+.equ BIOS_DRIVE_LIST_COUNT, 0x5008 /* Where to stash list count (u32)  */
 /* VBE buffers/scratch (real-mode, identity). */
 .equ VBE_INFO,      0x0500         /* VBE Controller Info buffer       */
 .equ VBE_MODE_INFO, 0x0600         /* VBE Mode Info buffer             */
@@ -52,6 +56,11 @@ detect_hardware:
 	/* Save MBI pointer so 32-bit code can find it. */
 	movl	$MBI_BASE, %eax
 	movl	%eax, (MBI_PTR_SAVE)
+
+	/* Save BIOS drive list pointer and clear count. */
+	movl	$BIOS_DRIVE_LIST_BASE, %eax
+	movl	%eax, (BIOS_DRIVE_LIST_PTR)
+	movl	$0, (BIOS_DRIVE_LIST_COUNT)
 
 	/* DI = current write offset inside the MBI structure. */
 	movw	$MBI_BASE, %di
@@ -268,6 +277,42 @@ detect_hardware:
 
 	/* Preserve the current MBI write pointer. */
 	movw	%di, VBE_MBI_DI
+
+	/* ============================================================ */
+	/*  BIOS Drive Enumeration                                      */
+	/*  Scans all BIOS drive numbers (0x00-0xFF) and records         */
+	/*  present drives in BIOS_DRIVE_LIST_BASE.                      */
+	/*                                                               */
+	/*  Uses INT 13h AH=15h (Get Disk Type) which reliably reports   */
+	/*  whether a drive is present (AH != 0 on success, CF=0).       */
+	/*  This works for floppies (0x00-0x7F), hard disks (0x80-0xDF), */
+	/*  and CD-ROMs (0xE0-0xFF).                                     */
+	/* ============================================================ */
+	movw	$BIOS_DRIVE_LIST_BASE, %si
+	xorw	%cx, %cx                /* CX = drive count              */
+	xorb	%bl, %bl                /* BL = drive number             */
+
+.Ldrive_scan_loop:
+	movb	%bl, %dl
+	movb	$0x15, %ah              /* INT 13h: Get Disk Type        */
+	int	$0x13
+
+	jc	.Ldrive_scan_next       /* CF=1 → BIOS doesn't support  */
+	testb	%ah, %ah
+	jz	.Ldrive_scan_next       /* AH=0 → drive not present      */
+
+	/* Drive present: record its number and advance. */
+	movb	%bl, %es:(%si)
+	incw	%si
+	incw	%cx
+
+.Ldrive_scan_next:
+	incb	%bl
+	jnz	.Ldrive_scan_loop
+
+	/* Store count as u32 for 32-bit code. */
+	movw	%cx, (BIOS_DRIVE_LIST_COUNT)
+	movw	$0, (BIOS_DRIVE_LIST_COUNT + 2)
 	/* ============================================================ */
 	/*  Output System Availability Checks                            */
 	/*  Builds an 8-bit bitmask in AL:                                */

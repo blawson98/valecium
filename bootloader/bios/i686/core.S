@@ -65,14 +65,22 @@ protected_mode_entry:
 	movw %ax, %ss
 	movl $0x9fc00, %esp
 
-	movzbl	boot_drive, %eax        /* Pass boot drive to C */
-	pushl	%eax
-	movzbl	available_outputs, %eax /* Pass output bitmask to C */
-	pushl	%eax
-	pushl	corefs_start_address    /* Pass corefs load address to C */
-	pushl	$MBI_BASE
+	movl	$MBI_BASE, %eax
+	movl	%eax, boot_params
+	movl	corefs_start_address, %eax
+	movl	%eax, boot_params + 4
+	movzbl	available_outputs, %eax
+	movl	%eax, boot_params + 8
+	movzbl	boot_drive, %eax
+	movl	%eax, boot_params + 12
+	movl	BIOS_DRIVE_LIST_PTR, %eax
+	movl	%eax, boot_params + 16
+	movl	BIOS_DRIVE_LIST_COUNT, %eax
+	movl	%eax, boot_params + 20
+
+	pushl	$boot_params
 	call	main
-	addl	$16, %esp               /* 4 args × 4 bytes */
+	addl	$4, %esp               /* 1 arg × 4 bytes */
 
 hang:
 	hlt
@@ -114,6 +122,17 @@ corefs_partition_uuid:
 	/* Multiboot2 Boot Information structure base (matches detect.S). */
 	.set MBI_BASE,     0x6000
 	.set MBI_PTR_SAVE, 0x5000
+	.set BIOS_DRIVE_LIST_PTR,   0x5004
+	.set BIOS_DRIVE_LIST_COUNT, 0x5008
+
+	.balign 4
+boot_params:
+	.long 0 /* mbiAddr */
+	.long 0 /* corefsAddr */
+	.long 0 /* availableOutputs */
+	.long 0 /* bootDrive */
+	.long 0 /* biosDriveListAddr */
+	.long 0 /* biosDriveListCount */
 
 	/* ---- String constants ---- */
 	stage2_message:

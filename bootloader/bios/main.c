@@ -40,6 +40,16 @@ struct mbi_tag_framebuffer
    uint8_t rgb_reserved[2];
 };
 
+typedef struct
+{
+   uint32_t mbiAddr;
+   uint32_t corefsAddr;
+   uint32_t availableOutputs;
+   uint32_t bootDrive;
+   uint32_t biosDriveListAddr;
+   uint32_t biosDriveListCount;
+} BootParams;
+
 // static void draw_boot_logo(void)
 // {
 //    uint32_t palette[VALECIUM_LOGO_PALETTE_SIZE];
@@ -226,6 +236,28 @@ void print_boot_drive_number(int bootDrive)
    puts(".\n");
 }
 
+static void print_bios_drive_list(const uint8_t *driveList, uint32_t driveCount)
+{
+   uint32_t i;
+
+   puts("Detected BIOS drives:\n");
+
+   if (!driveList || driveCount == 0)
+   {
+      puts("  (none)\n\n");
+      return;
+   }
+
+   for (i = 0; i < driveCount; i++)
+   {
+      puts("  0x");
+      putx(driveList[i]);
+      putc('\n');
+   }
+
+   putc('\n');
+}
+
 void print_corefs_memory_address(uint32_t address)
 {
    puts("Corefs Module location: ");
@@ -233,11 +265,14 @@ void print_corefs_memory_address(uint32_t address)
    puts(".\n");
 }
 
-int main(uint32_t mbi_addr, uint32_t corefs_addr, uint8_t availableOutputs,
-         uint8_t bootDrive)
+int main(const BootParams *bootParams)
 {
-   uint8_t *ptr =
-       (uint8_t *)(uintptr_t)mbi_addr + 8; /* skip total_size + reserved */
+   uint8_t *ptr = (uint8_t *)(uintptr_t)bootParams->mbiAddr + 8;
+   uint8_t availableOutputs = (uint8_t)bootParams->availableOutputs;
+   uint8_t bootDrive = (uint8_t)bootParams->bootDrive;
+   const uint8_t *biosDriveList =
+       (const uint8_t *)(uintptr_t)bootParams->biosDriveListAddr;
+   uint32_t biosDriveListCount = bootParams->biosDriveListCount;
 
    /* Determine preferred output — highest available wins.
       Priority (ascending): serial → VGA text → VGA graphics → VBE. */
@@ -277,11 +312,12 @@ int main(uint32_t mbi_addr, uint32_t corefs_addr, uint8_t availableOutputs,
    print_available_outputs(availableOutputs);
    //   print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
+   print_bios_drive_list(biosDriveList, biosDriveListCount);
    //   if (preferedOutput == OUTPUT_VBE) draw_boot_logo();
-   print_corefs_memory_address(corefs_addr);
+   print_corefs_memory_address(bootParams->corefsAddr);
 
    {
-      struct fs_operations *fs = (struct fs_operations *)corefs_addr;
+      struct fs_operations *fs = (struct fs_operations *)bootParams->corefsAddr;
       puts("CoreFS init: ");
       puti((int)((uint32_t (*)())fs->fs_init)());
       putc('\n');
