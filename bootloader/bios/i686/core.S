@@ -77,6 +77,8 @@ protected_mode_entry:
 	movl	%eax, boot_params + 16
 	movl	BIOS_DRIVE_LIST_COUNT, %eax
 	movl	%eax, boot_params + 20
+	leal	corefs_partition_uuid, %eax
+	movl	%eax, boot_params + 24
 
 	pushl	$boot_params
 	call	main
@@ -133,6 +135,7 @@ boot_params:
 	.long 0 /* bootDrive */
 	.long 0 /* biosDriveListAddr */
 	.long 0 /* biosDriveListCount */
+	.long 0 /* corefsPartitionUuidAddr */
 
 	/* ---- String constants ---- */
 	stage2_message:

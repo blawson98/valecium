@@ -4,25 +4,36 @@
 
 struct fs_operations
 {
-   uint32_t fs_init;
-   uint32_t fs_open;
-   uint32_t fs_read;
-   uint32_t fs_close;
+   uint32_t FS_Initialize;
+   uint32_t FS_Open;
+   uint32_t FS_Read;
+   uint32_t FS_Close;
 };
 
-int fs_init(void) { return 1; }
-int fs_open(void) { return 2; }
-int fs_read(void) { return 3; }
-int fs_close(void) { return 4; }
+extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
+                     uint8_t head, uint8_t count, void *buffer);
+
+int FS_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
+                  const uint8_t *partitionUuid)
+{
+   (void)biosDriveList;
+   (void)biosDriveListCount;
+   (void)partitionUuid;
+
+   return 0;
+}
+int FS_Open(void) { return 2; }
+int FS_Read(void) { return 3; }
+int FS_Close(void) { return 4; }
 
 #ifdef COREFS
 
 static const struct fs_operations fs_exports
     __attribute__((section(".exports"), used)) = {
-        .fs_init = (uint32_t)fs_init,
-        .fs_open = (uint32_t)fs_open,
-        .fs_read = (uint32_t)fs_read,
-        .fs_close = (uint32_t)fs_close,
+        .FS_Initialize = (uint32_t)FS_Initialize,
+        .FS_Open = (uint32_t)FS_Open,
+        .FS_Read = (uint32_t)FS_Read,
+        .FS_Close = (uint32_t)FS_Close,
 };
 
 #endif /* COREFS */

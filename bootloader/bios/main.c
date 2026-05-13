@@ -14,10 +14,10 @@ int preferedOutput = OUTPUT_VGATEXT;
 
 struct fs_operations
 {
-   uint32_t fs_init;
-   uint32_t fs_open;
-   uint32_t fs_read;
-   uint32_t fs_close;
+   uint32_t FS_Initialize;
+   uint32_t FS_Open;
+   uint32_t FS_Read;
+   uint32_t FS_Close;
 };
 
 struct mbi_tag_framebuffer
@@ -48,6 +48,7 @@ typedef struct
    uint32_t bootDrive;
    uint32_t biosDriveListAddr;
    uint32_t biosDriveListCount;
+   uint32_t corefsPartitionUuidAddr;
 } BootParams;
 
 static void init_framebuffer_info(uint8_t *ptr)
@@ -249,24 +250,7 @@ int main(const BootParams *bootParams)
    //   print_memory_map(ptr);
    print_boot_drive_number(bootDrive);
    print_bios_drive_list(biosDriveList, biosDriveListCount);
-   //   if (preferedOutput == OUTPUT_VBE) draw_boot_logo();
    print_corefs_memory_address(bootParams->corefsAddr);
-
-   {
-      struct fs_operations *fs = (struct fs_operations *)bootParams->corefsAddr;
-      puts("CoreFS init: ");
-      puti((int)((uint32_t (*)())fs->fs_init)());
-      putc('\n');
-      puts("CoreFS open: ");
-      puti((int)((uint32_t (*)())fs->fs_open)());
-      putc('\n');
-      puts("CoreFS read: ");
-      puti((int)((uint32_t (*)())fs->fs_read)());
-      putc('\n');
-      puts("CoreFS close: ");
-      puti((int)((uint32_t (*)())fs->fs_close)());
-      putc('\n');
-   }
 
    return 0;
 }
