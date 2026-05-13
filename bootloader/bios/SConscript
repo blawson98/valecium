@@ -132,6 +132,7 @@ CoreEnvironment.AppendUnique(
 )
 CoreEnvironment.Append(LIBS=["gcc"])
 CoreEnvironment.Append(OBJPREFIX="core_")
+CoreEnvironment.Append(CPPDEFINES=["CORE"])
 
 CoreObjects = CoreEnvironment.Object(CoreSources)
 CoreBinary = CoreEnvironment.Program(CoreBin, CoreObjects)

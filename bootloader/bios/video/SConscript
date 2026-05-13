@@ -12,6 +12,7 @@ GenfontC = os.path.join(VideoPath, "font_gen.c")
 
 Sources += [
     File("font_gen.c"),
+    File("logo.c"),
     File("serial.c"),
     File("vbe.c"),
     File("vga_text.c"),
