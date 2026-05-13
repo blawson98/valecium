@@ -17,5 +17,10 @@ CoreSources += [
     File("detect.S"),
 ]
 
-BootSector = File("boot.S")
-Return("BootSector")
+
+Result = {
+    "BootSector": File("boot.S"),
+    "CoreFsDiskSource": File("disk.S"),
+    "CoreFsLinkerScript": File("corefs.ld").srcnode(),
+}
+Return("Result")
