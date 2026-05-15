@@ -39,10 +39,10 @@ void interact(void)
          else if (strcmp(buf, "reboot") == 0)
          {
             printf("Rebooting...\n");
-            /* Load invalid IDT and trigger interrupt to cause triple fault */
-            uint32_t invalid_idt[2] = {0, 0};
-            __asm__ volatile("lidt %0" : : "m"(invalid_idt));
-            __asm__ volatile("int $0");
+
+            g_HalIoOperations->Reboot();
+
+
          }
          else if (strcmp(buf, "read") == 0 || strncmp(buf, "read ", 5) == 0)
          {

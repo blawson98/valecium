@@ -77,3 +77,14 @@ crash_me:
 i686_Halt:
     hlt
     ret
+.global i686_Reboot
+i686_Reboot:
+    # Load invalid IDT and trigger interrupt to cause triple fault
+    subl $8, %esp
+    movl $0, (%esp)
+    movl $0, 4(%esp)
+    lidt (%esp)
+    int $0
+    # Should not reach here
+1:  hlt
+    jmp 1b

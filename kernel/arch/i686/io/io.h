@@ -19,5 +19,6 @@ void i686_iowait();
 void __attribute__((cdecl)) i686_Panic();
 
 void __attribute__((cdecl)) i686_Halt();
+void __attribute__((cdecl)) i686_Reboot();
 
 #endif
