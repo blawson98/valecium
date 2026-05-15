@@ -77,3 +77,20 @@ crash_me:
 i686_Halt:
     hlt
     ret
+
+.global i686_Reboot
+i686_Reboot:
+    cli
+    movw $0x64, %dx
+1:  inb %dx, %al
+    testb $2, %al
+    jnz 1b
+    movb $0xFE, %al
+    outb %al, %dx
+    jmp 2f
+null_idt:
+    .word 0
+    .long 0
+2:  lidt null_idt
+    int $0x01
+    ret

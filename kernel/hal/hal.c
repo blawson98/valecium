@@ -22,6 +22,7 @@ const HAL_IoOperations *g_HalIoOperations = &(HAL_IoOperations){
     .iowait = HAL_ARCH_iowait,
     .Halt = HAL_ARCH_Halt,
     .Panic = HAL_ARCH_Panic,
+    .Reboot = HAL_ARCH_Reboot,
 };
 
 const HAL_VideoOperations *g_HalVideoOperations = &(HAL_VideoOperations){

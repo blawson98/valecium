@@ -20,6 +20,7 @@
 #define HAL_ARCH_iowait i686_iowait
 #define HAL_ARCH_Halt i686_Halt
 #define HAL_ARCH_Panic i686_Panic
+#define HAL_ARCH_Reboot i686_Reboot
 #else
 #error "Unsupported architecture for HAL I/O"
 #endif
@@ -36,6 +37,7 @@ typedef struct HAL_IoOperations
    uint8_t (*DisableInterrupts)();
    void (*iowait)();
    void (*Halt)();
+   void (*Reboot)();
    void (*Panic)();
 } HAL_IoOperations;
 
