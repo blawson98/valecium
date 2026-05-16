@@ -91,7 +91,7 @@ static void set_mode_0x13(void)
    crtc_w(0x0E, 0x00); /* cursor location high */
    crtc_w(0x0F, 0x00); /* cursor location low */
    crtc_w(0x10, 0x9C); /* vertical retrace start */
-   crtc_w(0x11, 0x0E); /* vertical retrace end + re-protect CR0-7 */
+   crtc_w(0x11, 0x8E); /* vertical retrace end + re-protect CR0-7 */
    crtc_w(0x12, 0x8F); /* vertical display end */
    crtc_w(0x13, 0x28); /* offset — logical line width (320/8 * 4) */
    crtc_w(0x14, 0x40); /* underline location */
@@ -118,7 +118,7 @@ static void set_mode_0x13(void)
    inb(VGA_INSTAT_1);
 
    outb(VGA_AC_IDX, 0x10); /* index: mode control — graphics */
-   outb(VGA_AC_IDX, 0x01); /* data:  graphics mode           */
+   outb(VGA_AC_IDX, 0x41); /* data:  256-colour graphics      */
    outb(VGA_AC_IDX, 0x12); /* index: plane enable            */
    outb(VGA_AC_IDX, 0x0F); /* data:  enable all planes       */
    outb(VGA_AC_IDX, 0x13); /* index: horizontal pixel panning */
@@ -185,54 +185,74 @@ int VGA_PutChar(char c, int x, int y, char color)
 {
    if (!s_Initialized) return ENODEV;
 
+   int is_stream = 0;
+
+   /* 1. Resolve Stream Mode Coordinates */
    if (x < 0 && y < 0)
    {
-      /* Stream mode — use internal cursor */
+      is_stream = 1;
       x = s_CursorX;
       y = s_CursorY;
    }
    else if ((x < 0) != (y < 0))
-   {
       return EINVAL;
-   }
 
+   /* 2. Process Control Characters & Line Wrapping */
    switch (c)
    {
    case '\n':
-      s_CursorX = 0;
-      s_CursorY += FONT_HEIGHT;
+      x = 0;
+      y += FONT_HEIGHT;
       break;
    case '\r':
-      s_CursorX = 0;
-      /* y stays unchanged */
+      x = 0;
       break;
    case '\t':
-      s_CursorX = (s_CursorX / (FONT_WIDTH * 4) + 1) * (FONT_WIDTH * 4);
+      x = (x / (FONT_WIDTH * 4) + 1) * (FONT_WIDTH * 4);
+      if (x >= VGA_WIDTH)
+      {
+         x = 0;
+         y += FONT_HEIGHT;
+      }
       break;
    default:
-      draw_glyph((uint8_t)c, x, y, (uint8_t)color);
-      s_CursorX = x + FONT_WIDTH;
-      s_CursorY = y;
+      if (x + FONT_WIDTH > VGA_WIDTH)
+      {
+         x = 0;
+         y += FONT_HEIGHT;
+      }
       break;
    }
 
-   /* Scroll if cursor past the bottom of the screen. */
-   if (s_CursorY + FONT_HEIGHT > VGA_HEIGHT)
+   /* 3. Perform Scrolling (BEFORE Drawing) */
+   while (y + FONT_HEIGHT > VGA_HEIGHT)
    {
-      /* Move all pixel rows up by one line (FONT_HEIGHT rows). */
-      int scroll_pixels = FONT_HEIGHT;
-      int total_pixels = VGA_WIDTH * VGA_HEIGHT;
-      int copy_bytes = VGA_WIDTH * (VGA_HEIGHT - scroll_pixels);
-      int i;
+      uint32_t scroll_pixels = FONT_HEIGHT;
+      uint32_t copy_bytes = VGA_WIDTH * (VGA_HEIGHT - scroll_pixels);
 
-      for (i = 0; i < copy_bytes; i++)
-         VGA_FB[i] = VGA_FB[i + VGA_WIDTH * scroll_pixels];
+      /* volatile prevents the compiler from optimizing away the memory copy */
+      volatile uint8_t *dst = VGA_FB;
+      const volatile uint8_t *src = VGA_FB + VGA_WIDTH * scroll_pixels;
 
-      /* Clear the newly exposed bottom rows. */
-      for (i = copy_bytes; i < total_pixels; i++) VGA_FB[i] = 0;
+      for (uint32_t i = 0; i < copy_bytes; i++) dst[i] = src[i];
+      for (uint32_t i = 0; i < VGA_WIDTH * scroll_pixels; i++)
+         dst[copy_bytes + i] = 0;
 
-      s_CursorX = 0;
-      s_CursorY = VGA_HEIGHT - scroll_pixels;
+      y -= scroll_pixels;
+   }
+
+   /* 4. Draw the Glyph */
+   if (c != '\n' && c != '\r' && c != '\t')
+   {
+      draw_glyph((uint8_t)c, x, y, (uint8_t)color);
+      x += FONT_WIDTH;
+   }
+
+   /* 5. Update Global Cursor State */
+   if (is_stream)
+   {
+      s_CursorX = x;
+      s_CursorY = y;
    }
 
    return SUCCESS;

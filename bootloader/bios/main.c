@@ -10,7 +10,7 @@
 #define MBI_TAG_FRAMEBUFFER 8
 
 int g_PrimaryOutputSystem = 0;
-int preferedOutput = OUTPUT_VGATEXT;
+int preferredOutput = OUTPUT_VGATEXT;
 
 struct fs_operations
 {
@@ -236,18 +236,18 @@ int main(const BootParams *bootParams)
       Priority (ascending): serial → VGA text → VGA graphics → VBE. */
    init_framebuffer_info(ptr);
 
-   preferedOutput = OUTPUT_SERIAL; /* fallback  */
+   preferredOutput = OUTPUT_SERIAL; /* fallback  */
    if (availableOutputs & (1 << OUTPUT_VGATEXT))
-      preferedOutput = OUTPUT_VGATEXT;
-   if (availableOutputs & (1 << OUTPUT_VGA)) preferedOutput = OUTPUT_VGA;
+      preferredOutput = OUTPUT_VGATEXT;
+   if (availableOutputs & (1 << OUTPUT_VGA)) preferredOutput = OUTPUT_VGA;
    if ((availableOutputs & (1 << OUTPUT_VBE)) && VBE_HasInfo())
-      preferedOutput = OUTPUT_VBE;
+      preferredOutput = OUTPUT_VBE;
 
    /* Initialise ONLY the chosen output system.
       VGA/VBE switch the hardware to graphics mode, which destroys text-mode
       output — so they must NOT be initialised unless they are the final pick.
     */
-   switch (preferedOutput)
+   switch (preferredOutput)
    {
    case OUTPUT_SERIAL:
       Serial_Initialize();

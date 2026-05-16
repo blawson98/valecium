@@ -7,7 +7,7 @@
 
 void putc(char c)
 {
-   switch (preferedOutput)
+   switch (preferredOutput)
    {
    case OUTPUT_VBE:
       VBE_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
@@ -43,7 +43,8 @@ static void put_unsigned(unsigned long long val, unsigned radix,
 
    if (radix < 2 || radix > 16) return;
 
-   do {
+   do
+   {
       buf[pos++] = digits[val % radix];
       val /= radix;
    } while (val > 0 && pos < (int)sizeof(buf));
