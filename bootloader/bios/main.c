@@ -282,10 +282,11 @@ int main(const BootParams *bootParams)
       const uint8_t *partitionLabel =
           (const uint8_t *)(uintptr_t)bootParams->corefsPartitionLabelAddr;
 
-      typedef int (*fs_init_fn)(const uint8_t *, const uint8_t *,
+      typedef int (*fs_init_fn)(const uint8_t *, uint32_t, const uint8_t *,
                                 const uint8_t *);
       fs_init_fn FS_Initialize = (fs_init_fn)fs_ops->FS_Initialize;
-      int rc = FS_Initialize(biosDriveList, partitionUuid, partitionLabel);
+      int rc = FS_Initialize(biosDriveList, biosDriveListCount, partitionUuid,
+                             partitionLabel);
       if (rc < 0)
       {
          puts("  FS_Initialize failed: ");

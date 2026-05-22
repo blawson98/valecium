@@ -1,1 +1,149 @@
-char *gpt = "THIS IS GPT";
+// SPDX-License-Identifier: GPL-3.0-only
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define GPT_SECTOR_SIZE 512
+#define GPT_SIGNATURE_SIZE 8
+#define GPT_ENTRY_SIZE 128
+#define GPT_MAX_ENTRIES 128
+#define GPT_MAX_CHS_SECTOR 63
+#define GPT_MAX_ENTRY_SECTORS                                                  \
+   ((GPT_MAX_ENTRIES * GPT_ENTRY_SIZE + GPT_SECTOR_SIZE - 1) / GPT_SECTOR_SIZE)
+#define GPT_MAX_OFFSET 0x7FFFFFFF
+
+extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
+                     uint8_t head, uint8_t count, void *buffer);
+
+typedef struct
+{
+   uint8_t signature[GPT_SIGNATURE_SIZE];
+   uint32_t revision;
+   uint32_t header_size;
+   uint32_t header_crc32;
+   uint32_t reserved;
+   uint64_t current_lba;
+   uint64_t backup_lba;
+   uint64_t first_usable_lba;
+   uint64_t last_usable_lba;
+   uint8_t disk_guid[16];
+   uint64_t partition_entry_lba;
+   uint32_t num_partition_entries;
+   uint32_t size_of_partition_entry;
+   uint32_t partition_entry_array_crc32;
+} __attribute__((packed)) GPT_Header;
+
+typedef struct
+{
+   uint8_t type_guid[16];
+   uint8_t unique_guid[16];
+   uint64_t first_lba;
+   uint64_t last_lba;
+   uint64_t attributes;
+   uint16_t name[36];
+} __attribute__((packed)) GPT_PartitionEntry;
+
+static bool gpt_signature_valid(const uint8_t *sector)
+{
+   static const uint8_t signature[GPT_SIGNATURE_SIZE] = {'E', 'F', 'I', ' ',
+                                                         'P', 'A', 'R', 'T'};
+
+   for (int i = 0; i < GPT_SIGNATURE_SIZE; i++)
+   {
+      if (sector[i] != signature[i]) return false;
+   }
+   return true;
+}
+
+static bool gpt_guid_is_zero(const uint8_t *guid)
+{
+   for (int i = 0; i < 16; i++)
+   {
+      if (guid[i] != 0) return false;
+   }
+   return true;
+}
+
+static bool gpt_lba_to_chs(uint64_t lba, uint16_t *cylinder, uint8_t *head,
+                           uint8_t *sector)
+{
+   if (lba >= GPT_MAX_CHS_SECTOR) return false;
+
+   *cylinder = 0;
+   *head = 0;
+   *sector = (uint8_t)(lba + 1);
+   return true;
+}
+
+bool GPT_Probe(int driveId)
+{
+   uint8_t sector[GPT_SECTOR_SIZE];
+   uint16_t cylinder = 0;
+   uint8_t head = 0;
+   uint8_t sector_num = 0;
+
+   if (!gpt_lba_to_chs(1, &cylinder, &head, &sector_num)) return false;
+   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head, 1, sector) != 0)
+      return false;
+
+   return gpt_signature_valid(sector);
+}
+
+int GPT_List(int driveId, int **offsets_out)
+{
+   static int offsets[GPT_MAX_ENTRIES];
+   static uint8_t entry_sectors[GPT_MAX_ENTRY_SECTORS * GPT_SECTOR_SIZE];
+   uint8_t header_sector[GPT_SECTOR_SIZE];
+   uint16_t cylinder = 0;
+   uint8_t head = 0;
+   uint8_t sector_num = 0;
+
+   if (!offsets_out) return -1;
+   if (!gpt_lba_to_chs(1, &cylinder, &head, &sector_num)) return -1;
+   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head, 1,
+                 header_sector) != 0)
+      return -1;
+
+   if (!gpt_signature_valid(header_sector)) return -1;
+
+   GPT_Header *header = (GPT_Header *)header_sector;
+   if (header->size_of_partition_entry != GPT_ENTRY_SIZE) return -1;
+
+   uint32_t entry_count = header->num_partition_entries;
+   if (entry_count == 0)
+   {
+      *offsets_out = offsets;
+      return 0;
+   }
+
+   if (entry_count > GPT_MAX_ENTRIES) entry_count = GPT_MAX_ENTRIES;
+
+   uint64_t entry_bytes = (uint64_t)entry_count * GPT_ENTRY_SIZE;
+   uint32_t entry_sectors_needed =
+       (uint32_t)((entry_bytes + GPT_SECTOR_SIZE - 1) / GPT_SECTOR_SIZE);
+
+   if (entry_sectors_needed > GPT_MAX_ENTRY_SECTORS) return -1;
+
+   uint64_t entry_lba = header->partition_entry_lba;
+   if (!gpt_lba_to_chs(entry_lba, &cylinder, &head, &sector_num)) return -1;
+   if (entry_lba + entry_sectors_needed > GPT_MAX_CHS_SECTOR) return -1;
+
+   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head,
+                 (uint8_t)entry_sectors_needed, entry_sectors) != 0)
+      return -1;
+
+   int count = 0;
+   for (uint32_t i = 0; i < entry_count; i++)
+   {
+      GPT_PartitionEntry *entry =
+          (GPT_PartitionEntry *)(entry_sectors + i * GPT_ENTRY_SIZE);
+
+      if (gpt_guid_is_zero(entry->type_guid)) continue;
+      if (entry->first_lba > GPT_MAX_OFFSET) continue;
+
+      offsets[count++] = (int)entry->first_lba;
+   }
+
+   *offsets_out = offsets;
+   return count;
+}
