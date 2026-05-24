@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef MEMORY_H
@@ -60,8 +61,6 @@ void *sbrk(intptr_t inc); /* returns previous break or (void*)-1 on failure */
 
 int PMM_IsInitialized(void);
 
-#define PMM_OK 0
-#define PMM_EINVAL (-1)
 /* Self-test helper */
 void Heap_SelfTest(void);
 
@@ -118,8 +117,6 @@ void PMM_SelfTest(void);
  */
 void VMM_Initialize(void);
 
-#define VMM_OK 0
-#define VMM_EINVAL (-1)
 #define VMM_EMAP (-2)
 
 /* Kernel convenience wrappers for VMM operations

@@ -162,7 +162,7 @@ void VMM_Free(void *vaddr, uint32_t size)
 int VMM_MapInDir(void *page_dir, uint32_t vaddr, uint32_t paddr, uint32_t size,
                  uint32_t flags)
 {
-   if (size == 0) return VMM_EINVAL;
+   if (size == 0) return -EINVAL;
 
    uint32_t aligned_size = PAGE_ALIGN_UP(size);
    uint32_t num_pages = aligned_size / PAGE_SIZE;
@@ -183,7 +183,7 @@ int VMM_MapInDir(void *page_dir, uint32_t vaddr, uint32_t paddr, uint32_t size,
       mapped_pages++;
    }
 
-   return VMM_OK;
+   return SUCCESS;
 
 rollback:
    for (uint32_t j = 0; j < mapped_pages; ++j)
@@ -201,7 +201,7 @@ int VMM_Map(uint32_t vaddr, uint32_t paddr, uint32_t size, uint32_t flags)
 
 int VMM_UnmapInDir(void *page_dir, uint32_t vaddr, uint32_t size)
 {
-   if (size == 0) return VMM_OK;
+   if (size == 0) return SUCCESS;
 
    uint32_t aligned_size = PAGE_ALIGN_UP(size);
    uint32_t num_pages = aligned_size / PAGE_SIZE;
@@ -212,7 +212,7 @@ int VMM_UnmapInDir(void *page_dir, uint32_t vaddr, uint32_t size)
       g_HalPagingOperations->UnmapPage(page_dir, va);
    }
 
-   return VMM_OK;
+   return SUCCESS;
 }
 
 int VMM_Unmap(uint32_t vaddr, uint32_t size)

@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 /*
@@ -25,9 +26,6 @@ this file, so for external modules, include fs/fs.h instead.
 // Maximum data buffer size for in-memory devices
 #define DEVFS_MAXDATA 4096
 
-#define DEVFS_OK 0
-#define DEVFS_EINVAL (-1)
-#define DEVFS_ENOENT (-2)
 #define DEVFS_ESTATE (-3)
 
 /* Device types for devfs */

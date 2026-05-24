@@ -141,7 +141,7 @@ DEVFS_DeviceNode *DEVFS_RegisterDevice(const char *name, DEVFS_DeviceType type,
 
 int DEVFS_UnregisterDevice(DEVFS_DeviceNode *node)
 {
-   if (!node) return DEVFS_EINVAL;
+   if (!node) return -EINVAL;
 
    /* Verify node is in our table */
    bool found = false;
@@ -157,7 +157,7 @@ int DEVFS_UnregisterDevice(DEVFS_DeviceNode *node)
    if (!found)
    {
       logfmt(LOG_ERROR, "[DEVFS] UnregisterDevice: node not found\n");
-      return DEVFS_ENOENT;
+      return -ENOENT;
    }
 
    logfmt(LOG_INFO, "[DEVFS] Unregistered device: %s\n", node->name);
@@ -167,7 +167,7 @@ int DEVFS_UnregisterDevice(DEVFS_DeviceNode *node)
    node->in_use = false;
    g_DevNodeCount--;
 
-   return DEVFS_OK;
+   return SUCCESS;
 }
 
 DEVFS_DeviceNode *DEVFS_FindDevice(const char *name)
@@ -286,10 +286,10 @@ uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byteCount, const void *dataIn)
 
 int DEVFS_Seek(DEVFS_File *file, uint32_t position)
 {
-   if (!file) return DEVFS_EINVAL;
+   if (!file) return -EINVAL;
 
    file->position = position;
-   return DEVFS_OK;
+   return SUCCESS;
 }
 
 uint32_t DEVFS_GetSize(DEVFS_File *file)
@@ -346,7 +346,7 @@ static uint32_t devfs_vfs_write(Partition *partition, void *fs_file,
 static int devfs_vfs_seek(Partition *partition, void *fs_file, uint32_t pos)
 {
    (void)partition;
-   if (!fs_file) return DEVFS_EINVAL;
+   if (!fs_file) return -EINVAL;
 
    return DEVFS_Seek((DEVFS_File *)fs_file, pos);
 }
@@ -379,7 +379,7 @@ int DEVFS_Initialize(void)
    if (g_DevfsInitialized)
    {
       logfmt(LOG_WARNING, "[DEVFS] Already initialized\n");
-      return DEVFS_OK;
+      return SUCCESS;
    }
 
    /* Clear device node table */
@@ -415,7 +415,7 @@ int DEVFS_Initialize(void)
    g_DevfsInitialized = true;
    logfmt(LOG_INFO, "[DEVFS] Initialized on volume[%d]\n", DEVFS_VOLUME);
 
-   return DEVFS_OK;
+   return SUCCESS;
 }
 
 const VFS_Operations *DEVFS_GetVFSOperations(void) { return &devfs_ops; }

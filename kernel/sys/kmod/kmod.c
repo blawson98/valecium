@@ -483,7 +483,7 @@ static int find_index(const char *name)
 // Helper: create module record if it does not already exist
 static int ensure_record(const char *name)
 {
-   if (!name || name[0] == '\0') return KMOD_EINVAL;
+   if (!name || name[0] == '\0') return -EINVAL;
 
    int idx = find_index(name);
    if (idx >= 0) return idx;
@@ -1309,14 +1309,14 @@ int KMOD_Initialize(void)
       return KMOD_EINIT;
    }
 
-   return KMOD_OK;
+   return SUCCESS;
 }
 
 int KMOD_Insmod(const char *name, const char *filepath)
 {
    if (!name || name[0] == '\0' || !filepath || filepath[0] == '\0')
    {
-      return KMOD_EINVAL;
+      return -EINVAL;
    }
 
    if (KMOD_LoadFromDisk(name, filepath) < 0)
@@ -1345,14 +1345,14 @@ int KMOD_Insmod(const char *name, const char *filepath)
    }
 
    logfmt(LOG_INFO, "[KMOD] loaded module %s from %s\n", name, filepath);
-   return KMOD_OK;
+   return SUCCESS;
 }
 
 int KMOD_Rmmod(const char *name)
 {
    if (!name || name[0] == '\0')
    {
-      return KMOD_EINVAL;
+      return -EINVAL;
    }
 
    if (KMOD_Remove(name) < 0)
@@ -1361,7 +1361,7 @@ int KMOD_Rmmod(const char *name)
    }
 
    logfmt(LOG_INFO, "[KMOD] removed module %s\n", name);
-   return KMOD_OK;
+   return SUCCESS;
 }
 
 int KMOD_IsLoaded(const char *name)

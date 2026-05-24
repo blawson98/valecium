@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 /*
@@ -27,13 +28,8 @@ this file, so for external modules, include fs/fs.h instead.
 #define VBR_SIG_BYTE0 0x55u
 #define VBR_SIG_BYTE1 0xAAu
 
-#define DISK_OK 0
-#define DISK_EINVAL (-1)
-#define DISK_EIO (-2)
 #define DISK_EUNSUPPORTED (-3)
 
-#define PARTITION_OK 0
-#define PARTITION_EINVAL (-1)
 #define PARTITION_EDISK (-2)
 
 typedef struct DISK_Operations

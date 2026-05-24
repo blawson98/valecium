@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef FDC_H
@@ -8,9 +9,6 @@
 #include <stdint.h>
 
 #define FDC_SECTOR_SIZE 512
-
-#define FDC_OK 0
-#define FDC_EIO (-1)
 
 typedef struct FDC_DISK
 {

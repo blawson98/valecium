@@ -164,7 +164,7 @@ static int fdc_wait_irq(void)
       {
          g_HalIoOperations->DisableInterrupts();
       }
-      return FDC_EIO;
+      return -EIO;
    }
 
    g_fdc_irq_received = false;
@@ -174,7 +174,7 @@ static int fdc_wait_irq(void)
       g_HalIoOperations->DisableInterrupts();
    }
 
-   return FDC_OK;
+   return SUCCESS;
 }
 
 static void fdc_send_byte(uint8_t byte)
@@ -225,15 +225,15 @@ static int fdc_recalibrate(uint8_t drive)
    fdc_send_byte(FDC_CMD_RECALIBRATE);
    fdc_send_byte(drive & 0x03);
 
-   if (fdc_wait_irq() < 0) return FDC_EIO;
+   if (fdc_wait_irq() < 0) return -EIO;
 
    fdc_send_byte(FDC_CMD_SENSE_INT);
    uint8_t st0 = fdc_read_byte();
    uint8_t cyl = fdc_read_byte();
 
-   if ((st0 & 0xC0) != 0) return FDC_EIO;
+   if ((st0 & 0xC0) != 0) return -EIO;
 
-   return (cyl == 0) ? FDC_OK : FDC_EIO;
+   return (cyl == 0) ? SUCCESS : -EIO;
 }
 
 void FDC_Reset(void)
@@ -279,7 +279,7 @@ static int fdc_seek(uint8_t drive, uint8_t head, uint8_t track)
    fdc_send_byte((head << 2) | (drive & 0x03)); // head | drive
    fdc_send_byte(track);
 
-   if (fdc_wait_irq() < 0) return FDC_EIO;
+   if (fdc_wait_irq() < 0) return -EIO;
 
    // Sense interrupt status
    fdc_send_byte(FDC_CMD_SENSE_INT);
@@ -288,10 +288,10 @@ static int fdc_seek(uint8_t drive, uint8_t head, uint8_t track)
 
    if (cyl != track)
    {
-      return FDC_EIO;
+      return -EIO;
    }
 
-   return FDC_OK;
+   return SUCCESS;
 }
 
 static void lba_to_chs(uint32_t lba, uint8_t *head, uint8_t *track,
@@ -395,7 +395,7 @@ int FDC_ReadLba(DISK *disk, uint32_t lba, uint8_t *buffer, size_t count)
          logfmt(LOG_ERROR, "[FDC] All retries failed for LBA=%u\n",
                 (unsigned)(lba + i));
          fdc_motor_off(drive);
-         return FDC_EIO;
+         return -EIO;
       }
    }
 
@@ -486,7 +486,7 @@ int FDC_WriteLba(DISK *disk, uint32_t lba, const uint8_t *buffer, size_t count)
          logfmt(LOG_ERROR, "[FDC] All write retries failed for LBA=%u\n",
                 (unsigned)(lba + i));
          fdc_motor_off(drive);
-         return FDC_EIO;
+         return -EIO;
       }
    }
 

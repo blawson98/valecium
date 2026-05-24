@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "fd.h"
+#include <constants.h>
 #include <cpu/process.h>
 #include <fs/fs.h>
 #include <fs/vfs/vfs.h>
@@ -9,14 +10,6 @@
 #include <std/string.h>
 
 #include <drivers/tty/tty.h>
-
-#ifndef EACCES
-#define EACCES 13
-#endif
-
-#ifndef ENOENT
-#define ENOENT 2
-#endif
 
 void FD_Retain(FileDescriptor *file)
 {

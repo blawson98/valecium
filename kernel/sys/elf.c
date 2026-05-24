@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "elf.h"
+#include <constants.h>
 #include <cpu/process.h>
 #include <hal/mem.h>
 #include <mem/mm_kernel.h>
@@ -79,7 +80,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
    if (VFS_Seek(file, 0) < 0)
    {
       logfmt(LOG_ERROR, "[ELF] seek header failed\n");
-      return ELF_EIO;
+      return -EIO;
    }
 
    /* Use a heap bounce buffer to avoid stack overwrites if a buggy driver
@@ -89,7 +90,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
    if (!hdr_buf)
    {
       logfmt(LOG_ERROR, "[ELF] failed to allocate header buffer\n");
-      return ELF_EIO;
+      return -EIO;
    }
 
    uint32_t hdr_read = VFS_Read(file, sizeof(ehdr), hdr_buf);
@@ -97,7 +98,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
    {
       logfmt(LOG_ERROR, "[ELF] read header failed (got %u)\n", hdr_read);
       free(hdr_buf);
-      return ELF_EIO;
+      return -EIO;
    }
 
    memcpy(&ehdr, hdr_buf, sizeof(ehdr));
@@ -108,26 +109,26 @@ int ELF_Load(VFS_File *file, void **entryOut)
        ehdr.e_ident[EI_MAG2] != ELFMAG2 || ehdr.e_ident[EI_MAG3] != ELFMAG3)
    {
       logfmt(LOG_ERROR, "[ELF] bad magic\n");
-      return ELF_EFORMAT;
+      return -ENOENT;
    }
 
    if (ehdr.e_ident[4] != ELFCLASS32 || ehdr.e_ident[5] != ELFDATA2LSB)
    {
       logfmt(LOG_ERROR, "[ELF] unsupported ELF class or endian\n");
-      return ELF_EFORMAT;
+      return -ENOENT;
    }
 
    if (ehdr.e_machine != EM_386)
    {
       logfmt(LOG_ERROR, "[ELF] unsupported machine\n");
-      return ELF_EFORMAT;
+      return -ENOENT;
    }
 
    // read program headers
    if (ehdr.e_phnum == 0 || ehdr.e_phentsize != sizeof(Elf32_Phdr))
    {
       logfmt(LOG_ERROR, "[ELF] no program headers or unexpected phentsize\n");
-      return ELF_EFORMAT;
+      return -ENOENT;
    }
 
    // allocate temporary buffer for program headers (small count expected)
@@ -139,14 +140,14 @@ int ELF_Load(VFS_File *file, void **entryOut)
       if (VFS_Seek(file, phoff) < 0)
       {
          logfmt(LOG_ERROR, "[ELF] seek phdr %u failed\n", i);
-         return ELF_EIO;
+         return -EIO;
       }
 
       void *ph_buf = kmalloc(sizeof(phdr));
       if (!ph_buf)
       {
          logfmt(LOG_ERROR, "[ELF] alloc phdr buffer failed\n");
-         return ELF_EIO;
+         return -EIO;
       }
 
       uint32_t ph_read = VFS_Read(file, sizeof(phdr), ph_buf);
@@ -154,7 +155,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
       {
          logfmt(LOG_ERROR, "[ELF] read phdr %u failed (got %u)\n", i, ph_read);
          free(ph_buf);
-         return ELF_EIO;
+         return -EIO;
       }
 
       memcpy(&phdr, ph_buf, sizeof(phdr));
@@ -177,7 +178,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
          if (VFS_Seek(file, fileOffset) < 0)
          {
             logfmt(LOG_ERROR, "[ELF] seek segment data failed\n");
-            return ELF_EIO;
+            return -EIO;
          }
 
          while (remaining > 0)
@@ -187,7 +188,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
             if (got == 0)
             {
                logfmt(LOG_ERROR, "[ELF] short read for segment\n");
-               return ELF_EIO;
+               return -EIO;
             }
 
             dest += got;
@@ -205,7 +206,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
 
    // return entry point
    *entryOut = (void *)ehdr.e_entry;
-   return ELF_OK;
+   return SUCCESS;
 }
 
 Process *ELF_LoadProcess(const char *filename, bool kernel_mode)

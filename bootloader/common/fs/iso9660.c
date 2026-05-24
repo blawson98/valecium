@@ -257,7 +257,7 @@ static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
    {
       uint64_t sector_idx = bytes_read / SECTOR_SIZE_ISO;
 
-      if (iso_read_sector(dir_lba + sector_idx, buf) != 0) return EIO;
+      if (iso_read_sector(dir_lba + sector_idx, buf) != 0) return -EIO;
 
       int off = 0;
       while (off < SECTOR_SIZE_ISO)
@@ -290,7 +290,7 @@ static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
       }
       bytes_read += SECTOR_SIZE_ISO;
    }
-   return ENOENT;
+   return -ENOENT;
 }
 
 static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
@@ -310,7 +310,7 @@ static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
 
    while (*path != '\0')
    {
-      if (!(dir_flags & 2)) return ENOTDIR;
+      if (!(dir_flags & 2)) return -ENOTDIR;
 
       const char *start = path;
       while (*path != '/' && *path != '\0') path++;
@@ -344,7 +344,7 @@ int FS_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
 {
    uint8_t buf[SECTOR_SIZE_ISO];
 
-   if (!biosDriveList || biosDriveListCount == 0) return EINVAL;
+   if (!biosDriveList || biosDriveListCount == 0) return -EINVAL;
 
    {
       int found = 0;
@@ -381,20 +381,20 @@ int FS_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
             }
          }
       }
-      if (!found) return ENODEV;
+      if (!found) return -ENODEV;
    }
 
-   if (iso_read_sector(PVD_LBA, buf) != 0) return EIO;
-   if (buf[0] != 1) return EINVAL;
-   if (!mem_eq(&buf[1], ISO_SIGNATURE, 5)) return EINVAL;
+   if (iso_read_sector(PVD_LBA, buf) != 0) return -EIO;
+   if (buf[0] != 1) return -EINVAL;
+   if (!mem_eq(&buf[1], ISO_SIGNATURE, 5)) return -EINVAL;
 
    {
       uint32_t root_lba, root_size;
       uint8_t root_flags, root_name_len;
       int rl = parse_dir_record(buf, PVD_ROOT_OFFSET, &root_lba, &root_size,
                                 &root_flags, &root_name_len);
-      if (rl == 0) return EINVAL;
-      if (!(root_flags & 2)) return EINVAL;
+      if (rl == 0) return -EINVAL;
+      if (!(root_flags & 2)) return -EINVAL;
 
       s_RootDirLBA = root_lba;
       s_RootDirSize = root_size;
@@ -407,7 +407,7 @@ int FS_Open(const char *path)
 {
    uint32_t file_lba, file_size;
 
-   if (!path || *path == '\0') return EINVAL;
+   if (!path || *path == '\0') return -EINVAL;
 
    int rc = resolve_path(path, &file_lba, &file_size);
    if (rc != 0) return rc;
@@ -417,7 +417,7 @@ int FS_Open(const char *path)
    {
       if (!s_OpenFiles[fd].used) break;
    }
-   if (fd == MAX_OPEN_FILES) return EMFILE;
+   if (fd == MAX_OPEN_FILES) return -EMFILE;
 
    uint8_t drive = (uint8_t)s_BootDrive;
    uint64_t abs_lba;
@@ -436,7 +436,7 @@ int FS_Open(const char *path)
 
 int FS_Read(int fd, void *buffer, int count)
 {
-   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return EBADF;
+   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return -EBADF;
 
    struct FS_File *f = &s_OpenFiles[fd];
    uint8_t *buf = (uint8_t *)buffer;
@@ -477,7 +477,7 @@ int FS_Read(int fd, void *buffer, int count)
 
 int FS_Close(int fd)
 {
-   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return EBADF;
+   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return -EBADF;
 
    s_OpenFiles[fd].used = 0;
    return SUCCESS;

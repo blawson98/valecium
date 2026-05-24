@@ -140,7 +140,7 @@ static uint16_t fat_normalize_mode(uint16_t mode)
 
 static int fat_is_metadata_path(const char *path)
 {
-   return (path && strcmp(path, FAT_METADATA_PATH) == 0) ? FAT_OK : FAT_ENOENT;
+   return (path && strcmp(path, FAT_METADATA_PATH) == 0) ? SUCCESS : -ENOENT;
 }
 
 static void fat_normalize_absolute_path(const char *path, char *out,
@@ -387,7 +387,7 @@ static int FAT_WriteFatEntry(FAT_Instance *inst, Partition *disk,
    if (!inst || !disk)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_WriteFatEntry: inst or disk is NULL\n");
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    uint32_t fatByteOffset;
@@ -409,7 +409,7 @@ static int FAT_WriteFatEntry(FAT_Instance *inst, Partition *disk,
 
       uint8_t fatBuffer[SECTOR_SIZE * 2];
       if (Partition_ReadSectors(disk, fatSectorLba, 1, fatBuffer) < 0)
-         return FAT_EIO;
+         return -EIO;
 
       bool crossBoundary =
           (inst->FatType == 12 && fatByteOffsetInSector == SECTOR_SIZE - 1);
@@ -417,7 +417,7 @@ static int FAT_WriteFatEntry(FAT_Instance *inst, Partition *disk,
       {
          if (Partition_ReadSectors(disk, fatSectorLba + 1, 1,
                                    fatBuffer + SECTOR_SIZE) < 0)
-            return FAT_EIO;
+            return -EIO;
       }
 
       if (inst->FatType == 12)
@@ -449,13 +449,13 @@ static int FAT_WriteFatEntry(FAT_Instance *inst, Partition *disk,
       }
 
       if (Partition_WriteSectors(disk, fatSectorLba, 1, fatBuffer) < 0)
-         return FAT_EIO;
+         return -EIO;
 
       if (crossBoundary)
       {
          if (Partition_WriteSectors(disk, fatSectorLba + 1, 1,
                                     fatBuffer + SECTOR_SIZE) < 0)
-            return FAT_EIO;
+            return -EIO;
       }
    }
 
@@ -490,7 +490,7 @@ static int FAT_WriteFatEntry(FAT_Instance *inst, Partition *disk,
       if (inst->FatType == 12) inst->FatCachePos = 0xFFFFFFFF;
    }
 
-   return FAT_OK;
+   return SUCCESS;
 }
 
 static FAT_File *FAT_OpenEntry(FAT_Instance *inst, Partition *disk,
@@ -637,17 +637,17 @@ static int fat_metadata_append_record_full(Partition *disk, const char *path,
                                            uint16_t mode, uint32_t uid,
                                            uint32_t gid, uint8_t flags)
 {
-   if (!disk || !path) return FAT_EINVAL;
+   if (!disk || !path) return -EINVAL;
 
    char normalizedPath[MAX_PATH_SIZE];
    fat_normalize_absolute_path(path, normalizedPath, sizeof(normalizedPath));
-   if (fat_is_metadata_path(normalizedPath) == FAT_OK) return FAT_OK;
+   if (fat_is_metadata_path(normalizedPath) == SUCCESS) return SUCCESS;
 
    FAT_File *meta = FAT_Open(disk, FAT_METADATA_PATH);
    if (!meta)
    {
       meta = FAT_Create(disk, FAT_METADATA_PATH, 0600u);
-      if (!meta) return FAT_EIO;
+      if (!meta) return -EIO;
    }
 
    if (meta->Handle == ROOT_DIRECTORY_HANDLE || meta->IsDirectory)
@@ -667,12 +667,12 @@ static int fat_metadata_append_record_full(Partition *disk, const char *path,
    if (FAT_Seek(disk, meta, meta->Size) < 0)
    {
       FAT_Close(meta);
-      return FAT_EIO;
+      return -EIO;
    }
 
    uint32_t written = FAT_Write(disk, meta, sizeof(record), &record);
    FAT_Close(meta);
-   return (written == sizeof(record)) ? FAT_OK : FAT_EIO;
+   return (written == sizeof(record)) ? SUCCESS : -EIO;
 }
 
 static int fat_metadata_append_record(Partition *disk, const char *path,
@@ -688,7 +688,7 @@ static int fat_metadata_lookup_latest(Partition *disk, const char *path,
    if (!disk || !path)
    {
       if (foundOut) *foundOut = false;
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    char normalizedPath[MAX_PATH_SIZE];
@@ -701,7 +701,7 @@ static int fat_metadata_lookup_latest(Partition *disk, const char *path,
    if (!meta)
    {
       if (foundOut) *foundOut = false;
-      return FAT_OK;
+      return SUCCESS;
    }
 
    if (meta->Handle == ROOT_DIRECTORY_HANDLE || meta->IsDirectory)
@@ -715,7 +715,7 @@ static int fat_metadata_lookup_latest(Partition *disk, const char *path,
    {
       FAT_Close(meta);
       if (foundOut) *foundOut = false;
-      return FAT_EIO;
+      return -EIO;
    }
 
    FAT_MetadataRecord rec;
@@ -732,20 +732,20 @@ static int fat_metadata_lookup_latest(Partition *disk, const char *path,
 
    FAT_Close(meta);
    if (foundOut) *foundOut = found;
-   return FAT_OK;
+   return SUCCESS;
 }
 
 static int fat_check_access_path(Partition *disk, const char *path,
                                  uint32_t uid, uint32_t gid, uint8_t accessMask)
 {
-   if (!disk || !path) return FAT_EINVAL;
-   if (uid == 0) return FAT_OK;
+   if (!disk || !path) return -EINVAL;
+   if (uid == 0) return SUCCESS;
 
    FAT_MetadataRecord rec;
    bool found = false;
    int lookup_rc = fat_metadata_lookup_latest(disk, path, &rec, &found);
    if (lookup_rc < 0) return lookup_rc;
-   if (!found) return FAT_OK;
+   if (!found) return SUCCESS;
    if (rec.Flags & FAT_METADATA_FLAG_DELETED) return FAT_EPERM;
 
    uint8_t perm;
@@ -759,12 +759,12 @@ static int fat_check_access_path(Partition *disk, const char *path,
    if ((accessMask & 0x4) && ((perm & 0x4) == 0)) return FAT_EPERM;
    if ((accessMask & 0x2) && ((perm & 0x2) == 0)) return FAT_EPERM;
    if ((accessMask & 0x1) && ((perm & 0x1) == 0)) return FAT_EPERM;
-   return FAT_OK;
+   return SUCCESS;
 }
 
 static int fat_chmod_path(Partition *disk, const char *path, uint16_t mode)
 {
-   if (!disk || !path) return FAT_EINVAL;
+   if (!disk || !path) return -EINVAL;
 
    FAT_MetadataRecord rec;
    bool found = false;
@@ -779,7 +779,7 @@ static int fat_chmod_path(Partition *disk, const char *path, uint16_t mode)
 static int fat_chown_path(Partition *disk, const char *path, uint32_t uid,
                           uint32_t gid)
 {
-   if (!disk || !path) return FAT_EINVAL;
+   if (!disk || !path) return -EINVAL;
 
    FAT_MetadataRecord rec;
    bool found = false;
@@ -979,7 +979,7 @@ int FAT_ReadEntry(Partition *disk, FAT_File *file, FAT_DirectoryEntry *dirEntry)
 {
    uint32_t bytes_read =
        FAT_Read(disk, file, sizeof(FAT_DirectoryEntry), dirEntry);
-   return (bytes_read == sizeof(FAT_DirectoryEntry)) ? FAT_OK : FAT_ENOENT;
+   return (bytes_read == sizeof(FAT_DirectoryEntry)) ? SUCCESS : -ENOENT;
 }
 
 void FAT_Close(FAT_File *file)
@@ -1017,7 +1017,7 @@ int FAT_FindFile(Partition *disk, FAT_File *file, const char *name,
           LOG_WARNING,
           "[FAT] FAT_FindFile: received path '%s', expected single component\n",
           name);
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    char fatName[12];
@@ -1028,7 +1028,7 @@ int FAT_FindFile(Partition *disk, FAT_File *file, const char *name,
    {
       logfmt(LOG_ERROR, "[FAT] FAT_FindFile: FAT_Seek(0) failed for '%s'\n",
              name);
-      return FAT_EIO;
+      return -EIO;
    }
 
    // convert from name to fat name
@@ -1052,7 +1052,7 @@ int FAT_FindFile(Partition *disk, FAT_File *file, const char *name,
          fatName[i + 8] = toupper(ext[i + 1]);
    }
 
-   while (FAT_ReadEntry(disk, file, &entry) == FAT_OK)
+   while (FAT_ReadEntry(disk, file, &entry) == SUCCESS)
    {
       // FAT end marker: empty entry means end of directory
       if (entry.Name[0] == 0x00) break;
@@ -1063,10 +1063,10 @@ int FAT_FindFile(Partition *disk, FAT_File *file, const char *name,
       if (memcmp(fatName, entry.Name, 11) == 0)
       {
          *entryOut = entry;
-         return FAT_OK;
+         return SUCCESS;
       }
    }
-   return FAT_ENOENT;
+   return -ENOENT;
 }
 
 FAT_File *FAT_Open(Partition *disk, const char *path)
@@ -1128,7 +1128,7 @@ FAT_File *FAT_Open(Partition *disk, const char *path)
       }
 
       FAT_DirectoryEntry entry;
-      if (FAT_FindFile(disk, current, name, &entry) == FAT_OK)
+      if (FAT_FindFile(disk, current, name, &entry) == SUCCESS)
       {
          if (previous != NULL && previous->Handle != ROOT_DIRECTORY_HANDLE)
          {
@@ -1214,7 +1214,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
    FAT_Instance *inst = fat_inst(disk);
    if (!inst) return FAT_EDISK;
 
-   if (!file) return FAT_EINVAL;
+   if (!file) return -EINVAL;
 
    // Validate handle before accessing array
    if (file->Handle != ROOT_DIRECTORY_HANDLE &&
@@ -1222,7 +1222,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_Seek: invalid file handle %d\n",
              file->Handle);
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    FAT_FileData *fd = (file->Handle == ROOT_DIRECTORY_HANDLE)
@@ -1235,7 +1235,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_Seek: position %u > size %u\n", position,
              fd->Public.Size);
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    fd->Public.Position = position;
@@ -1271,7 +1271,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
             if (cluster >= eofMarker)
             {
                fd->Public.Size = fd->Public.Position;
-               return FAT_EIO;
+               return -EIO;
             }
          }
 
@@ -1284,7 +1284,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
                                    1, fd->Buffer) < 0)
          {
             logfmt(LOG_ERROR, "[FAT] seek read error (root)\n");
-            return FAT_EIO;
+            return -EIO;
          }
       }
       else
@@ -1305,7 +1305,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
              Partition_ReadSectors(disk, fd->CurrentCluster, 1, fd->Buffer) < 0)
          {
             logfmt(LOG_ERROR, "[FAT] seek read error (root)\n");
-            return FAT_EIO;
+            return -EIO;
          }
       }
    }
@@ -1315,12 +1315,12 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
       // This allows first read/write at offset 0 without forcing a failure.
       if (fd->Public.Size == 0 && !fd->Public.IsDirectory)
       {
-         if (position == 0) return FAT_OK;
+         if (position == 0) return SUCCESS;
 
          logfmt(LOG_ERROR,
                 "[FAT] FAT_Seek: cannot seek to non-zero offset on empty "
                 "regular file\n");
-         return FAT_EINVAL;
+         return -EINVAL;
       }
 
       if (fd->FirstCluster == 0)
@@ -1349,7 +1349,7 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
             fd->Public.Size = fd->Public.Position;
             logfmt(LOG_WARNING,
                    "[FAT] FAT_Seek: reached end of cluster chain\n");
-            return FAT_EIO;
+            return -EIO;
          }
       }
 
@@ -1362,18 +1362,18 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position)
                                 1, fd->Buffer) < 0)
       {
          logfmt(LOG_ERROR, "[FAT] seek read error (file)\n");
-         return FAT_EIO;
+         return -EIO;
       }
    }
 
-   return FAT_OK;
+   return SUCCESS;
 }
 
 int FAT_WriteEntry(Partition *disk, FAT_File *file,
                    const FAT_DirectoryEntry *dirEntry)
 {
    // Allow writing into root directory as well as opened directory files.
-   if (!file) return FAT_EINVAL;
+   if (!file) return -EINVAL;
 
    FAT_Instance *inst = fat_inst(disk);
    if (!inst) return FAT_EDISK;
@@ -1384,15 +1384,14 @@ int FAT_WriteEntry(Partition *disk, FAT_File *file,
       fd = &inst->RootDirectory;
    else
    {
-      if (file->Handle < 0 || file->Handle >= MAX_FILE_HANDLES)
-         return FAT_EINVAL;
+      if (file->Handle < 0 || file->Handle >= MAX_FILE_HANDLES) return -EINVAL;
       fd = &inst->OpenedFiles[file->Handle];
    }
 
    if (!file->IsDirectory)
    {
       logfmt(LOG_ERROR, "[FAT] WriteEntry called on non-directory file\n");
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    // Calculate which sector and offset contains the current directory entry
@@ -1418,13 +1417,13 @@ int FAT_WriteEntry(Partition *disk, FAT_File *file,
    if (!sectorBuffer)
    {
       logfmt(LOG_ERROR, "[FAT] WriteEntry kmalloc failed\n");
-      return FAT_EIO;
+      return -EIO;
    }
    if (Partition_ReadSectors(disk, sectorLba, 1, sectorBuffer) < 0)
    {
       logfmt(LOG_ERROR, "[FAT] WriteEntry read error\n");
       free(sectorBuffer);
-      return FAT_EIO;
+      return -EIO;
    }
 
    memcpy(&sectorBuffer[offsetInSector], dirEntry, sizeof(FAT_DirectoryEntry));
@@ -1433,7 +1432,7 @@ int FAT_WriteEntry(Partition *disk, FAT_File *file,
    {
       logfmt(LOG_ERROR, "[FAT] WriteEntry write error\n");
       free(sectorBuffer);
-      return FAT_EIO;
+      return -EIO;
    }
 
    // Update the file descriptor's buffer with the modified sector
@@ -1443,7 +1442,7 @@ int FAT_WriteEntry(Partition *disk, FAT_File *file,
 
    // Advance position by one directory entry (bytes)
    file->Position += sizeof(FAT_DirectoryEntry);
-   return FAT_OK;
+   return SUCCESS;
 }
 
 uint32_t FAT_Write(Partition *disk, FAT_File *file, uint32_t byteCount,
@@ -1707,7 +1706,7 @@ uint32_t FAT_Write(Partition *disk, FAT_File *file, uint32_t byteCount,
 int FAT_UpdateEntry(Partition *disk, FAT_File *file)
 {
    // Update the directory entry in the *parent* directory of this file.
-   if (!file) return FAT_EINVAL;
+   if (!file) return -EINVAL;
 
    FAT_Instance *inst = fat_inst(disk);
    if (!inst) return FAT_EDISK;
@@ -1718,8 +1717,7 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
 
    if (file->Handle != ROOT_DIRECTORY_HANDLE)
    {
-      if (file->Handle < 0 || file->Handle >= MAX_FILE_HANDLES)
-         return FAT_EINVAL;
+      if (file->Handle < 0 || file->Handle >= MAX_FILE_HANDLES) return -EINVAL;
       if (!fd->Opened) return FAT_ESTATE;
       inst->RootDirectory.CurrentSectorInCluster = 0;
    }
@@ -1752,14 +1750,14 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
            s++, sectorsScanned++)
       {
          uint8_t *sectorBuffer = kmalloc(SECTOR_SIZE);
-         if (!sectorBuffer) return FAT_EIO;
+         if (!sectorBuffer) return -EIO;
          uint32_t lba = inst->RootDirLba + s;
          if (Partition_ReadSectors(disk, lba, 1, sectorBuffer) < 0)
          {
             logfmt(LOG_ERROR, "[FAT] FAT_UpdateEntry: failed to read root "
                               "directory sector\n");
             free(sectorBuffer);
-            return FAT_EIO;
+            return -EIO;
          }
 
          for (uint32_t i = 0; i < SECTOR_SIZE; i += sizeof(FAT_DirectoryEntry))
@@ -1777,7 +1775,7 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
                memcpy(sectorBuffer + i, &updated, sizeof(FAT_DirectoryEntry));
                int result = Partition_WriteSectors(disk, lba, 1, sectorBuffer);
                free(sectorBuffer);
-               return (result < 0) ? FAT_EIO : FAT_OK;
+               return (result < 0) ? -EIO : SUCCESS;
             }
          }
          free(sectorBuffer);
@@ -1795,14 +1793,14 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
               sec++, sectorsScanned++)
          {
             uint8_t *sectorBuffer = kmalloc(SECTOR_SIZE);
-            if (!sectorBuffer) return FAT_EIO;
+            if (!sectorBuffer) return -EIO;
             uint32_t lba = FAT_ClusterToLba(inst, cluster) + sec;
             if (Partition_ReadSectors(disk, lba, 1, sectorBuffer) < 0)
             {
                logfmt(LOG_ERROR, "[FAT] FAT_UpdateEntry: failed to read "
                                  "directory cluster sector\n");
                free(sectorBuffer);
-               return FAT_EIO;
+               return -EIO;
             }
 
             for (uint32_t i = 0; i < SECTOR_SIZE;
@@ -1823,7 +1821,7 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
                   int result =
                       Partition_WriteSectors(disk, lba, 1, sectorBuffer);
                   free(sectorBuffer);
-                  return (result < 0) ? FAT_EIO : FAT_OK;
+                  return (result < 0) ? -EIO : SUCCESS;
                }
             }
             free(sectorBuffer);
@@ -1835,7 +1833,7 @@ int FAT_UpdateEntry(Partition *disk, FAT_File *file)
 
    logfmt(LOG_WARNING,
           "[FAT] UpdateEntry - file not found in parent directory\n");
-   return FAT_ENOENT;
+   return -ENOENT;
 }
 
 FAT_File *FAT_Create(Partition *disk, const char *path, uint16_t mode)
@@ -1925,7 +1923,7 @@ FAT_File *FAT_Create(Partition *disk, const char *path, uint16_t mode)
    // Check if file already exists in parent
    FAT_DirectoryEntry existingEntry;
 
-   if (FAT_FindFile(disk, parentFile, baseName, &existingEntry) == FAT_OK)
+   if (FAT_FindFile(disk, parentFile, baseName, &existingEntry) == SUCCESS)
    {
       free(parentPath);
       free(baseName);
@@ -1998,7 +1996,7 @@ FAT_File *FAT_Create(Partition *disk, const char *path, uint16_t mode)
                         ? inst->BS.BootSector.DirEntryCount
                         : 65536;
 
-   while (FAT_ReadEntry(disk, parentFile, &dirEntry) == FAT_OK &&
+   while (FAT_ReadEntry(disk, parentFile, &dirEntry) == SUCCESS &&
           entryCount < maxEntries)
    {
       entryCount++;
@@ -2057,7 +2055,7 @@ FAT_File *FAT_Create(Partition *disk, const char *path, uint16_t mode)
 
 int FAT_Delete(Partition *disk, const char *name)
 {
-   if (!name) return FAT_EINVAL;
+   if (!name) return -EINVAL;
 
    char metadataPath[MAX_PATH_SIZE];
    fat_normalize_absolute_path(name, metadataPath, sizeof(metadataPath));
@@ -2074,7 +2072,7 @@ int FAT_Delete(Partition *disk, const char *name)
    {
       if (parentPath) free(parentPath);
       if (baseName) free(baseName);
-      return FAT_EIO;
+      return -EIO;
    }
 
    const char *lastSlash = strrchr(name, '/');
@@ -2099,7 +2097,7 @@ int FAT_Delete(Partition *disk, const char *name)
       logfmt(LOG_ERROR, "[FAT] FAT_Delete: empty basename in path\n");
       free(parentPath);
       free(baseName);
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    FAT_File *parentDir = (parentPath[0] == '\0') ? &inst->RootDirectory.Public
@@ -2110,7 +2108,7 @@ int FAT_Delete(Partition *disk, const char *name)
              parentPath);
       free(parentPath);
       free(baseName);
-      return FAT_ENOENT;
+      return -ENOENT;
    }
 
    FAT_DirectoryEntry entry;
@@ -2120,7 +2118,7 @@ int FAT_Delete(Partition *disk, const char *name)
              baseName, parentPath[0] ? parentPath : "/");
       free(parentPath);
       free(baseName);
-      return FAT_ENOENT;
+      return -ENOENT;
    }
 
    uint32_t firstCluster =
@@ -2137,7 +2135,7 @@ int FAT_Delete(Partition *disk, const char *name)
       if (dir)
       {
          FAT_DirectoryEntry subEntry;
-         while (FAT_ReadEntry(disk, dir, &subEntry) == FAT_OK)
+         while (FAT_ReadEntry(disk, dir, &subEntry) == SUCCESS)
          {
             if ((subEntry.Attributes & 0x0F) == 0x0F ||
                 subEntry.Name[0] == 0x00 || (uint8_t)subEntry.Name[0] == 0xE5)
@@ -2250,7 +2248,7 @@ int FAT_Delete(Partition *disk, const char *name)
                logfmt(LOG_INFO, "[FAT] FAT_Delete: deleted '%s'\n", name);
                free(parentPath);
                free(baseName);
-               return FAT_OK;
+               return SUCCESS;
             }
          }
          free(sectorBuffer);
@@ -2302,7 +2300,7 @@ int FAT_Delete(Partition *disk, const char *name)
                   logfmt(LOG_INFO, "[FAT] FAT_Delete: deleted '%s'\n", name);
                   free(parentPath);
                   free(baseName);
-                  return FAT_OK;
+                  return SUCCESS;
                }
             }
             free(sectorBuffer);
@@ -2317,7 +2315,7 @@ int FAT_Delete(Partition *disk, const char *name)
           name);
    free(parentPath);
    free(baseName);
-   return FAT_ENOENT;
+   return -ENOENT;
 }
 
 int FAT_Truncate(Partition *disk, FAT_File *file)
@@ -2325,20 +2323,20 @@ int FAT_Truncate(Partition *disk, FAT_File *file)
    if (!file)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_Truncate: file is NULL\n");
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    if (file->Handle == ROOT_DIRECTORY_HANDLE)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_Truncate: cannot truncate root directory\n");
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    if (file->Handle < 0 || file->Handle >= MAX_FILE_HANDLES)
    {
       logfmt(LOG_ERROR, "[FAT] FAT_Truncate: invalid file handle %d\n",
              file->Handle);
-      return FAT_EINVAL;
+      return -EINVAL;
    }
 
    logfmt(LOG_INFO, "[FAT] FAT_Truncate: called, file=%p, Handle=%d\n", file,
@@ -2380,7 +2378,7 @@ int FAT_Truncate(Partition *disk, FAT_File *file)
       fd->CurrentSectorInCluster = 0;
       fd->Public.Position = 0;
       fd->Public.Size = 0;
-      return FAT_OK;
+      return SUCCESS;
    }
 
    int clusterCount = 0;
@@ -2416,7 +2414,7 @@ int FAT_Truncate(Partition *disk, FAT_File *file)
             logfmt(LOG_ERROR,
                    "[FAT] FAT_Truncate: FAT write error freeing cluster %u\n",
                    currentCluster);
-            return FAT_EIO;
+            return -EIO;
          }
 
          currentCluster = tempNextCluster;
@@ -2434,7 +2432,7 @@ int FAT_Truncate(Partition *disk, FAT_File *file)
       logfmt(
           LOG_ERROR,
           "[FAT] FAT_Truncate: FAT write error marking first cluster as EOF\n");
-      return FAT_EIO;
+      return -EIO;
    }
 
    // Reset file position and size, but keep FirstCluster and CurrentCluster
@@ -2452,13 +2450,13 @@ int FAT_Truncate(Partition *disk, FAT_File *file)
    {
       logfmt(LOG_ERROR,
              "[FAT] FAT_Truncate: failed to read first cluster into buffer\n");
-      return FAT_EIO;
+      return -EIO;
    }
 
    inst->FatCachePos = 0xFFFFFFFF;
    logfmt(LOG_INFO,
           "[FAT] FAT_Truncate: truncate complete, file ready for writes\n");
-   return FAT_OK;
+   return SUCCESS;
 }
 
 /* Invalidate the FAT cache - call after operations that may leave cache
@@ -2575,15 +2573,15 @@ static void fat_short_name_to_cstr(const uint8_t fatName[11], char *out,
 static int fat_vfs_readdir(Partition *partition, void *fs_file,
                            VFS_DirEntry *entryOut)
 {
-   if (!partition || !fs_file || !entryOut) return FAT_EINVAL;
+   if (!partition || !fs_file || !entryOut) return -EINVAL;
 
    FAT_File *dir = (FAT_File *)fs_file;
-   if (!dir->IsDirectory) return FAT_EINVAL;
+   if (!dir->IsDirectory) return -EINVAL;
 
    FAT_DirectoryEntry entry;
-   while (FAT_ReadEntry(partition, dir, &entry) == FAT_OK)
+   while (FAT_ReadEntry(partition, dir, &entry) == SUCCESS)
    {
-      if (entry.Name[0] == 0x00) return FAT_ENOENT;
+      if (entry.Name[0] == 0x00) return -ENOENT;
       if ((uint8_t)entry.Name[0] == 0xE5) continue;
       if ((entry.Attributes & FAT_ATTRIBUTE_LFN) == FAT_ATTRIBUTE_LFN) continue;
       if (entry.Attributes & FAT_ATTRIBUTE_VOLUME_ID) continue;
@@ -2593,10 +2591,10 @@ static int fat_vfs_readdir(Partition *partition, void *fs_file,
       entryOut->is_directory =
           (entry.Attributes & FAT_ATTRIBUTE_DIRECTORY) != 0;
       entryOut->size = entry.Size;
-      return FAT_OK;
+      return SUCCESS;
    }
 
-   return FAT_ENOENT;
+   return -ENOENT;
 }
 
 static int fat_vfs_chmod(Partition *partition, const char *path, uint16_t mode)

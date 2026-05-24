@@ -148,7 +148,7 @@ int i8259_Probe(void)
 {
    i8259_Disable();
    i8259_SetMask(0x1337);
-   return (i8259_GetMask() == 0x1337) ? PIC_OK : PIC_ENODEV;
+   return (i8259_GetMask() == 0x1337) ? SUCCESS : -ENODEV;
 }
 
 static const PICDriver g_PicDriver = {

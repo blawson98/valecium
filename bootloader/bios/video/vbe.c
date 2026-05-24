@@ -114,7 +114,7 @@ int VBE_Initialize(void)
 {
    uint32_t fg;
 
-   if (!s_HasInfo) return ENODEV;
+   if (!s_HasInfo) return -ENODEV;
 
    s_CursorX = 0;
    s_CursorY = 0;
@@ -133,7 +133,7 @@ int VBE_PutChar(char c, int x, int y, char color)
    int glyph_h = FONT_HEIGHT * scale;
 
    (void)color;
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
    if (x < 0 && y < 0)
    {
@@ -142,7 +142,7 @@ int VBE_PutChar(char c, int x, int y, char color)
    }
    else if ((x < 0) != (y < 0))
    {
-      return EINVAL;
+      return -EINVAL;
    }
 
    switch (c)
@@ -191,11 +191,11 @@ int VBE_PutChar(char c, int x, int y, char color)
 
 int VBE_PutPixel(uint32_t pixel, int x, int y)
 {
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
    if (x < 0 || y < 0 || (uint32_t)x >= s_Info.width ||
        (uint32_t)y >= s_Info.height)
-      return EINVAL;
+      return -EINVAL;
 
    put_pixel(x, y, pixel);
    return SUCCESS;

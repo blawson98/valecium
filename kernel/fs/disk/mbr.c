@@ -64,7 +64,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
 
    int count = 0;
 
-   if (read_rc == DISK_OK)
+   if (read_rc == SUCCESS)
    {
       void *partition_entry = &mbr_buffer[446];
 
@@ -111,7 +111,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
       if (part)
       {
          part->disk = disk;
-         part->partitionOffset = (read_rc == DISK_OK) ? 16 : 0;
+         part->partitionOffset = (read_rc == SUCCESS) ? 16 : 0;
          part->partitionSize = 0x100000;
          list[0] = part;
          count = 1;

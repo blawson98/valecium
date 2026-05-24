@@ -10,7 +10,7 @@
 int Partition_ReadSectors(Partition *part, uint32_t lba, uint8_t sectors,
                           void *lowerDataOut)
 {
-   if (!part) return PARTITION_EINVAL;
+   if (!part) return -EINVAL;
 
    /* Defensive: avoid dereferencing possibly-dangling Partition pointers.
     * Accept Partition pointers that live in the global volume table or in
@@ -27,7 +27,7 @@ int Partition_ReadSectors(Partition *part, uint32_t lba, uint8_t sectors,
    {
       logfmt(LOG_ERROR, "[PART] Invalid partition pointer: 0x%08x\n",
              (unsigned int)p);
-      return PARTITION_EINVAL;
+      return -EINVAL;
    }
 
    if (!part->disk) return PARTITION_EDISK;
@@ -39,7 +39,7 @@ int Partition_ReadSectors(Partition *part, uint32_t lba, uint8_t sectors,
 int Partition_WriteSectors(Partition *part, uint32_t lba, uint8_t sectors,
                            const void *lowerDataIn)
 {
-   if (!part) return PARTITION_EINVAL;
+   if (!part) return -EINVAL;
 
    uintptr_t p = (uintptr_t)part;
    uintptr_t heap_start = mem_heap_start();
@@ -52,7 +52,7 @@ int Partition_WriteSectors(Partition *part, uint32_t lba, uint8_t sectors,
    {
       logfmt(LOG_ERROR, "[PART] Invalid partition pointer: 0x%08x\n",
              (unsigned int)p);
-      return PARTITION_EINVAL;
+      return -EINVAL;
    }
 
    if (!part->disk) return PARTITION_EDISK;

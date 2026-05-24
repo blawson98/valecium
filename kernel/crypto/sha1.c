@@ -197,5 +197,5 @@ int SHA1_SelfTest(void)
       }
    }
 
-   return CRYPTO_OK;
+   return SUCCESS;
 }

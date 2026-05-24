@@ -83,10 +83,10 @@ int VGATEXT_PutChar(char c, int x, int y, char color)
    int pos;
 
    /* Must be initialized */
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
    /* Exactly one of x / y negative → invalid */
-   if ((x < 0) != (y < 0)) return EINVAL;
+   if ((x < 0) != (y < 0)) return -EINVAL;
 
    /* Both negative → write at cursor, then advance */
    if (x < 0 && y < 0)
@@ -166,5 +166,5 @@ int VGATEXT_PutPixel(int pixel, int x, int y)
    (void)pixel;
    (void)x;
    (void)y;
-   return EINVAL;
+   return -EINVAL;
 }

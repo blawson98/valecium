@@ -51,15 +51,15 @@ void VFS_Init(void)
 static int vfs_normalize_mount(const char *location, char *normalized,
                                size_t normalized_size)
 {
-   if (!location || normalized_size == 0) return VFS_EINVAL;
+   if (!location || normalized_size == 0) return -EINVAL;
 
    size_t len = strlen(location);
-   if (len == 0) return VFS_EINVAL;
+   if (len == 0) return -EINVAL;
 
    if (location[0] != '/')
    {
       logfmt(LOG_ERROR, "[VFS] Mount point '%s' must start with '/'", location);
-      return VFS_EINVAL;
+      return -EINVAL;
    }
 
    /* Strip trailing slashes except for root */
@@ -69,7 +69,7 @@ static int vfs_normalize_mount(const char *location, char *normalized,
 
    memcpy(normalized, location, len);
    normalized[len] = '\0';
-   return VFS_OK;
+   return SUCCESS;
 }
 
 static const VFS_MountEntry *vfs_match_mount(const char *path,
@@ -107,13 +107,13 @@ static int vfs_resolve_path(const char *path, Partition **part_out,
                             char *relative_out, size_t relative_size)
 {
    if (!path || !part_out || !relative_out || relative_size == 0)
-      return VFS_EINVAL;
+      return -EINVAL;
 
    if (*path == '\0') path = "/";
 
    size_t prefix_len = 0;
    const VFS_MountEntry *mount = vfs_match_mount(path, &prefix_len);
-   if (!mount) return VFS_ENOENT;
+   if (!mount) return -ENOENT;
 
    const char *tail = path + prefix_len;
 
@@ -129,7 +129,7 @@ static int vfs_resolve_path(const char *path, Partition **part_out,
       size_t tail_len = strlen(tail);
       if (tail_len + 1 >= relative_size)
       {
-         return VFS_EINVAL;
+         return -EINVAL;
       }
       strncpy(relative_out + 1, tail, relative_size - 1);
       relative_out[relative_size - 1] = '\0';
@@ -141,7 +141,7 @@ static int vfs_resolve_path(const char *path, Partition **part_out,
    }
 
    *part_out = mount->partition;
-   return VFS_OK;
+   return SUCCESS;
 }
 
 int FS_Mount(Partition *volume, const char *location)
@@ -314,13 +314,13 @@ VFS_File *VFS_Create(const char *path, uint16_t mode)
 
 int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entryOut)
 {
-   if (!directory || !entryOut) return VFS_EINVAL;
-   if (!directory->is_directory) return VFS_EINVAL;
+   if (!directory || !entryOut) return -EINVAL;
+   if (!directory->is_directory) return -EINVAL;
 
    if (!directory->partition || !directory->partition->fs ||
        !directory->partition->fs->ops ||
        !directory->partition->fs->ops->readdir)
-      return VFS_EINVAL;
+      return -EINVAL;
 
    return directory->partition->fs->ops->readdir(directory->partition,
                                                  directory->fs_file, entryOut);
@@ -332,7 +332,7 @@ int VFS_Delete(const char *path)
    char *relative = kmalloc(VFS_MAX_PATH);
    if (!relative)
    {
-      return VFS_EIO;
+      return -EIO;
    }
 
    int rc = vfs_resolve_path(path, &part, relative, VFS_MAX_PATH);
@@ -360,7 +360,7 @@ int VFS_Access(const char *path, uint32_t uid, uint32_t gid, uint8_t accessMask)
 {
    Partition *part = NULL;
    char *relative = kmalloc(VFS_MAX_PATH);
-   if (!relative) return VFS_EIO;
+   if (!relative) return -EIO;
 
    int rc = vfs_resolve_path(path, &part, relative, VFS_MAX_PATH);
    if (rc < 0)
@@ -372,13 +372,13 @@ int VFS_Access(const char *path, uint32_t uid, uint32_t gid, uint8_t accessMask)
    if (!part || !part->fs || !part->fs->ops)
    {
       free(relative);
-      return VFS_EINVAL;
+      return -EINVAL;
    }
 
    if (!part->fs->ops->access)
    {
       free(relative);
-      return VFS_OK;
+      return SUCCESS;
    }
 
    int result = part->fs->ops->access(part, relative, uid, gid, accessMask);
@@ -390,7 +390,7 @@ int VFS_Chmod(const char *path, uint16_t mode)
 {
    Partition *part = NULL;
    char *relative = kmalloc(VFS_MAX_PATH);
-   if (!relative) return VFS_EIO;
+   if (!relative) return -EIO;
 
    int rc = vfs_resolve_path(path, &part, relative, VFS_MAX_PATH);
    if (rc < 0)
@@ -414,7 +414,7 @@ int VFS_Chown(const char *path, uint32_t uid, uint32_t gid)
 {
    Partition *part = NULL;
    char *relative = kmalloc(VFS_MAX_PATH);
-   if (!relative) return VFS_EIO;
+   if (!relative) return -EIO;
 
    int rc = vfs_resolve_path(path, &part, relative, VFS_MAX_PATH);
    if (rc < 0)
@@ -462,22 +462,22 @@ int VFS_Seek(VFS_File *file, uint32_t position)
    if (!file)
    {
       logfmt(LOG_ERROR, "[VFS_Seek] file is NULL\n");
-      return VFS_EINVAL;
+      return -EINVAL;
    }
    if (!file->partition)
    {
       logfmt(LOG_ERROR, "[VFS_Seek] partition is NULL\n");
-      return VFS_EINVAL;
+      return -EINVAL;
    }
    if (!file->partition->fs)
    {
       logfmt(LOG_ERROR, "[VFS_Seek] fs is NULL\n");
-      return VFS_EINVAL;
+      return -EINVAL;
    }
    if (!file->partition->fs->ops)
    {
       logfmt(LOG_ERROR, "[VFS_Seek] ops is NULL\n");
-      return VFS_EINVAL;
+      return -EINVAL;
    }
    if (!file->partition->fs->ops->seek)
    {

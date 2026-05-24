@@ -188,7 +188,7 @@ int VGA_Initialize(void)
 
 int VGA_PutChar(char c, int x, int y, char color)
 {
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
    /* * FIX: Force stream mode behavior if the coordinate input is detected
     * to have wrapped around or gone out of bounds due to bootloader row
@@ -202,7 +202,7 @@ int VGA_PutChar(char c, int x, int y, char color)
    }
    else if ((x < 0) != (y < 0))
    {
-      return EINVAL;
+      return -EINVAL;
    }
 
    /* Control characters */
@@ -260,9 +260,9 @@ int VGA_PutChar(char c, int x, int y, char color)
 
 int VGA_PutPixel(int pixel, int x, int y)
 {
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
-   if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) return EINVAL;
+   if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) return -EINVAL;
 
    put_pixel(x, y, (uint8_t)pixel);
    return SUCCESS;

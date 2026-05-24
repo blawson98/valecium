@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef I686_PIC_H
@@ -16,8 +17,5 @@ typedef struct
    void (*Mask)(int irq);
    void (*Unmask)(int irq);
 } PICDriver;
-
-#define PIC_OK 0
-#define PIC_ENODEV (-1)
 
 #endif

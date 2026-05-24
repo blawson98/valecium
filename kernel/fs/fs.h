@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef FS_H
@@ -33,7 +34,6 @@ typedef struct Filesystem
    void *private_data;        /* FS-specific instance (e.g., FAT_Instance *) */
 } Filesystem;
 
-#define FS_OK 0
 #define FS_EDEVFS_INIT (-1)
 #define FS_EDISK_INIT (-2)
 

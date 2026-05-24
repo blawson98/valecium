@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "syscall.h"
+#include <constants.h>
 #include <cpu/process.h>
 #include <fs/fs.h>
 #include <hal/scheduler.h>
@@ -8,22 +9,6 @@
 #include <std/stdio.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#ifndef ENOMEM
-#define ENOMEM 12
-#endif
-
-#ifndef EACCES
-#define EACCES 13
-#endif
-
-#ifndef ENOENT
-#define ENOENT 2
-#endif
-
-#ifndef EINVAL
-#define EINVAL 22
-#endif
 
 static inline Process *get_current_process(void)
 {

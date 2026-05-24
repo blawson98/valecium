@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef HAL_PAGING_H
@@ -56,8 +57,6 @@
 #error "Unsupported architecture for HAL Paging and Memory"
 #endif
 
-#define HAL_PAGING_OK 0
-#define HAL_PAGING_EINVAL (-1)
 #define HAL_PAGING_EMAP (-2)
 
 typedef struct HAL_PagingOperations

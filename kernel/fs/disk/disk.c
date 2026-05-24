@@ -289,7 +289,7 @@ void DISK_LBA2CHS(DISK *disk, uint32_t lba, uint16_t *cylinderOut,
 
 int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
 {
-   if (!disk || sectors == 0 || !dataOut) return DISK_EINVAL;
+   if (!disk || sectors == 0 || !dataOut) return -EINVAL;
 
    if (disk->type == DISK_TYPE_FLOPPY)
    {
@@ -298,8 +298,8 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
        * the kernel.
        */
       int rc = FDC_ReadLba(disk, lba, (uint8_t *)dataOut, sectors);
-      if (rc != 0) return (rc < 0) ? rc : DISK_EIO;
-      return DISK_OK;
+      if (rc != 0) return (rc < 0) ? rc : -EIO;
+      return SUCCESS;
    }
    else if (disk->type == DISK_TYPE_ATA)
    {
@@ -307,8 +307,8 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
        * channel/drive.
        */
       int rc = ATA_Read(disk, lba, (uint8_t *)dataOut, sectors);
-      if (rc != 0) return (rc < 0) ? rc : DISK_EIO;
-      return DISK_OK;
+      if (rc != 0) return (rc < 0) ? rc : -EIO;
+      return SUCCESS;
    }
 
    return DISK_EUNSUPPORTED;
@@ -317,7 +317,7 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
 int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
                       const void *dataIn)
 {
-   if (!disk || sectors == 0 || !dataIn) return DISK_EINVAL;
+   if (!disk || sectors == 0 || !dataIn) return -EINVAL;
 
    if (disk->type == DISK_TYPE_FLOPPY)
    {
@@ -325,8 +325,8 @@ int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
        * floppy controller.
        */
       int rc = FDC_WriteLba(disk, lba, (const uint8_t *)dataIn, sectors);
-      if (rc != 0) return (rc < 0) ? rc : DISK_EIO;
-      return DISK_OK;
+      if (rc != 0) return (rc < 0) ? rc : -EIO;
+      return SUCCESS;
    }
    else if (disk->type == DISK_TYPE_ATA)
    {
@@ -334,8 +334,8 @@ int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
        * channel/drive.
        */
       int rc = ATA_Write(disk, lba, (const uint8_t *)dataIn, sectors);
-      if (rc != 0) return (rc < 0) ? rc : DISK_EIO;
-      return DISK_OK;
+      if (rc != 0) return (rc < 0) ? rc : -EIO;
+      return SUCCESS;
    }
 
    return DISK_EUNSUPPORTED;

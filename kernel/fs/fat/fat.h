@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 /*
@@ -15,11 +16,7 @@ To interact with the filesystem, use the VFS interface defined in fs/fs.h.
 /* Opaque per-volume instance — defined in fat.c */
 typedef struct FAT_Instance FAT_Instance;
 
-#define FAT_OK 0
-#define FAT_EINVAL (-1)
 #define FAT_EDISK (-2)
-#define FAT_EIO (-3)
-#define FAT_ENOENT (-4)
 #define FAT_ESTATE (-5)
 #define FAT_EPERM (-6)
 

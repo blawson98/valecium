@@ -51,7 +51,7 @@ int Serial_PutChar(char c, int x, int y, char color)
    (void)y;
    (void)color;
 
-   if (!s_Initialized) return ENODEV;
+   if (!s_Initialized) return -ENODEV;
 
    /* Wait until the transmitter holding register is empty */
    while (!(inb(SERIAL_LSR) & LSR_THR_EMPTY));
@@ -65,5 +65,5 @@ int Serial_PutPixel(int pixel, int x, int y)
    (void)pixel;
    (void)x;
    (void)y;
-   return EINVAL;
+   return -EINVAL;
 }

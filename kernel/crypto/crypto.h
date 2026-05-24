@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef CRYPTO_H
@@ -15,7 +16,6 @@
 #define SHA1_BLOCK_SIZE 64u
 #define SHA1_HEX_SIZE 41u
 
-#define CRYPTO_OK 0
 #define CRYPTO_ESELFTEST (-1)
 
 typedef struct

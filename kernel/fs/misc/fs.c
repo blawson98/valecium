@@ -29,7 +29,7 @@ static int InitializeDevfs(void)
       FS_Mount(devfs_part, "/dev");
    }
 
-   return FS_OK;
+   return SUCCESS;
 }
 
 /**
@@ -57,5 +57,5 @@ int FS_Initialize(void)
       logfmt(LOG_ERROR, "[FS] Disk initialization failed\n");
       return FS_EDISK_INIT;
    }
-   return FS_OK;
+   return SUCCESS;
 }

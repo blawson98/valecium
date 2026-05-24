@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Kernel module helpers: maintain a loaded-module registry and provide
@@ -135,9 +136,7 @@ void KMOD_MemoryStatus(void);
 // Register a callback to load symbols when library is loaded
 void KMOD_RegisterCallback(kmod_register_symbols_t callback);
 
-#define KMOD_OK 0
 #define KMOD_EINIT (-1)
-#define KMOD_EINVAL (-2)
 #define KMOD_ENOSLOT (-3)
 #define KMOD_ELOAD (-4)
 #define KMOD_EDEPEND (-5)

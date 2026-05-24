@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 /*
@@ -26,10 +27,6 @@ typedef struct Partition Partition;
 #define VFS_ACCESS_WRITE 0x2u
 #define VFS_ACCESS_READ 0x4u
 
-#define VFS_OK 0
-#define VFS_EINVAL (-1)
-#define VFS_ENOENT (-2)
-#define VFS_EIO (-3)
 #define VFS_EPERM (-4)
 #define VFS_ENOTSUP (-5)
 #define VFS_EOF (-6)

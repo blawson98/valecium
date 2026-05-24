@@ -2,6 +2,7 @@
 
 #include "process.h"
 #include "scheduler.h"
+#include <constants.h>
 #include <fs/vfs/vfs.h>
 #include <hal/mem.h>
 #include <hal/scheduler.h>
@@ -11,14 +12,6 @@
 #include <std/stdio.h>
 #include <std/string.h>
 #include <sys/elf.h>
-
-#ifndef ECHILD
-#define ECHILD 10
-#endif
-
-#ifndef EINVAL
-#define EINVAL 22
-#endif
 
 static Process *g_CurrentProcess = NULL;
 static uint32_t g_NextPid = 1;

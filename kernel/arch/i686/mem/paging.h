@@ -1,3 +1,4 @@
+#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
 #ifndef I686_PAGING_H
@@ -12,8 +13,6 @@
 #define PAGE_RW 0x002
 #define PAGE_USER 0x004
 
-#define I686_PAGING_OK 0
-#define I686_PAGING_EINVAL (-1)
 #define I686_PAGING_ENOMEM (-2)
 
 // Page table initialization
