@@ -4,10 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Error codes (negative errno convention). */
-#define SUCCESS 0
-#define EINVAL (-22)
-#define ENODEV (-19)
+#include <constants.h>
 
 /* Output system identifiers (availability bit positions). */
 #define OUTPUT_VBE 0

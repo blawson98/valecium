@@ -2,6 +2,7 @@
 
 // #include <"video/logo_gen.h">
 #include "video/video.h"
+#include <constants.h>
 #include <stdint.h>
 
 /* Multiboot2 tag types */
@@ -286,7 +287,7 @@ int main(const BootParams *bootParams)
       fs_init_fn FS_Initialize = (fs_init_fn)fs_ops->FS_Initialize;
       int rc = FS_Initialize(biosDriveList, biosDriveListCount, partitionUuid,
                              partitionLabel);
-      if (rc < 0)
+      if (rc != SUCCESS)
       {
          puts("  FS_Initialize failed: ");
          puti(rc);

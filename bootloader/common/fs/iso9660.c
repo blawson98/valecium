@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+#include <constants.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -31,15 +32,6 @@ static int resolve_path(const char *path, uint32_t *out_lba,
 /* ------------------------------------------------------------------ */
 /*  Macros                                                             */
 /* ------------------------------------------------------------------ */
-
-#define SUCCESS 0
-#define EINVAL (-22)
-#define ENODEV (-19)
-#define EIO (-5)
-#define ENOENT (-2)
-#define ENOTDIR (-20)
-#define EMFILE (-24)
-#define EBADF (-9)
 
 #define SECTOR_SIZE_ISO 2048
 #define SECTOR_SIZE_CHS 512
@@ -114,9 +106,6 @@ static inline int mem_eq(const void *a, const void *b, int len)
    }
    return 1;
 }
-
-/* Stale-data workaround buffer (CD-ROM only). */
-static uint8_t s_DiscardBuf[SECTOR_SIZE_ISO];
 
 static int iso_read_sector(uint64_t iso_lba, void *buffer)
 {
