@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include <fs/devfs/devfs.h>
+#include <fs/fs.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <stddef.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 static DEVFS_DeviceOps partition_ops = {.read = Partition_DevfsRead,
                                         .write = Partition_DevfsWrite};

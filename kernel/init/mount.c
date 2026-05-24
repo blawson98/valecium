@@ -14,14 +14,14 @@
  *   4. Panic if no root partition can be mounted.
  */
 
+#include <fs/fs.h>
 #include <std/stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
-#include <valecium/system.h>
-#include <valecium/valecium.h>
+#include <sys/system.h>
+#include <sys/valecium.h>
 
 /* -------------------------------------------------------------------------
  * Public interface

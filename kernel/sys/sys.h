@@ -2,12 +2,12 @@
 
 #ifndef SYS_H
 #define SYS_H
+#include <fs/fs.h>
 #include <hal/irq.h>
 #include <mem/mm_kernel.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <valecium/fs.h>
-#include <valecium/system.h>
+#include <sys/system.h>
 extern __attribute__((cdecl)) void get_arch(uint8_t *arch);
 extern __attribute__((cdecl)) void get_cpu_count(uint32_t *cpu_count);
 extern __attribute__((cdecl)) void get_cpu_brand(char *brand);

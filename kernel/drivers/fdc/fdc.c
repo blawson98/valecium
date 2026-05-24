@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/sys.h>
-#include <valecium/system.h>
+#include <sys/system.h>
 
 static DEVFS_DeviceOps disk_ops = {.read = DISK_DevfsRead,
                                    .write = DISK_DevfsWrite};

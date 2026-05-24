@@ -5,9 +5,9 @@
 #ifndef KMOD_H
 #define KMOD_H
 
+#include <fs/fs.h>
 #include <mem/mm_kernel.h>
 #include <stdint.h>
-#include <valecium/fs.h>
 
 // Maximum dependencies per library
 #define KMOD_MAX_DEPS 16

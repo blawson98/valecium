@@ -52,8 +52,8 @@ Env.Append(
         "-Wl,--as-needed",
         "-Wl,--export-dynamic",
     ],
-    CPATH=[SourcePath, "#include"],
-    CPPPATH=[SourcePath, "#include"],
+    CPATH=[SourcePath],
+    CPPPATH=[SourcePath],
     ASFLAGS=[
         "-I",
         ArchitecturePath,

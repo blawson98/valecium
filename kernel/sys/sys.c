@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include <valecium/valecium.h>
+#include <sys/valecium.h>
 
 #include "sys.h"
 #include <std/stdio.h>

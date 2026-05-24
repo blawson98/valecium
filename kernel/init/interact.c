@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <drivers/tty/tty.h>
+#include <fs/fs.h>
 #include <hal/io.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <std/string.h>
-#include <valecium/fs.h>
 
 void interact(void)
 {

@@ -5,12 +5,12 @@
 #include <drivers/fdc/fdc.h>
 #include <fs/devfs/devfs.h>
 #include <fs/fat/fat.h>
+#include <fs/fs.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <std/string.h>
 #include <sys/cmdline.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 /* =========================================================================
  * Public disk subsystem interface

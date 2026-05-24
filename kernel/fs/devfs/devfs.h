@@ -9,9 +9,9 @@ this file, so for external modules, include fs/fs.h instead.
 #define DEVFS_H
 
 #include <fs/disk/disk.h>
+#include <fs/fs.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <valecium/fs.h>
 
 // The reserved volume for DEVFS
 #define DEVFS_VOLUME 30

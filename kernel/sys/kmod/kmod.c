@@ -8,6 +8,7 @@
  */
 
 #include "kmod.h"
+#include <fs/fs.h>
 #include <hal/mem.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
@@ -15,7 +16,6 @@
 #include <stdint.h>
 #include <sys/elf.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 // ELF32 relocation types (i686)
 #define R_386_NONE 0

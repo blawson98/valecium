@@ -2,12 +2,12 @@
 
 #include <fs/devfs/devfs.h>
 #include <fs/fat/fat.h>
+#include <fs/fs.h>
 #include <fs/vfs/vfs.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <stdint.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 /**
  * Initialize the devfs filesystem on reserved volume slot

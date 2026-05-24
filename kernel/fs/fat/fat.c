@@ -4,6 +4,7 @@
 #include <crypto/crypto.h>
 #include <drivers/ata/ata.h>
 #include <drivers/fdc/fdc.h>
+#include <fs/fs.h>
 #include <fs/vfs/vfs.h>
 #include <mem/mm_kernel.h>
 #include <std/ctype.h>
@@ -12,7 +13,6 @@
 #include <std/string.h>
 #include <stddef.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 #define SECTOR_SIZE 512
 #define MAX_PATH_SIZE 256

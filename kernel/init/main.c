@@ -8,6 +8,7 @@
 #include <drivers/tty/tty.h>
 #include <fs/devfs/devfs.h>
 #include <fs/fd/fd.h>
+#include <fs/fs.h>
 #include <hal/hal.h>
 #include <hal/io.h>
 #include <hal/irq.h>
@@ -21,8 +22,7 @@
 #include <sys/elf.h>
 #include <sys/kmod/kmod.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
-#include <valecium/system.h>
+#include <sys/system.h>
 
 extern int Init_MountRoot(void);
 extern void interact();
@@ -126,6 +126,7 @@ end:
 
 static void __attribute__((unused, noreturn)) fallback(void)
 {
+   interact();
    hold(-1);
 
    for (;;)

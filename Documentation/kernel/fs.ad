@@ -56,7 +56,7 @@ This directory provides the filesystem and file-descriptor pipeline.
 
 == Key Headers
 
-* `include/valecium/fs.h` — Public filesystem API
+* `include/fs/fs.h` — Public filesystem API
 * `kernel/fs/vfs/vfs.h` — VFS internal interface
 * `kernel/fs/devfs/devfs.h` — Device filesystem API
 * `kernel/fs/fd/fd.h` — File descriptor API

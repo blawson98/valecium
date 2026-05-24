@@ -4,13 +4,13 @@
 
 #include <fs/devfs/devfs.h>
 #include <fs/fat/fat.h>
+#include <fs/fs.h>
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <std/string.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/sys.h>
-#include <valecium/fs.h>
 
 /* Get VFS operations for a filesystem type */
 static const VFS_Operations *get_fs_operations(FilesystemType type)

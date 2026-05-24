@@ -17,7 +17,7 @@
 
 #include "parser.h"
 #include <stdint.h>
-#include <valecium/system.h>
+#include <sys/system.h>
 
 /* -------------------------------------------------------------------------
  * Forward declaration: the kernel entry point defined in main.c.
