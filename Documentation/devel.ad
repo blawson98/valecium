@@ -381,6 +381,51 @@ static inline FAT_Instance *fat_inst(const Partition *disk)
 }
 ----
 
+==== File Layout
+Source files should follow this top-down order:
+
+1.  License and includes (`#include`)
+2.  Forward declarations — struct tags and `static` function prototypes
+3.  Macros — all `#define` constants (keep names to at most 3 underscore-separated words)
+4.  Structures — full struct definitions (PascalCase with subsystem prefix, e.g. `FS_File`)
+5.  Global / static variables — including `extern` declarations for external functions
+6.  Private functions — `static` helpers, called by the public API
+7.  Public functions — the API entry points
+
+[source,c]
+----
+// 1. License & includes
+// SPDX-License-Identifier: GPL-3.0-only
+#include <stdint.h>
+
+// 2. Forward declarations
+struct FS_File;
+static int resolve_path(const char *path, uint32_t *out_lba);
+
+// 3. Macros (≤3 words)
+#define MAX_OPEN_FILES 8
+
+// 4. Structures
+struct FS_File { int used; uint64_t start_lba; uint32_t size; uint32_t position; };
+
+// 5. Global / static variables
+static uint32_t s_BootDrive = 0;
+extern int DISK_ReadLBA(uint8_t drive, uint64_t lba, uint16_t count, void *buf);
+
+// 6. Private functions
+static int resolve_path(const char *path, uint32_t *out_lba) { /* ... */ }
+
+// 7. Public functions
+int FS_Open(const char *path) { /* ... */ }
+----
+
+===== Naming Conventions
+
+* Struct types: PascalCase prefixed by the subsystem, e.g. `FS_File`, `FS_Operations`, `MBR_PartitionEntry`.
+* Functions: PascalCase with subsystem prefix, e.g. `FS_Initialize`, `DISK_ReadLBA`.
+* Macros: UPPER_SNAKE_CASE, at most 3 words, e.g. `SECTOR_SIZE_ISO`, `MAX_OPEN_FILES`.
+* Static globals: `s_CamelCase`, e.g. `s_BootDrive`, `s_RootDirLBA`.
+
 === Architecture-Specific Code
 
 Architecture-specific implementations reside in `kernel/arch/<arch>/` directories.
