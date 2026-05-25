@@ -1,14 +1,12 @@
-# 1. Global Settings (Top of file)
 target-version = "py312"
 line-length = 88
-indent-width = 4  # Set it here globally
+indent-width = 4
 
 [lint]
 select = ["E9", "F63", "F7", "F82"]
 ignore = ["ALL"]
 
 [format]
-# DO NOT put indent-width here if it's already at the top
 indent-style = "space"
 quote-style = "double"
 skip-magic-trailing-comma = false
