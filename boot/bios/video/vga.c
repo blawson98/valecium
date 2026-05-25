@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include "font.h"
-#include "video.h"
-
 #include <stddef.h>
 #include <stdint.h>
 
-/* ------------------------------------------------------------------ */
-/* VGA Mode 0x13 constants                                            */
-/* ------------------------------------------------------------------ */
+#include "font.h"
+#include "video.h"
 
+static inline void seq_w(uint8_t idx, uint8_t val);
+static inline void crtc_w(uint8_t idx, uint8_t val);
+static inline void gc_w(uint8_t idx, uint8_t val);
+static void set_mode_0x13(void);
+static inline void put_pixel(int x, int y, uint8_t colour);
+static void draw_glyph(uint8_t c, int x, int y, uint8_t fg);
+static void clear_screen(uint8_t colour);
+
+/* VGA Mode 0x13 constants */
 #define VGA_FB ((volatile uint8_t *)0xA0000)
 
 #define VGA_WIDTH 320
@@ -30,23 +35,11 @@
 #define VGA_AC_IDX 0x3C0
 #define VGA_INSTAT_1 0x3DA
 
-/* ------------------------------------------------------------------ */
-/* Shadow framebuffer                                                 */
-/* ------------------------------------------------------------------ */
-
 static uint8_t s_Shadow[VGA_WIDTH * VGA_HEIGHT];
-
-/* ------------------------------------------------------------------ */
-/* Internal state                                                     */
-/* ------------------------------------------------------------------ */
 
 static int s_Initialized = 0;
 static int s_CursorX = 0;
 static int s_CursorY = 0;
-
-/* ------------------------------------------------------------------ */
-/* VGA register helpers                                               */
-/* ------------------------------------------------------------------ */
 
 static inline void seq_w(uint8_t idx, uint8_t val)
 {
@@ -66,10 +59,7 @@ static inline void gc_w(uint8_t idx, uint8_t val)
    outb(VGA_GC_DATA, val);
 }
 
-/* ------------------------------------------------------------------ */
-/* Proper VGA Mode 13h setup                                          */
-/* ------------------------------------------------------------------ */
-
+/* Proper VGA Mode 13h setup */
 static void set_mode_0x13(void)
 {
    static const uint8_t misc = 0x63;
@@ -118,10 +108,7 @@ static void set_mode_0x13(void)
    outb(VGA_AC_IDX, 0x20);
 }
 
-/* ------------------------------------------------------------------ */
-/* Pixel operations                                                   */
-/* ------------------------------------------------------------------ */
-
+/* Pixel operations */
 static inline void put_pixel(int x, int y, uint8_t colour)
 {
    if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) return;
@@ -132,10 +119,7 @@ static inline void put_pixel(int x, int y, uint8_t colour)
    VGA_FB[idx] = colour;
 }
 
-/* ------------------------------------------------------------------ */
-/* Glyph drawing                                                      */
-/* ------------------------------------------------------------------ */
-
+/* Glyph drawing */
 static void draw_glyph(uint8_t c, int x, int y, uint8_t fg)
 {
    if (c < FONT_FIRST || c > FONT_LAST) c = '?';
@@ -153,10 +137,7 @@ static void draw_glyph(uint8_t c, int x, int y, uint8_t fg)
    }
 }
 
-/* ------------------------------------------------------------------ */
-/* Clear screen                                                       */
-/* ------------------------------------------------------------------ */
-
+/* Clear screen */
 static void clear_screen(uint8_t colour)
 {
    uint32_t val = (uint32_t)colour * 0x01010101u;
@@ -169,10 +150,6 @@ static void clear_screen(uint8_t colour)
     * one to each VGA plane, ensuring the full 64KB is covered. */
    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT / 4; i++) fb32[i] = val;
 }
-
-/* ------------------------------------------------------------------ */
-/* Public API                                                         */
-/* ------------------------------------------------------------------ */
 
 int VGA_Initialize(void)
 {

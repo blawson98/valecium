@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#include <stddef.h>
+
 #include "font.h"
 #include "video.h"
-#include <stddef.h>
+
+static inline uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b);
+static inline void put_pixel(int x, int y, uint32_t pixel);
+static void clear_screen(uint32_t pixel);
+static void draw_glyph(uint8_t c, int x, int y, uint32_t fg);
 
 static int s_Initialized = 0;
 static int s_HasInfo = 0;
@@ -10,15 +16,6 @@ static int s_CursorX = 0;
 static int s_CursorY = 0;
 static int s_TextScale = 2;
 static VBE_Info s_Info;
-
-void VBE_SetInfo(const VBE_Info *info)
-{
-   if (!info) return;
-   s_Info = *info;
-   s_HasInfo = 1;
-}
-
-int VBE_HasInfo(void) { return s_HasInfo; }
 
 static inline uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -109,6 +106,15 @@ static void draw_glyph(uint8_t c, int x, int y, uint32_t fg)
       }
    }
 }
+
+void VBE_SetInfo(const VBE_Info *info)
+{
+   if (!info) return;
+   s_Info = *info;
+   s_HasInfo = 1;
+}
+
+int VBE_HasInfo(void) { return s_HasInfo; }
 
 int VBE_Initialize(void)
 {

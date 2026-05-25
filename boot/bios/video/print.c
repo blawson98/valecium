@@ -1,31 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include "video.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-void putc(char c)
-{
-   switch (preferredOutput)
-   {
-   case OUTPUT_VBE:
-      VBE_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-      break;
-   case OUTPUT_VGA:
-      VGA_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-      break;
-   case OUTPUT_VGATEXT:
-      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-      break;
-   case OUTPUT_SERIAL:
-      Serial_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-      break;
-   default:
-      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
-      break;
-   }
-}
+#include "video.h"
+
+void putc(char c);
+static void put_reverse(const char *buf, int len);
+static void put_unsigned(unsigned long long val, unsigned radix,
+                         const char *digits, int min_width, bool zero_pad);
+static void put_signed(long long val, unsigned radix, const char *digits,
+                       int min_width, bool zero_pad);
 
 static const char g_HexLower[] = "0123456789abcdef";
 static const char g_HexUpper[] = "0123456789ABCDEF";
@@ -67,6 +53,28 @@ static void put_signed(long long val, unsigned radix, const char *digits,
    else
    {
       put_unsigned((unsigned long long)val, radix, digits, min_width, zero_pad);
+   }
+}
+
+void putc(char c)
+{
+   switch (preferredOutput)
+   {
+   case OUTPUT_VBE:
+      VBE_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_VGA:
+      VGA_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_VGATEXT:
+      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   case OUTPUT_SERIAL:
+      Serial_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
+   default:
+      VGATEXT_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
+      break;
    }
 }
 

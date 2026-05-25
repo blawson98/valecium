@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#define MBR_PARTITION_COUNT 4
+#define MBR_SIGNATURE 0xAA55
 
 /* MBR partition entry (16 bytes) */
 typedef struct
@@ -14,9 +18,6 @@ typedef struct
    uint32_t sector_count; /* number of sectors in partition       */
 } __attribute__((packed)) MBR_PartitionEntry;
 
-#define MBR_PARTITION_COUNT 4
-#define MBR_SIGNATURE 0xAA55
-
 extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
                      uint8_t head, uint8_t count, void *buffer);
 
@@ -24,7 +25,7 @@ bool MBR_Probe(int driveId)
 {
    uint8_t sector[512];
 
-   /* Read the first sector (CHS 0:0:1) — the MBR */
+   /* Read the first sector (CHS 0:0:1) - the MBR */
    if (DISK_Read((uint8_t)driveId, 0, 1, 0, 1, sector) != 0) return false;
 
    /* Check for the 0xAA55 boot signature at offset 510 */

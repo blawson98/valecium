@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+static bool gpt_signature_valid(const uint8_t *sector);
+static bool gpt_guid_is_zero(const uint8_t *guid);
+static bool gpt_lba_to_chs(uint64_t lba, uint16_t *cylinder, uint8_t *head,
+                           uint8_t *sector);
 
 #define GPT_SECTOR_SIZE 512
 #define GPT_SIGNATURE_SIZE 8
@@ -11,9 +17,6 @@
 #define GPT_MAX_ENTRY_SECTORS                                                  \
    ((GPT_MAX_ENTRIES * GPT_ENTRY_SIZE + GPT_SECTOR_SIZE - 1) / GPT_SECTOR_SIZE)
 #define GPT_MAX_OFFSET 0x7FFFFFFF
-
-extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
-                     uint8_t head, uint8_t count, void *buffer);
 
 typedef struct
 {
@@ -42,6 +45,9 @@ typedef struct
    uint64_t attributes;
    uint16_t name[36];
 } __attribute__((packed)) GPT_PartitionEntry;
+
+extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
+                     uint8_t head, uint8_t count, void *buffer);
 
 static bool gpt_signature_valid(const uint8_t *sector)
 {

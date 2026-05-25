@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// #include <"video/logo_gen.h">
+#include <stdint.h>
+
 #include "video/video.h"
 #include <constants.h>
-#include <stdint.h>
+// #include <"video/logo_gen.h">
+
+struct fs_operations;
+struct mbi_tag_framebuffer;
+typedef struct BootParams BootParams;
+
+static void init_framebuffer_info(uint8_t *ptr);
+static void print_bios_drive_list(const uint8_t *driveList,
+                                  uint32_t driveCount);
+static void print_stage3_fs_location(const BootParams *bootParams);
 
 /* Multiboot2 tag types */
 #define MBI_TAG_END 0
 #define MBI_TAG_MMAP 6
 #define MBI_TAG_FRAMEBUFFER 8
-
-int g_PrimaryOutputSystem = 0;
-int preferredOutput = OUTPUT_VGATEXT;
-const char *stage3Path = "/boot/libTheBootloader-" OS_VERSION ".a";
 
 struct fs_operations
 {
@@ -42,7 +48,7 @@ struct mbi_tag_framebuffer
    uint8_t rgb_reserved[2];
 };
 
-typedef struct
+struct BootParams
 {
    uint32_t mbiAddr;
    uint32_t corefsAddr;
@@ -52,7 +58,11 @@ typedef struct
    uint32_t biosDriveListCount;
    uint32_t corefsPartitionUuidAddr;
    uint32_t corefsPartitionLabelAddr;
-} BootParams;
+};
+
+int g_PrimaryOutputSystem = 0;
+int preferredOutput = OUTPUT_VGATEXT;
+const char *stage3Path = "/boot/libTheBootloader-" OS_VERSION ".a";
 
 static void init_framebuffer_info(uint8_t *ptr)
 {
@@ -90,6 +100,46 @@ static void init_framebuffer_info(uint8_t *ptr)
       ptr += size;
       ptr = (uint8_t *)(((uintptr_t)ptr + 7) & ~(uintptr_t)7);
    }
+}
+
+static void print_bios_drive_list(const uint8_t *driveList, uint32_t driveCount)
+{
+   uint32_t i;
+
+   puts("Detected BIOS drives:\n");
+
+   if (!driveList || driveCount == 0)
+   {
+      puts("  (none)\n\n");
+      return;
+   }
+
+   for (i = 0; i < driveCount; i++)
+   {
+      puts("  0x");
+      putx(driveList[i]);
+      putc('\n');
+   }
+
+   putc('\n');
+}
+
+static void print_stage3_fs_location(const BootParams *bootParams)
+{
+   puts("Partition label: \"");
+   puts((const char *)(uintptr_t)bootParams->corefsPartitionLabelAddr);
+   puts("\".\n");
+
+   puts("Partition UUID: ");
+   {
+      const uint8_t *uuid =
+          (const uint8_t *)bootParams->corefsPartitionUuidAddr;
+      for (int i = 0; i < 16; i++)
+      {
+         putx(uuid[i]);
+      }
+   }
+   puts(".\n\n");
 }
 
 void print_memory_map(uint8_t *ptr)
@@ -177,50 +227,10 @@ void print_boot_drive_number(int bootDrive)
    puts(".\n\n");
 }
 
-static void print_bios_drive_list(const uint8_t *driveList, uint32_t driveCount)
-{
-   uint32_t i;
-
-   puts("Detected BIOS drives:\n");
-
-   if (!driveList || driveCount == 0)
-   {
-      puts("  (none)\n\n");
-      return;
-   }
-
-   for (i = 0; i < driveCount; i++)
-   {
-      puts("  0x");
-      putx(driveList[i]);
-      putc('\n');
-   }
-
-   putc('\n');
-}
-
 void print_corefs_memory_address(uint32_t address)
 {
    puts("Corefs Module location: ");
    putx(address);
-   puts(".\n\n");
-}
-
-static void print_stage3_fs_location(const BootParams *bootParams)
-{
-   puts("Partition label: \"");
-   puts((const char *)(uintptr_t)bootParams->corefsPartitionLabelAddr);
-   puts("\".\n");
-
-   puts("Partition UUID: ");
-   {
-      const uint8_t *uuid =
-          (const uint8_t *)bootParams->corefsPartitionUuidAddr;
-      for (int i = 0; i < 16; i++)
-      {
-         putx(uuid[i]);
-      }
-   }
    puts(".\n\n");
 }
 
@@ -233,8 +243,8 @@ int main(const BootParams *bootParams)
        (const uint8_t *)(uintptr_t)bootParams->biosDriveListAddr;
    uint32_t biosDriveListCount = bootParams->biosDriveListCount;
 
-   /* Determine preferred output — highest available wins.
-      Priority (ascending): serial → VGA text → VGA graphics → VBE. */
+   /* Determine preferred output - highest available wins.
+      Priority (ascending): serial - VGA text - VGA graphics - VBE. */
    init_framebuffer_info(ptr);
 
    preferredOutput = OUTPUT_SERIAL; /* fallback  */
@@ -246,7 +256,7 @@ int main(const BootParams *bootParams)
 
    /* Initialise ONLY the chosen output system.
       VGA/VBE switch the hardware to graphics mode, which destroys text-mode
-      output — so they must NOT be initialised unless they are the final pick.
+      output - so they must NOT be initialised unless they are the final pick.
     */
    switch (preferredOutput)
    {

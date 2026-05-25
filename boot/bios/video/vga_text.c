@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include "video.h"
 #include <stddef.h>
 
-/* ------------------------------------------------------------------ */
-/*  Internal state                                                     */
-/* ------------------------------------------------------------------ */
+#include "video.h"
+
+static void scroll(void);
 
 #define VGATEXT_BUFFER ((volatile char *)0xB8000)
 
@@ -14,10 +13,7 @@ static int s_CursorX = 0;
 static int s_CursorY = 0;
 static char s_Color = VGATEXT_DEFAULT_COLOR;
 
-/* ------------------------------------------------------------------ */
-/*  Scroll the buffer up by one line.                                  */
-/* ------------------------------------------------------------------ */
-
+/* Scroll the buffer up by one line. */
 static void scroll(void)
 {
    volatile char *buf = VGATEXT_BUFFER;
@@ -85,10 +81,10 @@ int VGATEXT_PutChar(char c, int x, int y, char color)
    /* Must be initialized */
    if (!s_Initialized) return -ENODEV;
 
-   /* Exactly one of x / y negative → invalid */
+   /* Exactly one of x / y negative -> invalid */
    if ((x < 0) != (y < 0)) return -EINVAL;
 
-   /* Both negative → write at cursor, then advance */
+   /* Both negative -> write at cursor, then advance */
    if (x < 0 && y < 0)
    {
       x = s_CursorX;

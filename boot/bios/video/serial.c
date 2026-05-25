@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-#include "video.h"
 #include <stddef.h>
 #include <stdint.h>
 
-/* ------------------------------------------------------------------ */
-/*  Serial port (COM1) I/O registers                                   */
-/* ------------------------------------------------------------------ */
+#include "video.h"
 
+/* Serial port (COM1) I/O registers */
 #define SERIAL_PORT 0x3F8
 #define SERIAL_DATA (SERIAL_PORT + 0) /* R/W: data register       */
 #define SERIAL_IER (SERIAL_PORT + 1)  /* W:   interrupt enable    */
@@ -19,15 +17,7 @@
 /* Line status register bits */
 #define LSR_THR_EMPTY (1 << 5) /* Transmitter hold reg empty */
 
-/* ------------------------------------------------------------------ */
-/*  Internal state                                                     */
-/* ------------------------------------------------------------------ */
-
 static int s_Initialized = 0;
-
-/* ------------------------------------------------------------------ */
-/*  Public API                                                         */
-/* ------------------------------------------------------------------ */
 
 int Serial_Initialize(void)
 {

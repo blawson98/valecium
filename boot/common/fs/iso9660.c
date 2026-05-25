@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-#include <constants.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-/* ------------------------------------------------------------------ */
-/*  Forward declarations                                               */
-/* ------------------------------------------------------------------ */
+#include <constants.h>
 
 struct FS_File;
 struct FS_Operations;
@@ -29,10 +26,6 @@ static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
 static int resolve_path(const char *path, uint32_t *out_lba,
                         uint32_t *out_size);
 
-/* ------------------------------------------------------------------ */
-/*  Macros                                                             */
-/* ------------------------------------------------------------------ */
-
 #define SECTOR_SIZE_ISO 2048
 #define SECTOR_SIZE_CHS 512
 
@@ -51,10 +44,6 @@ static int resolve_path(const char *path, uint32_t *out_lba,
 
 #define MAX_OPEN_FILES 8
 
-/* ------------------------------------------------------------------ */
-/*  Structures                                                         */
-/* ------------------------------------------------------------------ */
-
 struct FS_File
 {
    int used;
@@ -70,10 +59,6 @@ struct FS_Operations
    uint32_t FS_Read;
    uint32_t FS_Close;
 };
-
-/* ------------------------------------------------------------------ */
-/*  Global / static variables                                          */
-/* ------------------------------------------------------------------ */
 
 static uint32_t s_BootDrive = 0;
 static uint32_t s_PartStart = 0;
@@ -91,10 +76,6 @@ extern bool MBR_Probe(int driveId);
 extern int MBR_List(int driveId, int **offset);
 extern bool GPT_Probe(int driveId);
 extern int GPT_List(int driveId, int **offset);
-
-/* ------------------------------------------------------------------ */
-/*  Private functions                                                  */
-/* ------------------------------------------------------------------ */
 
 static inline int mem_eq(const void *a, const void *b, int len)
 {
@@ -335,10 +316,6 @@ static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
    return 0;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Public API                                                         */
-/* ------------------------------------------------------------------ */
-
 int FS_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
                   const uint8_t *partitionUuid, const uint8_t *partitionLabel)
 {
@@ -482,10 +459,6 @@ int FS_Close(int fd)
    s_OpenFiles[fd].used = 0;
    return SUCCESS;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Exported operations table (COREFS builds only)                     */
-/* ------------------------------------------------------------------ */
 
 #ifdef COREFS
 
