@@ -11,6 +11,8 @@ Sources += [
     File("fat.c"),
     File("ext2.c"),
     File("iso9660.c"),
+    File("mbr.c"),
+    File("gpt.c"),
 ]
 CoreFsSources += [
     File("fat.c"),
