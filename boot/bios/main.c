@@ -12,6 +12,7 @@
 
 int g_PrimaryOutputSystem = 0;
 int preferredOutput = OUTPUT_VGATEXT;
+const char *stage3Path = "/boot/libTheBootloader-" OS_VERSION ".a";
 
 struct fs_operations
 {
