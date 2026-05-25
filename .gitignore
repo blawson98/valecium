@@ -66,3 +66,4 @@ core
 cscope.*
 tags
 test.*
+.ruff_cache/
