@@ -290,7 +290,6 @@ int main(const BootParams *bootParams)
    print_corefs_memory_address(bootParams->corefsAddr);
    print_stage3_fs_location(bootParams);
 
-   /* Call the corefs driver's initialization */
    {
       puts("Entering filesystem setup.\n");
       struct fs_operations *fs_ops =
@@ -322,8 +321,61 @@ int main(const BootParams *bootParams)
          fs_open_fn FS_Open = (fs_open_fn)fs_ops->FS_Open;
          fs_read_fn FS_Read = (fs_read_fn)fs_ops->FS_Read;
          fs_close_fn FS_Close = (fs_close_fn)fs_ops->FS_Close;
+
+         {
+            int fd = FS_Open("/test/test.txt");
+            if (fd < 0)
+            {
+               puts("  Failed to open /test/test.txt: ");
+               puti(fd);
+               puts(".\n");
+            }
+            else
+            {
+               puts("  Opened /test/test.txt. Contents:\n\n");
+               for (;;)
+               {
+                  char chunk[64];
+                  int bytes = FS_Read(fd, chunk, sizeof(chunk));
+                  if (bytes <= 0)
+                     break;
+                  for (int ci = 0; ci < bytes; ci++)
+                     putc(chunk[ci]);
+               }
+               FS_Close(fd);
+               puts("\n\n  --- End of /test/test.txt ---\n");
+            }
+         }
+
+         {
+            int fd = FS_Open("/test/a-very-long-filename-example.txt");
+            if (fd < 0)
+            {
+               puts("  LFN test FAILED - could not open: ");
+               puti(fd);
+               puts(".\n");
+            }
+            else
+            {
+               puts("  LFN test OK - opened long filename.\n\n");
+               for (;;)
+               {
+                  char chunk[64];
+                  int bytes = FS_Read(fd, chunk, sizeof(chunk));
+                  if (bytes <= 0)
+                     break;
+                  for (int ci = 0; ci < bytes; ci++)
+                     putc(chunk[ci]);
+               }
+               FS_Close(fd);
+               puts("\n  --- LFN test complete ---\n");
+            }
+         }
       }
    }
+
+   for (;;)
+      ;
 
    return 0;
 }

@@ -1,0 +1,8 @@
+LFN (Long File Name) test successful!
+
+This file was opened using a long filename (>8.3 characters).
+The FAT driver correctly resolved the VFAT LFN entries to find this file.
+
+If you can read this, VFAT LFN support is working correctly!
+
+Test: PASSED
