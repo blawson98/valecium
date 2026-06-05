@@ -16,7 +16,8 @@
  * Stage2 is located exactly 1 sector (512 bytes) after Stage1.
  * 0x7C00 + 512 = 0x7E00
  */
-.equ STAGE2_LOAD,  0x7E00
+.equ STAGE2_LOAD,     0x7E00
+.equ STAGE2_SEGMENT,  STAGE2_LOAD / 16
 
 _start:
     jmp _start_real
@@ -61,6 +62,7 @@ disk_boot_path:
     movl    %eax, temp_lba
 
     /* Check for BIOS INT 13h Extensions support */
+    xorw    %dx, %dx
     movb    boot_drive, %dl
     movw    $0x55aa, %bx
     movb    $0x41, %ah
@@ -74,18 +76,18 @@ disk_boot_path:
     testw   %ax, %ax
     jz      boot_fail_code_5    /* Err 5: Sector count is 0 */
     movw    %ax, stage2_sectors_left
-    movw    $STAGE2_LOAD, stage2_offset
+    movw    $STAGE2_SEGMENT, stage2_segment
 
 load_stage2_loop:
     cmpw    $0, stage2_sectors_left
     je      stage2_jump
 
-    movw    stage2_offset, %bx
+    movw    stage2_segment, %bx
     movw    $1, %cx             /* Read safely, 1 sector at a time */
     call    bios_ext_read
     jc      boot_fail_code_6    /* Err 6: INT 13h read failed */
 
-    addw    $512, stage2_offset
+    addw    $0x20, stage2_segment   /* Advance by 512 bytes (32 paragraphs) */
     incl    temp_lba
     decw    stage2_sectors_left
     jmp     load_stage2_loop
@@ -133,13 +135,14 @@ print_string:
 
 bios_ext_read:
     movw %cx, dap_num_sectors
-    movw %bx, dap_buffer_offset
-    movw $0, dap_buffer_segment
+    movw $0x0000, dap_buffer_offset       /* Always 0 — use segment for addressing */
+    movw %bx, dap_buffer_segment          /* Current 64 KiB-aligned segment */
     movl temp_lba, %eax
     movl %eax, dap_lba_low
     movl $0, dap_lba_high
     movw $dap, %si
     movb $0x42, %ah
+    xorw %dx, %dx
     movb boot_drive, %dl
     int $0x13
     ret
@@ -151,7 +154,7 @@ stage2_patch_signature: .ascii "VLSP"
 stage2_start_lba:   .long 0
 stage2_sector_count: .word 0
 temp_lba:           .long 0
-stage2_offset:      .word 0
+stage2_segment:     .word 0
 stage2_sectors_left: .word 0
 boot_fail_msg:      .asciz "Err"
 

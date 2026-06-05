@@ -147,6 +147,42 @@ def write_at(path, offset, data):
         os.fsync(handle.fileno())
 
 
+def _resolve_link_source(link_path, staging_root):
+    """Resolve a symlink target relative to the staging root.
+
+    If the symlink target starts with ``/``, the ``/`` is treated as the
+    staging root directory.  Relative targets are resolved from the
+    symlink's parent directory.  The caller is responsible for checking
+    that the returned path exists.
+    """
+    target = os.readlink(link_path)
+    if target.startswith("/"):
+        resolved = os.path.normpath(os.path.join(staging_root, target.lstrip("/")))
+    else:
+        resolved = os.path.normpath(
+            os.path.join(os.path.dirname(link_path), target)
+        )
+    return resolved
+
+
+def _copy_link(link_path, staging_root, dst_path):
+    """Copy the content that *link_path* points to to *dst_path*.
+
+    Symlinks cannot be created on the target filesystem (e.g. vfat), so
+    the actual file or directory tree is copied instead.
+    """
+    resolved = _resolve_link_source(link_path, staging_root)
+    if not os.path.lexists(resolved):
+        raise DiskBuildError(
+            f"Symlink target does not exist: {link_path} -> {resolved}"
+        )
+    if os.path.isdir(resolved):
+        os.makedirs(dst_path, exist_ok=True)
+        copy_tree_contents(resolved, dst_path)
+    else:
+        shutil.copy2(resolved, dst_path, follow_symlinks=False)
+
+
 def copy_tree_contents(src, dst):
     for root, dirs, files in os.walk(src):
         rel = os.path.relpath(root, src)
@@ -159,7 +195,7 @@ def copy_tree_contents(src, dst):
             if os.path.islink(src_path):
                 if os.path.lexists(dst_path):
                     os.remove(dst_path)
-                os.symlink(os.readlink(src_path), dst_path)
+                _copy_link(src_path, src, dst_path)
             else:
                 os.makedirs(dst_path, exist_ok=True)
                 shutil.copystat(src_path, dst_path, follow_symlinks=False)
@@ -169,7 +205,7 @@ def copy_tree_contents(src, dst):
             if os.path.islink(src_path):
                 if os.path.lexists(dst_path):
                     os.remove(dst_path)
-                os.symlink(os.readlink(src_path), dst_path)
+                _copy_link(src_path, src, dst_path)
             else:
                 shutil.copy2(src_path, dst_path, follow_symlinks=False)
 
