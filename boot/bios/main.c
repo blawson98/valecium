@@ -337,10 +337,8 @@ int main(const BootParams *bootParams)
                {
                   char chunk[64];
                   int bytes = FS_Read(fd, chunk, sizeof(chunk));
-                  if (bytes <= 0)
-                     break;
-                  for (int ci = 0; ci < bytes; ci++)
-                     putc(chunk[ci]);
+                  if (bytes <= 0) break;
+                  for (int ci = 0; ci < bytes; ci++) putc(chunk[ci]);
                }
                FS_Close(fd);
                puts("\n\n  --- End of /test/test.txt ---\n");
@@ -362,10 +360,8 @@ int main(const BootParams *bootParams)
                {
                   char chunk[64];
                   int bytes = FS_Read(fd, chunk, sizeof(chunk));
-                  if (bytes <= 0)
-                     break;
-                  for (int ci = 0; ci < bytes; ci++)
-                     putc(chunk[ci]);
+                  if (bytes <= 0) break;
+                  for (int ci = 0; ci < bytes; ci++) putc(chunk[ci]);
                }
                FS_Close(fd);
                puts("\n  --- LFN test complete ---\n");
@@ -374,8 +370,7 @@ int main(const BootParams *bootParams)
       }
    }
 
-   for (;;)
-      ;
+   for (;;);
 
    return 0;
 }

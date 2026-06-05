@@ -159,9 +159,7 @@ def _resolve_link_source(link_path, staging_root):
     if target.startswith("/"):
         resolved = os.path.normpath(os.path.join(staging_root, target.lstrip("/")))
     else:
-        resolved = os.path.normpath(
-            os.path.join(os.path.dirname(link_path), target)
-        )
+        resolved = os.path.normpath(os.path.join(os.path.dirname(link_path), target))
     return resolved
 
 
