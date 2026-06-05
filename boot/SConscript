@@ -31,7 +31,10 @@ ProjectVersion = TargetEnvironment["ProjVersion"]
 ArchitecturePath = os.path.join(SourcePath, BootType, Architecture)
 
 ArchitectureConfig = GetArchConfig(Architecture)
-BootloaderBuildConfig = GetBootloaderBuildConfig(BootType, Architecture, ProjectVersion)
+BuildConfig = TargetEnvironment["BuildConfig"]
+BootloaderBuildConfig = GetBootloaderBuildConfig(
+    BootType, Architecture, ProjectVersion, BuildConfig
+)
 
 ConfigureBootloaderEnvironment(
     MainEnvironment,
@@ -96,9 +99,9 @@ else:
 # =============================================================================
 
 MainEnvironment.Append(OBJPREFIX="main_")
-Objects = MainEnvironment.Object(Sources)
+Objects = MainEnvironment.SharedObject(Sources)
 
-Bootloader = MainEnvironment.Library(BootloaderBuildConfig["OutputName"], Objects)
+Bootloader = MainEnvironment.SharedLibrary(BootloaderBuildConfig["OutputName"], Objects)
 TargetEnvironment["BootloaderComponents"]["Main"] = Bootloader
 
 Export("Bootloader")
