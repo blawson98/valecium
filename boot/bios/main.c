@@ -4,7 +4,6 @@
 
 #include "video/video.h"
 #include <constants.h>
-// #include <"video/logo_gen.h">
 
 struct fs_operations;
 struct mbi_tag_framebuffer;
