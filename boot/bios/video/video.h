@@ -64,10 +64,6 @@ uint32_t VBE_GetWidth(void);            /* Get current VBE width. */
 uint32_t VBE_GetHeight(void);           /* Get current VBE height. */
 void VBE_ClearScreen(uint32_t pixel);   /* Clears the current VBE screen */
 
-#ifndef CORE
-void LOGO_Draw(void); /* Draw boot logo (VBE only). */
-#endif                /* !CORE */
-
 int VGA_Initialize(void); /* Initialize VGA graphics. */
 int VGA_PutChar(char c, int x, int y, char color); /* Put VGA char. */
 int VGA_PutPixel(int pixel, int x, int y);         /* Put VGA pixel. */

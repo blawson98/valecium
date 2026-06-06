@@ -1,11 +1,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from SCons.Script import File
-
+import os
+import subprocess
+import sys
 
 Import("Sources")
+Import("SourcePath")
 Import("CoreFsSources")
+Import("CoreSources")
 Import("CoreFsSharedSources")
 
+VideoPath = os.path.join(SourcePath, "common", "video")
+
+MklogoPath = os.path.join(VideoPath, "mklogo.py")
+LogoGenH = os.path.join(VideoPath, "logo_gen.h")
+if os.path.exists(MklogoPath) and not os.path.exists(LogoGenH):
+    subprocess.run([sys.executable, MklogoPath, LogoGenH], check=True)
+
 SConscript("fs/SConscript", exports=["Sources", "CoreFsSources", "CoreFsSharedSources"])
-SConscript("dl/SConscript", exports=["CoreFsSources"])
+SConscript("dl/SConscript", exports=["CoreSources"])
+SConscript("video/SConscript", exports=["Sources"])
+

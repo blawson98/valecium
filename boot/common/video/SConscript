@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+from SCons.Script import Dir, File
+
+Import("Sources")
+
+Sources += [
+    File("logo.c"),
+]

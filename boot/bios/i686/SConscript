@@ -3,13 +3,8 @@
 from SCons.Script import File, Return
 
 
-Import("Sources")
 Import("CoreSources")
 
-
-Sources += [
-    File("i686.S"),
-]
 
 CoreSources += [
     File("i686.S"),

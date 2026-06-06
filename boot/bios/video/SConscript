@@ -1,24 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from SCons.Script import Dir, File
-import os
 
-Import("Sources")
 Import("CoreSources")
-
-SourcePath = Dir("#boot").abspath
-VideoPath = os.path.join(SourcePath, "bios", "video")
-GenfontC = os.path.join(VideoPath, "font_gen.c")
-
-Sources += [
-    File("font_gen.c"),
-    File("logo.c"),
-    File("serial.c"),
-    File("vbe.c"),
-    File("vga_text.c"),
-    File("vga.c"),
-    File("print.c"),
-]
 
 CoreSources += [
     File("font_gen.c"),

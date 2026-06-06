@@ -20,6 +20,7 @@ Import("Architecture")
 Import("Sources")
 Import("CoreFsSources")
 Import("CoreFsSharedSources")
+Import("CoreSources")
 
 
 LinkModeByArchitecture = {
@@ -38,25 +39,20 @@ FontGenC = os.path.join(VideoPath, "font_gen.c")
 if os.path.exists(MkfontPath) and not os.path.exists(FontGenC):
     subprocess.run([sys.executable, MkfontPath, FontGenC], check=True)
 
-MklogoPath = os.path.join(VideoPath, "mklogo.py")
-LogoGenH = os.path.join(VideoPath, "logo_gen.h")
-if os.path.exists(MklogoPath) and not os.path.exists(LogoGenH):
-    subprocess.run([sys.executable, MklogoPath, LogoGenH], check=True)
-
 # =============================================================================
 # BIOS Source Files
 # =============================================================================
 
-CoreSources = [
+CoreSources += [
     File("main.c"),
 ]
 
-SConscript("video/SConscript", exports=["Sources", "CoreSources"])
+SConscript("video/SConscript", exports=["CoreSources"])
 
 if Architecture == "i686":
-    ArchResult = SConscript("i686/SConscript", exports=["Sources", "CoreSources"])
+    ArchResult = SConscript("i686/SConscript", exports=["CoreSources"])
 elif Architecture == "x86_64":
-    ArchResult = SConscript("x86_64/SConscript", exports=["Sources", "CoreSources"])
+    ArchResult = SConscript("x86_64/SConscript", exports=["CoreSources"])
 else:
     raise RuntimeError(f"Unsupported BIOS architecture: {Architecture}")
 

@@ -2,9 +2,9 @@
 
 from SCons.Script import File
 
-Import("CoreFsSources")
+Import("CoreSources")
 
-CoreFsSources += [
+CoreSources += [
     File("dlopen.c"),
     File("dlsym.c"),
 ]
