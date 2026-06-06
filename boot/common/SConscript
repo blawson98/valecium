@@ -8,3 +8,4 @@ Import("CoreFsSources")
 Import("CoreFsSharedSources")
 
 SConscript("fs/SConscript", exports=["Sources", "CoreFsSources", "CoreFsSharedSources"])
+SConscript("dl/SConscript", exports=["CoreFsSources"])

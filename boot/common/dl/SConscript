@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+from SCons.Script import File
+
+Import("CoreFsSources")
+
+CoreFsSources += [
+    File("dlopen.c"),
+    File("dlsym.c"),
+]
