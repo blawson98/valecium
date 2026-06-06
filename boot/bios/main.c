@@ -326,13 +326,13 @@ int main(const BootParams *bootParams)
             int fd = FS_Open("/test/test.txt");
             if (fd < 0)
             {
-               puts("  Failed to open /test/test.txt: ");
+               puts("  open failed: ");
                puti(fd);
-               puts(".\n");
+               puts("\n");
             }
             else
             {
-               puts("  Opened /test/test.txt. Contents:\n\n");
+               puts("--- /test/test.txt ---\n");
                for (;;)
                {
                   char chunk[64];
@@ -341,30 +341,7 @@ int main(const BootParams *bootParams)
                   for (int ci = 0; ci < bytes; ci++) putc(chunk[ci]);
                }
                FS_Close(fd);
-               puts("\n\n  --- End of /test/test.txt ---\n");
-            }
-         }
-
-         {
-            int fd = FS_Open("/test/a-very-long-filename-example.txt");
-            if (fd < 0)
-            {
-               puts("  LFN test FAILED - could not open: ");
-               puti(fd);
-               puts(".\n");
-            }
-            else
-            {
-               puts("  LFN test OK - opened long filename.\n\n");
-               for (;;)
-               {
-                  char chunk[64];
-                  int bytes = FS_Read(fd, chunk, sizeof(chunk));
-                  if (bytes <= 0) break;
-                  for (int ci = 0; ci < bytes; ci++) putc(chunk[ci]);
-               }
-               FS_Close(fd);
-               puts("\n  --- LFN test complete ---\n");
+               puts("\n--- EOF ---\n");
             }
          }
       }
