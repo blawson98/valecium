@@ -3,7 +3,6 @@
 #include "logo_gen.h"
 #include "video.h"
 
-#ifndef CORE
 void LOGO_Draw(void)
 {
    uint32_t palette[VALECIUM_LOGO_PALETTE_SIZE];
@@ -67,4 +66,3 @@ void LOGO_Draw(void)
       }
    }
 }
-#endif /* !CORE */
