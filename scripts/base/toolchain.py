@@ -30,13 +30,13 @@ from scripts.scons.arch import GetArchConfig, GetSupportedArchitectures
 # Version Configuration
 # =============================================================================
 
-VERSIONS = {
+Versions = {
     "binutils": "2.45",
     "gcc": "15.2.0",
     "musl": "1.2.6",
 }
 
-URLS = {
+Urls = {
     "binutils": "https://ftp.gnu.org/gnu/binutils/binutils-{version}.tar.xz",
     "gcc": "https://ftp.gnu.org/gnu/gcc/gcc-{version}/gcc-{version}.tar.xz",
     "musl": "https://musl.libc.org/releases/musl-{version}.tar.gz",
@@ -48,48 +48,48 @@ URLS = {
 # =============================================================================
 
 
-def get_cpu_count() -> int:
+def GetCpuCount() -> int:
     """Get number of CPUs for parallel builds."""
     return multiprocessing.cpu_count()
 
 
-def detect_os() -> str:
+def DetectOs() -> str:
     """Detect host operating system."""
     return platform.system()
 
 
-def run_command(
-    cmd: list, env: dict = None, cwd: str = None, check: bool = True
+def RunCommand(
+    Cmd: list, Env: dict = None, Cwd: str = None, Check: bool = True
 ) -> subprocess.CompletedProcess:
     """Run a command with logging."""
-    print(f"  $ {' '.join(cmd)}")
-    merged_env = os.environ.copy()
-    if env:
-        merged_env.update(env)
+    print(f"  $ {' '.join(Cmd)}")
+    MergedEnv = os.environ.copy()
+    if Env:
+        MergedEnv.update(Env)
 
-    return subprocess.run(cmd, env=merged_env, cwd=cwd, check=check)
+    return subprocess.run(Cmd, env=MergedEnv, cwd=Cwd, check=Check)
 
 
-def download_file(url: str, dest: str):
+def DownloadFile(Url: str, Dest: str):
     """Download a file with progress indicator."""
-    print(f"Downloading: {url}")
+    print(f"Downloading: {Url}")
 
-    def progress_hook(block_num, block_size, total_size):
-        downloaded = block_num * block_size
-        if total_size > 0:
-            percent = min(100, downloaded * 100 // total_size)
-            bar = "=" * (percent // 2) + " " * (50 - percent // 2)
-            print(f"\r  [{bar}] {percent}%", end="", flush=True)
+    def ProgressHook(BlockNum, BlockSize, TotalSize):
+        Downloaded = BlockNum * BlockSize
+        if TotalSize > 0:
+            Percent = min(100, Downloaded * 100 // TotalSize)
+            Bar = "=" * (Percent // 2) + " " * (50 - Percent // 2)
+            print(f"\r  [{Bar}] {Percent}%", end="", flush=True)
 
-    urllib.request.urlretrieve(url, dest, progress_hook)
+    urllib.request.urlretrieve(Url, Dest, ProgressHook)
     print()  # Newline after progress
 
 
-def extract_archive(archive: str, dest_dir: str):
+def ExtractArchive(Archive: str, DestDir: str):
     """Extract a tar archive."""
-    print(f"Extracting: {archive}")
-    with tarfile.open(archive) as tar:
-        tar.extractall(dest_dir)
+    print(f"Extracting: {Archive}")
+    with tarfile.open(Archive) as Tar:
+        Tar.extractall(DestDir)
 
 
 # =============================================================================
@@ -109,7 +109,7 @@ class ToolchainBuilder:
         """
         self.prefix = Path(prefix).resolve()
         self.target = target
-        self.jobs = jobs or get_cpu_count()
+        self.jobs = jobs or GetCpuCount()
 
         # Derived paths
         self.bin_dir = self.prefix / "bin"
@@ -124,7 +124,7 @@ class ToolchainBuilder:
             "PATH": f"{self.bin_dir}:{os.environ.get('PATH', '')}",
         }
 
-    def setup_directories(self):
+    def SetupDirectories(self):
         """Create necessary directories."""
         self.prefix.mkdir(parents=True, exist_ok=True)
         self.srcpath.mkdir(exist_ok=True)
@@ -132,65 +132,65 @@ class ToolchainBuilder:
         self.sysroot.mkdir(parents=True, exist_ok=True)
         (self.sysroot / "usr").mkdir(exist_ok=True)
 
-    def download_sources(self):
+    def DownloadSources(self):
         """Download all source tarballs."""
-        for pkg, version in VERSIONS.items():
-            url = URLS[pkg].format(version=version)
-            filename = url.split("/")[-1]
-            dest = self.srcpath / filename
+        for Pkg, Version in VERSIONS.items():
+            Url = URLS[Pkg].format(version=Version)
+            FileName = Url.split("/")[-1]
+            Dest = self.srcpath / FileName
 
-            if dest.exists():
-                print(f"Already downloaded: {filename}")
+            if Dest.exists():
+                print(f"Already downloaded: {FileName}")
                 continue
 
-            download_file(url, str(dest))
+            DownloadFile(Url, str(Dest))
 
-    def extract_sources(self):
+    def ExtractSources(self):
         """Extract all source tarballs."""
-        for pkg, version in VERSIONS.items():
-            url = URLS[pkg].format(version=version)
-            filename = url.split("/")[-1]
-            archive = self.srcpath / filename
+        for Pkg, Version in VERSIONS.items():
+            Url = URLS[Pkg].format(version=Version)
+            FileName = Url.split("/")[-1]
+            Archive = self.srcpath / FileName
 
             # Determine extracted directory name
-            src_name = f"{pkg}-{version}"
+            SrcName = f"{Pkg}-{Version}"
 
-            src_path = self.srcpath / src_name
-            if src_path.exists():
-                print(f"Already extracted: {src_name}")
+            SrcPath = self.srcpath / SrcName
+            if SrcPath.exists():
+                print(f"Already extracted: {SrcName}")
                 continue
 
             try:
-                extract_archive(str(archive), str(self.srcpath))
-            except (EOFError, Exception) as e:
+                ExtractArchive(str(Archive), str(self.srcpath))
+            except (EOFError, Exception) as E:
                 # If extraction fails, remove the corrupted archive
-                print(f"Error extracting {filename}: {e}")
-                print(f"Removing corrupted archive: {archive}")
-                archive.unlink()
+                print(f"Error extracting {FileName}: {E}")
+                print(f"Removing corrupted archive: {Archive}")
+                Archive.unlink()
                 raise
 
     def _get_configure_opts(self, pkg: str) -> list:
         """Get platform-specific configure options."""
         return []
 
-    def build_binutils(self):
+    def BuildBinutils(self):
         """Build and install binutils."""
         print("\n" + "=" * 60)
         print("Building binutils")
         print("=" * 60)
 
-        version = VERSIONS["binutils"]
-        src_path = self.srcpath / f"binutils-{version}"
-        build_path = self.build_dir / f"binutils-{self.target}"
+        Version = Versions["binutils"]
+        SrcPath = self.srcpath / f"binutils-{Version}"
+        BuildPath = self.build_dir / f"binutils-{self.target}"
 
         if (self.bin_dir / f"{self.target}-as").exists():
             print("binutils already installed, skipping...")
             return
 
-        build_path.mkdir(exist_ok=True)
+        BuildPath.mkdir(exist_ok=True)
 
         # Clean environment for configure
-        clean_env = {
+        CleanEnv = {
             "CFLAGS": "",
             "ASMFLAGS": "",
             "CC": "",
@@ -201,39 +201,39 @@ class ToolchainBuilder:
             "LIBS": "",
         }
 
-        configure_opts = [
+        ConfigureOpts = [
             f"--prefix={self.prefix}",
             f"--target={self.target}",
             "--disable-nls",
             "--disable-werror",
         ] + self._get_configure_opts("binutils")
 
-        run_command(
-            [str(src_path / "configure")] + configure_opts,
-            env={**self.build_env, **clean_env},
-            cwd=str(build_path),
+        RunCommand(
+            [str(SrcPath / "configure")] + ConfigureOpts,
+            env={**self.build_env, **CleanEnv},
+            cwd=str(BuildPath),
         )
 
-        run_command(["make", f"-j{self.jobs}"], cwd=str(build_path))
-        run_command(["make", "install"], cwd=str(build_path))
+        RunCommand(["make", f"-j{self.jobs}"], cwd=str(BuildPath))
+        RunCommand(["make", "install"], cwd=str(BuildPath))
 
-    def build_gcc_stage1(self):
+    def BuildGccStage1(self):
         """Build GCC stage 1 (C only, no libc)."""
         print("\n" + "=" * 60)
         print("Building GCC Stage 1")
         print("=" * 60)
 
-        version = VERSIONS["gcc"]
-        src_path = self.srcpath / f"gcc-{version}"
-        build_path = self.build_dir / f"gcc-stage1-{self.target}"
+        Version = Versions["gcc"]
+        SrcPath = self.srcpath / f"gcc-{Version}"
+        BuildPath = self.build_dir / f"gcc-stage1-{self.target}"
 
         if (self.bin_dir / f"{self.target}-gcc").exists():
             print("GCC stage 1 already installed, skipping...")
             return
 
-        build_path.mkdir(exist_ok=True)
+        BuildPath.mkdir(exist_ok=True)
 
-        configure_opts = [
+        ConfigureOpts = [
             f"--prefix={self.prefix}",
             f"--target={self.target}",
             "--disable-nls",
@@ -247,46 +247,46 @@ class ToolchainBuilder:
             "--with-native-system-header-dir=/usr/include",
         ] + self._get_configure_opts("gcc")
 
-        run_command(
-            [str(src_path / "configure")] + configure_opts,
+        RunCommand(
+            [str(SrcPath / "configure")] + ConfigureOpts,
             env=self.build_env,
-            cwd=str(build_path),
+            cwd=str(BuildPath),
         )
 
-        run_command(
+        RunCommand(
             ["make", f"-j{self.jobs}", "all-gcc", "all-target-libgcc"],
-            cwd=str(build_path),
+            cwd=str(BuildPath),
         )
-        run_command(
+        RunCommand(
             ["make", "install-gcc", "install-target-libgcc"],
-            cwd=str(build_path),
+            cwd=str(BuildPath),
         )
 
-    def build_musl(self):
+    def BuildMusl(self):
         """Build and install musl into the toolchain sysroot."""
         print("\n" + "=" * 60)
         print("Building musl")
         print("=" * 60)
 
-        version = VERSIONS["musl"]
-        src_path = self.srcpath / f"musl-{version}"
-        build_path = self.build_dir / f"musl-{self.target}"
-        libc_archive = self.sysroot / "usr" / "lib" / "libc.so"
+        Version = Versions["musl"]
+        SrcPath = self.srcpath / f"musl-{Version}"
+        BuildPath = self.build_dir / f"musl-{self.target}"
+        LibcArchive = self.sysroot / "usr" / "lib" / "libc.so"
 
-        if libc_archive.exists():
+        if LibcArchive.exists():
             print("musl already installed in sysroot, skipping...")
             return
 
-        build_path.mkdir(exist_ok=True)
+        BuildPath.mkdir(exist_ok=True)
 
-        cross_env = {
+        CrossEnv = {
             **self.build_env,
             "CC": f"{self.target}-gcc",
             "AR": f"{self.target}-ar",
             "RANLIB": f"{self.target}-ranlib",
         }
 
-        configure_opts = [
+        ConfigureOpts = [
             "--prefix=/usr",
             "--syslibdir=/lib",
             f"--host={self.target}",
@@ -294,32 +294,32 @@ class ToolchainBuilder:
             "--enable-shared",
         ]
 
-        run_command(
-            [str(src_path / "configure")] + configure_opts,
-            env=cross_env,
-            cwd=str(build_path),
+        RunCommand(
+            [str(SrcPath / "configure")] + ConfigureOpts,
+            env=CrossEnv,
+            cwd=str(BuildPath),
         )
 
-        run_command(["make", f"-j{self.jobs}"], env=cross_env, cwd=str(build_path))
-        run_command(
+        RunCommand(["make", f"-j{self.jobs}"], env=CrossEnv, cwd=str(BuildPath))
+        RunCommand(
             ["make", "install", f"DESTDIR={self.sysroot}"],
-            env=cross_env,
-            cwd=str(build_path),
+            env=CrossEnv,
+            cwd=str(BuildPath),
         )
 
-    def build_gcc_stage2(self):
+    def BuildGccStage2(self):
         """Build GCC stage 2 against the populated sysroot."""
         print("\n" + "=" * 60)
         print("Building GCC Stage 2")
         print("=" * 60)
 
-        version = VERSIONS["gcc"]
-        src_path = self.srcpath / f"gcc-{version}"
-        build_path = self.build_dir / f"gcc-stage2-{self.target}"
+        Version = Versions["gcc"]
+        SrcPath = self.srcpath / f"gcc-{Version}"
+        BuildPath = self.build_dir / f"gcc-stage2-{self.target}"
 
-        build_path.mkdir(exist_ok=True)
+        BuildPath.mkdir(exist_ok=True)
 
-        configure_opts = [
+        ConfigureOpts = [
             f"--prefix={self.prefix}",
             f"--target={self.target}",
             "--disable-nls",
@@ -330,78 +330,78 @@ class ToolchainBuilder:
             "--with-native-system-header-dir=/usr/include",
         ] + self._get_configure_opts("gcc")
 
-        run_command(
-            [str(src_path / "configure")] + configure_opts,
+        RunCommand(
+            [str(SrcPath / "configure")] + ConfigureOpts,
             env=self.build_env,
-            cwd=str(build_path),
+            cwd=str(BuildPath),
         )
 
-        run_command(["make", f"-j{self.jobs}"], cwd=str(build_path))
-        run_command(["make", "install"], cwd=str(build_path))
+        RunCommand(["make", f"-j{self.jobs}"], cwd=str(BuildPath))
+        RunCommand(["make", "install"], cwd=str(BuildPath))
 
-    def get_runtime_sysroot(self) -> Path:
+    def GetRuntimeSysroot(self) -> Path:
         """Return the sysroot whose contents should be copied into image root."""
         return self.sysroot
 
-    def build_all(self):
+    def BuildAll(self):
         """Build the complete toolchain."""
         print(f"Building toolchain for {self.target}")
         print(f"  Prefix: {self.prefix}")
         print(f"  Jobs: {self.jobs}")
         print()
 
-        if self.is_installed():
+        if self.IsInstalled():
             print("Toolchain sysroot already installed, skipping bootstrap...")
             print(f"  Sysroot: {self.sysroot}")
             return
 
-        self.setup_directories()
-        self.download_sources()
-        self.extract_sources()
+        self.SetupDirectories()
+        self.DownloadSources()
+        self.ExtractSources()
 
-        self.build_binutils()
-        self.build_gcc_stage1()
-        self.build_musl()
-        self.build_gcc_stage2()
+        self.BuildBinutils()
+        self.BuildGccStage1()
+        self.BuildMusl()
+        self.BuildGccStage2()
 
         print("\n" + "=" * 60)
         print("Toolchain build complete!")
         print("=" * 60)
         print(f'\nAdd to PATH: export PATH="{self.bin_dir}:$PATH"')
-        print(f"Runtime sysroot: {self.get_runtime_sysroot()}")
+        print(f"Runtime sysroot: {self.GetRuntimeSysroot()}")
         print("Copy this sysroot content into image root during OS image assembly.")
 
         # Clean up build and source directories
         print("\nCleaning up build and source directories...")
-        self.clean_all()
+        self.CleanAll()
 
-    def clean(self):
+    def Clean(self):
         """Remove build directories (keep sources)."""
         print("Cleaning build directories...")
         if self.build_dir.exists():
             shutil.rmtree(self.build_dir)
             print(f"Removed: {self.build_dir}")
 
-    def clean_all(self):
+    def CleanAll(self):
         """Remove all build artifacts and sources."""
         print("Cleaning everything...")
-        for path in [self.build_dir, self.srcpath]:
-            if path.exists():
-                shutil.rmtree(path)
-                print(f"Removed: {path}")
+        for Path in [self.build_dir, self.srcpath]:
+            if Path.exists():
+                shutil.rmtree(Path)
+                print(f"Removed: {Path}")
 
-    def is_installed(self) -> bool:
+    def IsInstalled(self) -> bool:
         """Check if cross toolchain and sysroot runtime are already installed.
 
         Returns:
             True if key toolchain components and musl sysroot archive are found.
         """
-        required_tools = [
+        RequiredTools = [
             self.bin_dir / f"{self.target}-as",
             self.bin_dir / f"{self.target}-gcc",
             self.sysroot / "usr" / "lib" / "libc.so",
         ]
-        return all(path.exists() for path in required_tools)
+        return all(Path.exists() for Path in RequiredTools)
 
 
 # =============================================================================
@@ -440,8 +440,8 @@ Examples:
         "-j",
         "--jobs",
         type=int,
-        default=get_cpu_count(),
-        help=f"Parallel jobs (default: {get_cpu_count()})",
+        default=GetCpuCount(),
+        help=f"Parallel jobs (default: {GetCpuCount()})",
     )
     parser.add_argument("--clean", action="store_true", help="Remove build directories")
     parser.add_argument(
@@ -471,59 +471,61 @@ Examples:
         help="Ensure toolchain is installed (skip if present, build if missing)",
     )
 
-    args = parser.parse_args()
+    Args = parser.parse_args()
 
     # Determine target triple
-    if args.target:
-        target = args.target
-    elif args.arch:
-        target = GetArchConfig(args.arch)["TargetTriple"]
+    if Args.target:
+        Target = Args.target
+    elif Args.arch:
+        Target = GetArchConfig(Args.arch)["TargetTriple"]
     else:
-        target = GetArchConfig("i686")["TargetTriple"]
+        Target = GetArchConfig("i686")["TargetTriple"]
 
-    builder = ToolchainBuilder(
-        prefix=args.prefix,
-        target=target,
-        jobs=args.jobs,
+    Builder = ToolchainBuilder(
+        prefix=Args.prefix,
+        target=Target,
+        jobs=Args.jobs,
     )
 
     try:
-        if args.clean_all:
-            builder.clean_all()
-        elif args.clean:
-            builder.clean()
-        elif args.check_only:
-            if builder.is_installed():
-                print(f"Toolchain installed for {builder.target}")
-                print(f"  Location: {builder.prefix}")
+        if Args.clean_all:
+            Builder.CleanAll()
+        elif Args.clean:
+            Builder.Clean()
+        elif Args.check_only:
+            if Builder.IsInstalled():
+                print(f"Toolchain installed for {Builder.target}")
+                print(f"  Location: {Builder.prefix}")
                 sys.exit(0)
             else:
-                print(f"Toolchain not installed for {builder.target}")
-                print(f"  Expected location: {builder.prefix}")
+                print(f"Toolchain not installed for {Builder.target}")
+                print(f"  Expected location: {Builder.prefix}")
                 sys.exit(1)
-        elif args.check or args.ensure:
-            if builder.is_installed():
-                print(f"Toolchain already installed for {builder.target}")
-                print(f"  Location: {builder.prefix}")
+        elif Args.check or Args.ensure:
+            if Builder.IsInstalled():
+                print(f"Toolchain already installed for {Builder.target}")
+                print(f"  Location: {Builder.prefix}")
                 sys.exit(0)
 
-            print(f"Toolchain not installed for {builder.target}")
+            print(f"Toolchain not installed for {Builder.target}")
             print("  Building toolchain...")
-            builder.build_all()
-        elif args.binutils_only:
-            builder.setup_directories()
-            builder.download_sources()
-            builder.extract_sources()
-            builder.build_binutils()
-        elif args.gcc_stage1_only:
-            builder.setup_directories()
-            builder.download_sources()
-            builder.extract_sources()
-            builder.build_gcc_stage1()
+            Builder.BuildAll()
+        elif Args.binutils_only:
+            Builder.SetupDirectories()
+            Builder.DownloadSources()
+            Builder.ExtractSources()
+            Builder.BuildBinutils()
+        elif Args.gcc_stage1_only:
+            Builder.SetupDirectories()
+            Builder.DownloadSources()
+            Builder.ExtractSources()
+            Builder.BuildGccStage1()
         else:
-            builder.build_all()
-    except subprocess.CalledProcessError as e:
-        print(f"\nError: Command failed with exit code {e.returncode}", file=sys.stderr)
+            Builder.BuildAll()
+    except subprocess.CalledProcessError as Ex:
+        print(
+            f"\nError: Command failed with exit code {Ex.returncode}", file=sys.stderr
+        )
         sys.exit(1)
     except KeyboardInterrupt:
         print("\nBuild interrupted.")

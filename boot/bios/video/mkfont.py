@@ -11,7 +11,7 @@ import sys
 # Standard VGA 8x16 bitmap font for ASCII 0x20-0x7E.
 # Each glyph is 16 rows x 8 pixels (1 byte per row, MSB = leftmost).
 # Source: IBM VGA ROM font (public-domain equivalent).
-FONT_DATA = [
+FontData = [
     [
         0x00,
         0x00,
@@ -1725,7 +1725,7 @@ FONT_DATA = [
 ]
 
 
-def format_c_array(data, width=16):
+def FormatCArray(Data, Width=16):
     """Format bytes as a C literal."""
     lines = []
     for i in range(0, len(data), width):

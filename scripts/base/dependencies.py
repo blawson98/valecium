@@ -16,7 +16,7 @@ import tarfile
 import urllib.request
 from pathlib import Path
 
-DEPENDENCIES = {
+Dependencies = {
     "debian": {
         "packages": [
             # === Core Build Tools ===
@@ -189,40 +189,40 @@ DEPENDENCIES = {
 }
 
 
-def get_cpu_count() -> int:
+def GetCpuCount() -> int:
     """Get number of CPUs for parallel runtime builds."""
     return multiprocessing.cpu_count()
 
 
-def run_command(
-    cmd: list, cwd: str = None, env: dict = None
+def RunCommand(
+    Cmd: list, Cwd: str = None, Env: dict = None
 ) -> subprocess.CompletedProcess:
     """Run a command with logging."""
-    print(f"$ {' '.join(cmd)}")
-    merged_env = os.environ.copy()
-    if env:
-        merged_env.update(env)
-    return subprocess.run(cmd, cwd=cwd, env=merged_env, check=True)
+    print(f"$ {' '.join(Cmd)}")
+    MergedEnv = os.environ.copy()
+    if Env:
+        MergedEnv.update(Env)
+    return subprocess.run(Cmd, cwd=Cwd, env=MergedEnv, check=True)
 
 
-def download_file(url: str, dest: Path):
+def DownloadFile(Url: str, Dest: Path):
     """Download a file if it does not already exist."""
-    if dest.exists():
-        print(f"Already downloaded: {dest.name}")
+    if Dest.exists():
+        print(f"Already downloaded: {Dest.name}")
         return
 
-    print(f"Downloading: {url}")
-    urllib.request.urlretrieve(url, str(dest))
+    print(f"Downloading: {Url}")
+    urllib.request.urlretrieve(Url, str(Dest))
 
 
-def extract_archive(archive: Path, dest_dir: Path):
+def ExtractArchive(Archive: Path, DestDir: Path):
     """Extract a source archive if needed."""
-    print(f"Extracting: {archive.name}")
-    with tarfile.open(archive) as tar:
-        tar.extractall(str(dest_dir))
+    print(f"Extracting: {Archive.name}")
+    with tarfile.open(Archive) as Tar:
+        Tar.extractall(str(DestDir))
 
 
-def detect_distro() -> str:
+def DetectDistro() -> str:
     """Detect the Linux distribution family."""
     # Check for package managers
     if shutil.which("apt-get"):
@@ -241,62 +241,60 @@ def detect_distro() -> str:
     # Fallback: check /etc/os-release
     if os.path.exists("/etc/os-release"):
         with open("/etc/os-release") as f:
-            content = f.read().lower()
-            if "debian" in content or "ubuntu" in content:
+            Content = f.read().lower()
+            if "debian" in Content or "ubuntu" in Content:
                 return "debian"
-            elif "fedora" in content or "rhel" in content or "centos" in content:
+            elif "fedora" in Content or "rhel" in Content or "centos" in Content:
                 return "fedora"
-            elif "arch" in content:
+            elif "arch" in Content:
                 return "arch"
-            elif "suse" in content:
+            elif "suse" in Content:
                 return "suse"
-            elif "alpine" in content:
+            elif "alpine" in Content:
                 return "alpine"
 
     return None
 
 
-def install_dependencies(
-    distro: str, dry_run: bool = False, use_sudo: bool = True
-) -> int:
+def InstallDependencies(Distro: str, DryRun: bool = False, UseSudo: bool = True) -> int:
     """Install dependencies for the specified distribution.
 
     Args:
-        distro: Distribution family name
-        dry_run: If True, only print commands without executing
-        use_sudo: If True, prefix commands with sudo
+        Distro: Distribution family name
+        DryRun: If True, only print commands without executing
+        UseSudo: If True, prefix commands with sudo
 
     Returns:
         0 on success, non-zero on error
     """
-    if distro not in DEPENDENCIES:
-        print(f"Error: Unknown distribution: {distro}", file=sys.stderr)
-        print(f"Supported: {', '.join(DEPENDENCIES.keys())}", file=sys.stderr)
+    if Distro not in Dependencies:
+        print(f"Error: Unknown distribution: {Distro}", file=sys.stderr)
+        print(f"Supported: {', '.join(Dependencies.keys())}", file=sys.stderr)
         return 1
 
-    config = DEPENDENCIES[distro]
-    packages = config["packages"]
+    Config = Dependencies[Distro]
+    Packages = Config["packages"]
 
-    def run_cmd(cmd):
-        if use_sudo and os.geteuid() != 0:
-            cmd = ["sudo"] + cmd
+    def RunCmd(Cmd):
+        if UseSudo and os.geteuid() != 0:
+            Cmd = ["sudo"] + Cmd
 
-        print(f"$ {' '.join(cmd)}")
-        if not dry_run:
-            return subprocess.call(cmd)
+        print(f"$ {' '.join(Cmd)}")
+        if not DryRun:
+            return subprocess.call(Cmd)
         return 0
 
     # Update package lists if needed
-    if config["update_cmd"]:
-        result = run_cmd(config["update_cmd"])
-        if result != 0 and not dry_run:
-            return result
+    if Config["update_cmd"]:
+        Result = RunCmd(Config["update_cmd"])
+        if Result != 0 and not DryRun:
+            return Result
 
     # Install packages
-    install_cmd = config["install_cmd"] + packages
-    result = run_cmd(install_cmd)
+    InstallCmd = Config["install_cmd"] + Packages
+    Result = RunCmd(InstallCmd)
 
-    return result
+    return Result
 
 
 def main():
@@ -308,7 +306,7 @@ def main():
     parser.add_argument(
         "-d",
         "--distro",
-        choices=list(DEPENDENCIES.keys()),
+        choices=list(Dependencies.keys()),
         help="Force specific distribution (auto-detected by default)",
     )
     parser.add_argument(
@@ -321,8 +319,8 @@ def main():
         "-j",
         "--jobs",
         type=int,
-        default=get_cpu_count(),
-        help=f"Parallel jobs for runtime build (default: {get_cpu_count()})",
+        default=GetCpuCount(),
+        help=f"Parallel jobs for runtime build (default: {GetCpuCount()})",
     )
     parser.add_argument(
         "-n", "--dry-run", action="store_true", help="Print commands without executing"
@@ -343,35 +341,35 @@ def main():
         help="Skip confirmation prompt (for non-interactive use)",
     )
 
-    args = parser.parse_args()
+    Args = parser.parse_args()
 
     # Detect or use specified distro
-    distro = args.distro or detect_distro()
-    if not distro:
+    Distro = Args.distro or DetectDistro()
+    if not Distro:
         print("Error: Could not detect Linux distribution.", file=sys.stderr)
         print("Please specify with --distro", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Distribution: {distro}")
+    print(f"Distribution: {Distro}")
 
-    if args.list:
-        print(f"\nPackages for {distro}:")
-        for pkg in DEPENDENCIES[distro]["packages"]:
-            print(f"  - {pkg}")
+    if Args.list:
+        print(f"\nPackages for {Distro}:")
+        for Pkg in Dependencies[Distro]["packages"]:
+            print(f"  - {Pkg}")
         sys.exit(0)
 
     print()
-    if not args.dry_run and not args.yes:
-        response = input("Install dependencies? [y/N] ").strip().lower()
-        if response not in ("y", "yes"):
+    if not Args.dry_run and not Args.yes:
+        UserResponse = input("Install dependencies? [y/N] ").strip().lower()
+        if UserResponse not in ("y", "yes"):
             print("Cancelled.")
             sys.exit(0)
 
     sys.exit(
-        install_dependencies(
-            distro=distro,
-            dry_run=args.dry_run,
-            use_sudo=not args.no_sudo,
+        InstallDependencies(
+            Distro=Distro,
+            DryRun=Args.dry_run,
+            UseSudo=not Args.no_sudo,
         )
     )
 

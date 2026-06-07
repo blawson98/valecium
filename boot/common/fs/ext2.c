@@ -14,8 +14,8 @@ static int read_inode(uint32_t inode_num, uint8_t *out);
 static uint32_t ext2_find_block(uint32_t inode_block_ptr, uint32_t *indirect,
                                 int level, uint32_t block_index);
 static uint32_t inode_get_block(uint8_t *inode, uint32_t block_index);
-static int ext2_lookup(uint32_t dir_inode, const char *component,
-                       int comp_len, uint32_t *out_inode, uint32_t *out_size);
+static int ext2_lookup(uint32_t dir_inode, const char *component, int comp_len,
+                       uint32_t *out_inode, uint32_t *out_size);
 static int ext2_resolve(const char *path, uint32_t *out_inode,
                         uint32_t *out_size);
 static int check_partition(uint8_t drive, int part_lba,
@@ -59,16 +59,16 @@ static int check_partition(uint8_t drive, int part_lba,
 #define EXT2_FEATURE_INCOMPAT_LARGEDIR 0x00004000
 
 // Features we handle (safe for read-only bootloader with ext4 support)
-#define EXT2_INCOMPAT_HANDLED                                                 \
-   (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT2_FEATURE_INCOMPAT_RECOVER |          \
-    EXT2_FEATURE_INCOMPAT_EXTENTS | EXT2_FEATURE_INCOMPAT_64BIT |             \
-    EXT2_FEATURE_INCOMPAT_MMP | EXT2_FEATURE_INCOMPAT_FLEX_BG |               \
-    EXT2_FEATURE_INCOMPAT_EA_INODE | EXT2_FEATURE_INCOMPAT_DIRDATA |          \
+#define EXT2_INCOMPAT_HANDLED                                                  \
+   (EXT2_FEATURE_INCOMPAT_FILETYPE | EXT2_FEATURE_INCOMPAT_RECOVER |           \
+    EXT2_FEATURE_INCOMPAT_EXTENTS | EXT2_FEATURE_INCOMPAT_64BIT |              \
+    EXT2_FEATURE_INCOMPAT_MMP | EXT2_FEATURE_INCOMPAT_FLEX_BG |                \
+    EXT2_FEATURE_INCOMPAT_EA_INODE | EXT2_FEATURE_INCOMPAT_DIRDATA |           \
     EXT2_FEATURE_INCOMPAT_CSUM_SEED | EXT2_FEATURE_INCOMPAT_LARGEDIR)
 
 // Extent tree constants
 #define EXT4_EXTENT_MAGIC 0xF30A
-#define EXT4_EXTENTS_FL 0x00080000  /* inode i_flags bit */
+#define EXT4_EXTENTS_FL 0x00080000 /* inode i_flags bit */
 #define EXT4_EXTENT_HEADER_SIZE 12
 #define EXT4_EXTENT_ENTRY_SIZE 12
 #define EXT4_EXTENT_INDEX_SIZE 12
@@ -92,7 +92,7 @@ static int check_partition(uint8_t drive, int part_lba,
 #define INODE_LINKS_COUNT_OFF 26
 #define INODE_BLOCKS_OFF 28
 #define INODE_FLAGS_OFF 32
-#define INODE_BLOCK_OFF 40  // 15 x 4 = 60 bytes of block pointers
+#define INODE_BLOCK_OFF 40 // 15 x 4 = 60 bytes of block pointers
 
 // Inode mode masks
 #define IFMT 0xF000
@@ -119,9 +119,9 @@ static int check_partition(uint8_t drive, int part_lba,
 struct FS_File
 {
    int used;
-   uint32_t inode;        /* inode number */
-   uint32_t size;         /* file size in bytes */
-   uint32_t position;     /* current read position */
+   uint32_t inode;    /* inode number */
+   uint32_t size;     /* file size in bytes */
+   uint32_t position; /* current read position */
 };
 
 struct FS_Operations
@@ -161,8 +161,7 @@ extern int GPT_List(int driveId, int **offset);
 
 static int ext2_read_sector(uint64_t lba, void *buffer)
 {
-   return DISK_ReadLBA(s_BootDrive,
-                       (uint64_t)s_PartStart + lba, 1, buffer);
+   return DISK_ReadLBA(s_BootDrive, (uint64_t)s_PartStart + lba, 1, buffer);
 }
 
 static int ext2_read_block(uint32_t block_idx, void *buffer)
@@ -184,8 +183,7 @@ static int ext2_read_block(uint32_t block_idx, void *buffer)
       first_lba = block_idx * (s_BlockSize / SECTOR_SIZE);
    }
 
-   return DISK_ReadLBA(s_BootDrive,
-                       (uint64_t)s_PartStart + first_lba,
+   return DISK_ReadLBA(s_BootDrive, (uint64_t)s_PartStart + first_lba,
                        (uint16_t)sectors_per_block, buffer);
 }
 
@@ -219,31 +217,35 @@ static int read_superblock(uint8_t drive, uint32_t part_lba)
       return -EINVAL;
    }
 
-   uint32_t log_block_size = (uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF] |
-                             ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 1] << 8) |
-                             ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 2] << 16) |
-                             ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 3] << 24);
+   uint32_t log_block_size =
+       (uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF] |
+       ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 1] << 8) |
+       ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 2] << 16) |
+       ((uint32_t)buf[sb_off + SB_LOG_BLOCK_SIZE_OFF + 3] << 24);
    s_BlockSize = 1024 << log_block_size;
 
-   s_BlocksPerGroup = (uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF] |
-                      ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 1] << 8) |
-                      ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 2] << 16) |
-                      ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 3] << 24);
+   s_BlocksPerGroup =
+       (uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF] |
+       ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 1] << 8) |
+       ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 2] << 16) |
+       ((uint32_t)buf[sb_off + SB_BLOCKS_PER_GROUP_OFF + 3] << 24);
 
-   s_InodesPerGroup = (uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF] |
-                      ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 1] << 8) |
-                      ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 2] << 16) |
-                      ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 3] << 24);
+   s_InodesPerGroup =
+       (uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF] |
+       ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 1] << 8) |
+       ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 2] << 16) |
+       ((uint32_t)buf[sb_off + SB_INODES_PER_GROUP_OFF + 3] << 24);
 
    s_TotalInodes = (uint32_t)buf[sb_off + SB_INODES_COUNT_OFF] |
                    ((uint32_t)buf[sb_off + SB_INODES_COUNT_OFF + 1] << 8) |
                    ((uint32_t)buf[sb_off + SB_INODES_COUNT_OFF + 2] << 16) |
                    ((uint32_t)buf[sb_off + SB_INODES_COUNT_OFF + 3] << 24);
 
-   s_FirstDataBlock = (uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF] |
-                      ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 1] << 8) |
-                      ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 2] << 16) |
-                      ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 3] << 24);
+   s_FirstDataBlock =
+       (uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF] |
+       ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 1] << 8) |
+       ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 2] << 16) |
+       ((uint32_t)buf[sb_off + SB_FIRST_DATA_BLOCK_OFF + 3] << 24);
 
    s_RevLevel = (uint32_t)buf[sb_off + SB_REV_LEVEL_OFF] |
                 ((uint32_t)buf[sb_off + SB_REV_LEVEL_OFF + 1] << 8) |
@@ -254,16 +256,16 @@ static int read_superblock(uint8_t drive, uint32_t part_lba)
                  ((uint32_t)buf[sb_off + SB_INODE_SIZE_OFF + 1] << 8) |
                  ((uint32_t)buf[sb_off + SB_INODE_SIZE_OFF + 2] << 16) |
                  ((uint32_t)buf[sb_off + SB_INODE_SIZE_OFF + 3] << 24);
-   if (s_InodeSize < 128)
-      s_InodeSize = 128;
+   if (s_InodeSize < 128) s_InodeSize = 128;
 
    // Read incompatible features.  Modern mke2fs writes feature flags at the
    // standard offsets (92, 96, 100) even when s_rev_level is 0, reusing the
    // old s_reserved area which must be zero for plain ext2.
-   uint32_t incompat = (uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF] |
-      ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 1] << 8) |
-      ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 2] << 16) |
-      ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 3] << 24);
+   uint32_t incompat =
+       (uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF] |
+       ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 1] << 8) |
+       ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 2] << 16) |
+       ((uint32_t)buf[sb_off + SB_FEATURE_INCOMPAT_OFF + 3] << 24);
 
    if (incompat & ~EXT2_INCOMPAT_HANDLED)
    {
@@ -279,11 +281,13 @@ static int read_superblock(uint8_t drive, uint32_t part_lba)
    if (s_RevLevel >= EXT2_DYNAMIC_REV)
    {
       uint32_t ds = (uint32_t)buf[sb_off + SB_DESC_SIZE_OFF] |
-         ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 1] << 8) |
-         ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 2] << 16) |
-         ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 3] << 24);
-      if (ds >= 64)       s_DescSize = 64;
-      else if (ds >= 32)  s_DescSize = 32;
+                    ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 1] << 8) |
+                    ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 2] << 16) |
+                    ((uint32_t)buf[sb_off + SB_DESC_SIZE_OFF + 3] << 24);
+      if (ds >= 64)
+         s_DescSize = 64;
+      else if (ds >= 32)
+         s_DescSize = 32;
    }
    if (s_DescSize < 64 && (incompat & EXT2_FEATURE_INCOMPAT_64BIT))
       s_DescSize = 64;
@@ -305,9 +309,9 @@ static int ext2_bgdt_offset(void)
    // For larger blocks: superblock in block 0 (but spanning byte 1024),
    //   BGDT starts at byte s_BlockSize.
    if (s_BlockSize == 1024)
-      return 2 * s_BlockSize;  // Block 2
+      return 2 * s_BlockSize; // Block 2
    else
-      return s_BlockSize;      // Block 1 (superblock is in block 0)
+      return s_BlockSize; // Block 1 (superblock is in block 0)
 }
 
 static int read_inode(uint32_t inode_num, uint8_t *out)
@@ -325,7 +329,7 @@ static int read_inode(uint32_t inode_num, uint8_t *out)
    uint32_t bgdt_byte = (uint32_t)bgdt_off % s_BlockSize;
 
    {
-      uint8_t block_buf[4096];  // Max block size 4096
+      uint8_t block_buf[4096]; // Max block size 4096
       if (ext2_read_block(bgdt_block, block_buf) != 0) return -EIO;
 
       uint32_t bgdt_entry_off = bgdt_byte + group * s_DescSize;
@@ -431,8 +435,7 @@ static uint32_t ext2_find_block(uint32_t block_ptr, uint32_t *indirect,
       if (l2_block == 0) return 0;
 
       if (ext2_read_block(l2_block, buf) != 0) return 0;
-      return (uint32_t)buf[l2_sub * 4] |
-             ((uint32_t)buf[l2_sub * 4 + 1] << 8) |
+      return (uint32_t)buf[l2_sub * 4] | ((uint32_t)buf[l2_sub * 4 + 1] << 8) |
              ((uint32_t)buf[l2_sub * 4 + 2] << 16) |
              ((uint32_t)buf[l2_sub * 4 + 3] << 24);
    }
@@ -447,8 +450,7 @@ static uint32_t ext4_extent_get_block(uint8_t *inode, uint32_t block_index)
    // Extent header is at i_block[0..11], i.e. INODE_BLOCK_OFF
    const uint8_t *eh = inode + INODE_BLOCK_OFF;
    uint16_t magic = (uint16_t)eh[0] | ((uint16_t)eh[1] << 8);
-   if (magic != EXT4_EXTENT_MAGIC)
-      return 0;
+   if (magic != EXT4_EXTENT_MAGIC) return 0;
 
    uint16_t depth = (uint16_t)eh[6] | ((uint16_t)eh[7] << 8);
    uint16_t entries = (uint16_t)eh[2] | ((uint16_t)eh[3] << 8);
@@ -458,7 +460,8 @@ static uint32_t ext4_extent_get_block(uint8_t *inode, uint32_t block_index)
       // Leaf: entries are ext4_extent (12 bytes each)
       for (uint16_t i = 0; i < entries; i++)
       {
-         const uint8_t *ex = eh + EXT4_EXTENT_HEADER_SIZE + i * EXT4_EXTENT_ENTRY_SIZE;
+         const uint8_t *ex =
+             eh + EXT4_EXTENT_HEADER_SIZE + i * EXT4_EXTENT_ENTRY_SIZE;
          uint32_t ee_block = (uint32_t)ex[0] | ((uint32_t)ex[1] << 8) |
                              ((uint32_t)ex[2] << 16) | ((uint32_t)ex[3] << 24);
          uint16_t ee_len = (uint16_t)ex[4] | ((uint16_t)ex[5] << 8);
@@ -469,7 +472,8 @@ static uint32_t ext4_extent_get_block(uint8_t *inode, uint32_t block_index)
          if (block_index >= ee_block && block_index < ee_block + len)
          {
             uint32_t start_lo = (uint32_t)ex[8] | ((uint32_t)ex[9] << 8) |
-                                ((uint32_t)ex[10] << 16) | ((uint32_t)ex[11] << 24);
+                                ((uint32_t)ex[10] << 16) |
+                                ((uint32_t)ex[11] << 24);
             uint32_t start_hi = (uint32_t)ex[6] | ((uint32_t)ex[7] << 8);
             return start_lo | (start_hi << 16);
          }
@@ -489,41 +493,41 @@ static uint32_t ext4_extent_get_block(uint8_t *inode, uint32_t block_index)
       uint16_t i;
       for (i = 0; i < current_entries - 1; i++)
       {
-         const uint8_t *ix = current_eh + EXT4_EXTENT_HEADER_SIZE +
-                             i * EXT4_EXTENT_INDEX_SIZE;
+         const uint8_t *ix =
+             current_eh + EXT4_EXTENT_HEADER_SIZE + i * EXT4_EXTENT_INDEX_SIZE;
          uint32_t ei_block = (uint32_t)ix[0] | ((uint32_t)ix[1] << 8) |
                              ((uint32_t)ix[2] << 16) | ((uint32_t)ix[3] << 24);
          // Next entry's starting block
          const uint8_t *ix_next = current_eh + EXT4_EXTENT_HEADER_SIZE +
                                   (i + 1) * EXT4_EXTENT_INDEX_SIZE;
-         uint32_t next_block = (uint32_t)ix_next[0] | ((uint32_t)ix_next[1] << 8) |
-                               ((uint32_t)ix_next[2] << 16) | ((uint32_t)ix_next[3] << 24);
-         if (block_index >= ei_block && block_index < next_block)
-            break;
+         uint32_t next_block =
+             (uint32_t)ix_next[0] | ((uint32_t)ix_next[1] << 8) |
+             ((uint32_t)ix_next[2] << 16) | ((uint32_t)ix_next[3] << 24);
+         if (block_index >= ei_block && block_index < next_block) break;
       }
 
-      const uint8_t *ix = current_eh + EXT4_EXTENT_HEADER_SIZE +
-                          i * EXT4_EXTENT_INDEX_SIZE;
+      const uint8_t *ix =
+          current_eh + EXT4_EXTENT_HEADER_SIZE + i * EXT4_EXTENT_INDEX_SIZE;
       uint32_t leaf_lo = (uint32_t)ix[4] | ((uint32_t)ix[5] << 8) |
                          ((uint32_t)ix[6] << 16) | ((uint32_t)ix[7] << 24);
       uint32_t leaf_hi = (uint32_t)ix[8] | ((uint32_t)ix[9] << 8) |
                          ((uint32_t)ix[10] << 16) | ((uint32_t)ix[11] << 24);
       uint32_t child_block = leaf_lo | (leaf_hi << 16);
 
-      if (ext2_read_block(child_block, block_buf) != 0)
-         return 0;
+      if (ext2_read_block(child_block, block_buf) != 0) return 0;
 
       current_eh = block_buf;
       current_depth--;
-      uint16_t child_entries = (uint16_t)block_buf[2] | ((uint16_t)block_buf[3] << 8);
+      uint16_t child_entries =
+          (uint16_t)block_buf[2] | ((uint16_t)block_buf[3] << 8);
       current_entries = child_entries;
    }
 
    // Now at leaf level
    for (uint16_t i = 0; i < current_entries; i++)
    {
-      const uint8_t *ex = current_eh + EXT4_EXTENT_HEADER_SIZE +
-                          i * EXT4_EXTENT_ENTRY_SIZE;
+      const uint8_t *ex =
+          current_eh + EXT4_EXTENT_HEADER_SIZE + i * EXT4_EXTENT_ENTRY_SIZE;
       uint32_t ee_block = (uint32_t)ex[0] | ((uint32_t)ex[1] << 8) |
                           ((uint32_t)ex[2] << 16) | ((uint32_t)ex[3] << 24);
       uint16_t ee_len = (uint16_t)ex[4] | ((uint16_t)ex[5] << 8);
@@ -533,7 +537,8 @@ static uint32_t ext4_extent_get_block(uint8_t *inode, uint32_t block_index)
       if (block_index >= ee_block && block_index < ee_block + len)
       {
          uint32_t start_lo = (uint32_t)ex[8] | ((uint32_t)ex[9] << 8) |
-                             ((uint32_t)ex[10] << 16) | ((uint32_t)ex[11] << 24);
+                             ((uint32_t)ex[10] << 16) |
+                             ((uint32_t)ex[11] << 24);
          uint32_t start_hi = (uint32_t)ex[6] | ((uint32_t)ex[7] << 8);
          return start_lo | (start_hi << 16);
       }
@@ -562,33 +567,33 @@ static uint32_t inode_get_block(uint8_t *inode, uint32_t block_index)
                   ((uint32_t)inode[INODE_BLOCK_OFF + i * 4 + 3] << 24);
    }
 
-   if (block_index < EXT2_NDIR_BLOCKS)
-      return direct[block_index];
+   if (block_index < EXT2_NDIR_BLOCKS) return direct[block_index];
 
    uint32_t ptrs_per_block = s_BlockSize / 4;
 
    // Single indirect
-   uint32_t ind_block = (uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4] |
-                        ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 1] << 8) |
-                        ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 2] << 16) |
-                        ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 3] << 24);
+   uint32_t ind_block =
+       (uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4] |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 1] << 8) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 2] << 16) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_IND_BLOCK * 4 + 3] << 24);
    uint32_t ind_start = EXT2_NDIR_BLOCKS;
    if (block_index < ind_start + ptrs_per_block)
    {
       uint8_t buf[4096];
       if (ext2_read_block(ind_block, buf) != 0) return 0;
       uint32_t idx = block_index - ind_start;
-      return (uint32_t)buf[idx * 4] |
-             ((uint32_t)buf[idx * 4 + 1] << 8) |
+      return (uint32_t)buf[idx * 4] | ((uint32_t)buf[idx * 4 + 1] << 8) |
              ((uint32_t)buf[idx * 4 + 2] << 16) |
              ((uint32_t)buf[idx * 4 + 3] << 24);
    }
 
    // Double indirect
-   uint32_t dind_block = (uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4] |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 1] << 8) |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 2] << 16) |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 3] << 24);
+   uint32_t dind_block =
+       (uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4] |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 1] << 8) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 2] << 16) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_DIND_BLOCK * 4 + 3] << 24);
    uint32_t dind_start = ind_start + ptrs_per_block;
    if (block_index < dind_start + ptrs_per_block * ptrs_per_block)
    {
@@ -597,18 +602,18 @@ static uint32_t inode_get_block(uint8_t *inode, uint32_t block_index)
    }
 
    // Triple indirect
-   uint32_t tind_block = (uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4] |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 1] << 8) |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 2] << 16) |
-                         ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 3] << 24);
+   uint32_t tind_block =
+       (uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4] |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 1] << 8) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 2] << 16) |
+       ((uint32_t)inode[INODE_BLOCK_OFF + EXT2_TIND_BLOCK * 4 + 3] << 24);
    uint32_t tind_start = dind_start + ptrs_per_block * ptrs_per_block;
    uint32_t idx = block_index - tind_start;
    return ext2_find_block(tind_block, NULL, 2, idx);
 }
 
-static int ext2_lookup(uint32_t dir_inode, const char *component,
-                       int comp_len, uint32_t *out_inode,
-                       uint32_t *out_size)
+static int ext2_lookup(uint32_t dir_inode, const char *component, int comp_len,
+                       uint32_t *out_inode, uint32_t *out_size)
 {
    uint8_t inode_buf[128];
    if (read_inode(dir_inode, inode_buf) != 0) return -EIO;
@@ -631,7 +636,8 @@ static int ext2_lookup(uint32_t dir_inode, const char *component,
       if (ext2_read_block(phys_block, block_data) != 0) return -EIO;
 
       uint32_t pos = block_off;
-      while (pos + 8 <= s_BlockSize && bytes_read + (pos - block_off) < dir_size)
+      while (pos + 8 <= s_BlockSize &&
+             bytes_read + (pos - block_off) < dir_size)
       {
          uint32_t entry_inode =
              (uint32_t)block_data[pos + DIR_INODE_OFF] |
@@ -654,14 +660,17 @@ static int ext2_lookup(uint32_t dir_inode, const char *component,
                char c2 = (char)block_data[pos + DIR_NAME_OFF + i];
                if (c1 >= 'A' && c1 <= 'Z') c1 += 0x20;
                if (c2 >= 'A' && c2 <= 'Z') c2 += 0x20;
-               if (c1 != c2) { match = 0; break; }
+               if (c1 != c2)
+               {
+                  match = 0;
+                  break;
+               }
             }
             if (match)
             {
                *out_inode = entry_inode;
                uint8_t found_inode[128];
-               if (read_inode(entry_inode, found_inode) != 0)
-                  return -EIO;
+               if (read_inode(entry_inode, found_inode) != 0) return -EIO;
                *out_size = (uint32_t)found_inode[INODE_SIZE_OFF] |
                            ((uint32_t)found_inode[INODE_SIZE_OFF + 1] << 8) |
                            ((uint32_t)found_inode[INODE_SIZE_OFF + 2] << 16) |
@@ -701,8 +710,8 @@ static int ext2_resolve(const char *path, uint32_t *out_inode,
       int comp_len = (int)(path - start);
 
       uint32_t child_inode, child_size;
-      int rc = ext2_lookup(cur_inode, start, comp_len,
-                           &child_inode, &child_size);
+      int rc =
+          ext2_lookup(cur_inode, start, comp_len, &child_inode, &child_size);
       if (rc != 0) return rc;
 
       cur_inode = child_inode;
@@ -748,7 +757,11 @@ static int check_partition(uint8_t drive, int part_lba,
       int label_nonzero = 0;
       for (int i = 0; i < 16; i++)
       {
-         if (expected_label[i] != 0) { label_nonzero = 1; break; }
+         if (expected_label[i] != 0)
+         {
+            label_nonzero = 1;
+            break;
+         }
       }
 
       if (label_nonzero)
@@ -761,7 +774,11 @@ static int check_partition(uint8_t drive, int part_lba,
             if (c1 == '\0') break;
             if (c1 >= 'a' && c1 <= 'z') c1 -= 32;
             if (c2 >= 'a' && c2 <= 'z') c2 -= 32;
-            if (c1 != c2) { match = 0; break; }
+            if (c1 != c2)
+            {
+               match = 0;
+               break;
+            }
          }
          if (match) return 1;
       }
@@ -772,13 +789,11 @@ static int check_partition(uint8_t drive, int part_lba,
 }
 
 int EXT2_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
-                    const uint8_t *partitionUuid,
-                    const uint8_t *partitionLabel)
+                    const uint8_t *partitionUuid, const uint8_t *partitionLabel)
 {
    (void)partitionUuid;
 
-   if (!biosDriveList || biosDriveListCount == 0)
-      return -EINVAL;
+   if (!biosDriveList || biosDriveListCount == 0) return -EINVAL;
 
    int found = 0;
    for (uint32_t i = 0; i < biosDriveListCount && !found; i++)
@@ -824,8 +839,7 @@ int EXT2_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
 
    // Read root inode (inode 2 in ext2)
    uint8_t root_inode[128];
-   if (read_inode(s_RootInode, root_inode) != 0)
-      return -EIO;
+   if (read_inode(s_RootInode, root_inode) != 0) return -EIO;
 
    s_RootSize = (uint32_t)root_inode[INODE_SIZE_OFF] |
                 ((uint32_t)root_inode[INODE_SIZE_OFF + 1] << 8) |
@@ -867,8 +881,7 @@ int EXT2_Open(const char *path)
 
 int EXT2_Read(int fd, void *buffer, int count)
 {
-   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used)
-      return -EBADF;
+   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return -EBADF;
 
    struct FS_File *f = &s_OpenFiles[fd];
    uint8_t *buf = (uint8_t *)buffer;
@@ -915,8 +928,7 @@ int EXT2_Read(int fd, void *buffer, int count)
 
 int EXT2_Close(int fd)
 {
-   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used)
-      return -EBADF;
+   if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return -EBADF;
 
    s_OpenFiles[fd].used = 0;
    return SUCCESS;

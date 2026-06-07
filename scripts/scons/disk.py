@@ -25,17 +25,17 @@ CoreFsPatchSignature = b"VLSF"
 
 
 def ReadIsoPvdFields(IsoPath: str) -> tuple[bytes, bytes]:
-    pvd_offset = IsoPvdLba * IsoSectorSize
+    PvdOffset = IsoPvdLba * IsoSectorSize
     with open(IsoPath, "rb") as FileHandle:
-        FileHandle.seek(pvd_offset + IsoPvdLabelOffset)
-        label = FileHandle.read(32)
-        FileHandle.seek(pvd_offset + IsoPvdUuidOffset)
-        uuid = FileHandle.read(16)
-    if len(label) != 32:
+        FileHandle.seek(PvdOffset + IsoPvdLabelOffset)
+        Label = FileHandle.read(32)
+        FileHandle.seek(PvdOffset + IsoPvdUuidOffset)
+        Uuid = FileHandle.read(16)
+    if len(Label) != 32:
         raise ValueError("Partition label read failed")
-    if len(uuid) != 16:
+    if len(Uuid) != 16:
         raise ValueError("Partition UUID read failed")
-    return label, uuid
+    return Label, Uuid
 
 
 def PatchIsoBootImageCoreFs(IsoPath: str, Label: bytes, Uuid: bytes) -> None:
@@ -45,38 +45,38 @@ def PatchIsoBootImageCoreFs(IsoPath: str, Label: bytes, Uuid: bytes) -> None:
         raise ValueError(f"Partition UUID must be 16 bytes, got {len(Uuid)}")
 
     with open(IsoPath, "rb") as FileHandle:
-        data = bytearray(FileHandle.read())
+        Data = bytearray(FileHandle.read())
 
-    boot_record_off = IsoBootRecordLba * IsoSectorSize
-    boot_catalog_lba = struct.unpack_from(
-        "<I", data, boot_record_off + IsoBootCatalogLbaOffset
+    BootRecordOff = IsoBootRecordLba * IsoSectorSize
+    BootCatalogLba = struct.unpack_from(
+        "<I", Data, BootRecordOff + IsoBootCatalogLbaOffset
     )[0]
-    boot_catalog_off = boot_catalog_lba * IsoSectorSize
-    initial_entry_off = boot_catalog_off + IsoBootCatalogInitialEntryOffset
-    boot_image_sectors = struct.unpack_from(
-        "<H", data, initial_entry_off + IsoBootImageSectorCountOffset
+    BootCatalogOff = BootCatalogLba * IsoSectorSize
+    InitialEntryOff = BootCatalogOff + IsoBootCatalogInitialEntryOffset
+    BootImageSectors = struct.unpack_from(
+        "<H", Data, InitialEntryOff + IsoBootImageSectorCountOffset
     )[0]
-    boot_image_lba = struct.unpack_from(
-        "<I", data, initial_entry_off + IsoBootImageLbaOffset
+    BootImageLba = struct.unpack_from(
+        "<I", Data, InitialEntryOff + IsoBootImageLbaOffset
     )[0]
 
-    boot_image_off = boot_image_lba * IsoSectorSize
-    boot_image_size = boot_image_sectors * 512
-    search_end = boot_image_off + boot_image_size if boot_image_size else len(data)
+    BootImageOff = BootImageLba * IsoSectorSize
+    BootImageSize = BootImageSectors * 512
+    SearchEnd = BootImageOff + BootImageSize if BootImageSize else len(Data)
 
-    sig_off = data.find(CoreFsPatchSignature, boot_image_off, search_end)
-    if sig_off == -1:
+    SigOff = Data.find(CoreFsPatchSignature, BootImageOff, SearchEnd)
+    if SigOff == -1:
         raise ValueError("CoreFS patch signature not found")
-    if data.find(CoreFsPatchSignature, sig_off + 1, search_end) != -1:
+    if Data.find(CoreFsPatchSignature, SigOff + 1, SearchEnd) != -1:
         raise ValueError("CoreFS patch signature appears multiple times")
 
-    label_off = sig_off + 8
-    uuid_off = label_off + 32
-    data[label_off : label_off + 32] = Label
-    data[uuid_off : uuid_off + 16] = Uuid
+    LabelOff = SigOff + 8
+    UuidOff = LabelOff + 32
+    Data[LabelOff : LabelOff + 32] = Label
+    Data[UuidOff : UuidOff + 16] = Uuid
 
     with open(IsoPath, "wb") as FileHandle:
-        FileHandle.write(data)
+        FileHandle.write(Data)
 
 
 def RunCommand(Arguments: list, InputText: str = None, **kwargs):

@@ -4,6 +4,7 @@
 
 #include "video/video.h"
 #include <constants.h>
+#include <dl/dlbind_gen.h>
 
 struct fs_operations;
 struct mbi_tag_framebuffer;

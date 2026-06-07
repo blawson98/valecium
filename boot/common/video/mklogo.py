@@ -10,133 +10,133 @@ import sys
 import os
 from PIL import Image
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
-SRC_PNG = os.path.join(REPO_ROOT, "Documentation", "assets", "ValeciumOS.png")
+ScriptDir = os.path.dirname(os.path.abspath(__file__))
+RepoRoot = os.path.normpath(os.path.join(ScriptDir, "..", "..", ".."))
+SrcPng = os.path.join(RepoRoot, "Documentation", "assets", "ValeciumOS.png")
 
 if len(sys.argv) < 2:
     print("Usage: mklogo.py <logo_gen.h>")
     sys.exit(1)
 
-OUT_H = sys.argv[1]
+OutH = sys.argv[1]
 
 # Target colours (R, G, B)
-WHITE = (252, 252, 252)
-BLUE = (228, 250, 254)
-BLACK = (0, 0, 0)
-COLOURS = [WHITE, BLUE, BLACK]
+WhiteColour = (252, 252, 252)
+BlueColour = (228, 250, 254)
+BlackColour = (0, 0, 0)
+Colours = [WhiteColour, BlueColour, BlackColour]
 
-LOGO_W = 640
-LOGO_H = 640
+LogoW = 640
+LogoH = 640
 
 # ---------------------------------------------------------------------------
 
 
-def nearest_colour(r, g, b):
+def NearestColour(r, g, b):
     """Return index 0 (white), 1 (blue), or 2 (black) for the closest colour."""
-    best = 0
-    best_dist = 3 * 256 * 256
-    for i, (cr, cg, cb) in enumerate(COLOURS):
-        d = (r - cr) * (r - cr) + (g - cg) * (g - cg) + (b - cb) * (b - cb)
-        if d < best_dist:
-            best_dist = d
-            best = i
-    return best
+    Best = 0
+    BestDist = 3 * 256 * 256
+    for i, (Cr, Cg, Cb) in enumerate(Colours):
+        D = (r - Cr) * (r - Cr) + (g - Cg) * (g - Cg) + (b - Cb) * (b - Cb)
+        if D < BestDist:
+            BestDist = D
+            Best = i
+    return Best
 
 
-def quantize_to_3colours(img):
+def QuantizeTo3Colours(Img):
     """Map every pixel to the nearest of the 3 target colours."""
-    out = Image.new("P", img.size)
-    pixels = img.load()
-    opixels = out.load()
-    w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = pixels[x, y][:4]
-            if a < 128:
-                opixels[x, y] = 2  # transparent -> black
+    Out = Image.new("P", Img.size)
+    Pixels = Img.load()
+    OPixels = Out.load()
+    W, H = Img.size
+    for y in range(H):
+        for x in range(W):
+            R, G, B, A = Pixels[x, y][:4]
+            if A < 128:
+                OPixels[x, y] = 2  # transparent -> black
             else:
-                opixels[x, y] = nearest_colour(r, g, b)
-    return out
+                OPixels[x, y] = NearestColour(R, G, B)
+    return Out
 
 
-def pack_4bpp(pixels, w, h):
+def Pack4Bpp(Pixels, W, H):
     """Pack 4-bit pixel indices into a byte array (2 pixels per byte)."""
-    data = bytearray((w * h + 1) // 2)
-    for i, val in enumerate(pixels):
-        if val & ~0x0F:
-            raise ValueError(f"Pixel value {val} out of range for 4bpp")
-        byte_idx = i >> 1
+    Data = bytearray((W * H + 1) // 2)
+    for i, Val in enumerate(Pixels):
+        if Val & ~0x0F:
+            raise ValueError(f"Pixel value {Val} out of range for 4bpp")
+        ByteIdx = i >> 1
         if i & 1:
-            data[byte_idx] |= val  # low nibble
+            Data[ByteIdx] |= Val  # low nibble
         else:
-            data[byte_idx] |= val << 4  # high nibble
-    return data
+            Data[ByteIdx] |= Val << 4  # high nibble
+    return Data
 
 
-def format_c_array(data, width=16):
+def FormatCArray(Data, Width=16):
     """Format bytes as a C literal."""
-    lines = []
-    for i in range(0, len(data), width):
-        chunk = data[i : i + width]
-        hex_str = ", ".join(f"0x{b:02X}" for b in chunk)
-        lines.append(f"   {hex_str}, ")
-    return "\n".join(lines)
+    Lines = []
+    for i in range(0, len(Data), Width):
+        Chunk = Data[i : i + Width]
+        HexStr = ", ".join(f"0x{b:02X}" for b in Chunk)
+        Lines.append(f"   {HexStr}, ")
+    return "\n".join(Lines)
 
 
 def main():
-    print(f"Reading {SRC_PNG}")
-    src = Image.open(SRC_PNG).convert("RGBA")
-    sw, sh = src.size
-    print(f"  Source size: {sw} x {sh}")
+    print(f"Reading {SrcPng}")
+    Src = Image.open(SrcPng).convert("RGBA")
+    Sw, Sh = Src.size
+    print(f"  Source size: {Sw} x {Sh}")
 
     # --- crop to centred square -------------------------------------------------
-    size = min(sw, sh)
-    left = (sw - size) // 2
-    top = (sh - size) // 2
-    square = src.crop((left, top, left + size, top + size))
-    print(f"  Centre-cropped to {size} x {size}")
+    Size = min(Sw, Sh)
+    Left = (Sw - Size) // 2
+    Top = (Sh - Size) // 2
+    Square = Src.crop((Left, Top, Left + Size, Top + Size))
+    print(f"  Centre-cropped to {Size} x {Size}")
 
     # --- quantise to 3 colours --------------------------------------------------
-    quant = quantize_to_3colours(square)
+    Quant = QuantizeTo3Colours(Square)
     print("  Quantised to 3 colours (white, blue, black)")
 
     # --- resize to output size (NEAREST keeps edges sharp) ----------------------
-    final = quant.resize((LOGO_W, LOGO_H), Image.NEAREST)
-    print(f"  Resized to {LOGO_W} x {LOGO_H}")
+    Final = Quant.resize((LogoW, LogoH), Image.NEAREST)
+    print(f"  Resized to {LogoW} x {LogoH}")
 
     # --- pack to 4bpp -----------------------------------------------------------
-    pixels = final.getdata()
-    data = pack_4bpp(pixels, LOGO_W, LOGO_H)
-    print(f"  Packed to {len(data)} bytes (4bpp)")
+    Pixels = Final.getdata()
+    Data = Pack4Bpp(Pixels, LogoW, LogoH)
+    print(f"  Packed to {len(Data)} bytes (4bpp)")
 
     # --- write C header ---------------------------------------------------------
-    data_str = format_c_array(data)
-    pal_str = ", ".join(f"0x{r:02X}, 0x{g:02X}, 0x{b:02X}" for r, g, b in COLOURS)
+    DataStr = FormatCArray(Data)
+    PalStr = ", ".join(f"0x{r:02X}, 0x{g:02X}, 0x{b:02X}" for r, g, b in Colours)
 
-    header = f"""// Auto-generated by {os.path.basename(__file__)} from {os.path.relpath(SRC_PNG, REPO_ROOT)}
+    header = f"""// Auto-generated by {os.path.basename(__file__)} from {os.path.relpath(SrcPng, RepoRoot)}
 // 3 colours, {LOGO_W}x{LOGO_H}, 4bpp
 #pragma once
 
 #include <stdint.h>
 
-#define VALECIUM_LOGO_W {LOGO_W}
-#define VALECIUM_LOGO_H {LOGO_H}
-#define VALECIUM_LOGO_PALETTE_SIZE {len(COLOURS)}
+#define VALECIUM_LOGO_W {LogoW}
+#define VALECIUM_LOGO_H {LogoH}
+#define VALECIUM_LOGO_PALETTE_SIZE {len(Colours)}
 
 static const uint8_t g_ValeciumLogo_PaletteRGB[] = {{
-   {pal_str}
+   {PalStr}
 }};
 
 static const uint8_t g_ValeciumLogo_Data4bpp[] = {{
-{data_str}
+{DataStr}
 }};
 """
 
-    with open(OUT_H, "w") as f:
+    with open(OutH, "w") as f:
         f.write(header)
 
-    print(f"\nWritten to {OUT_H} (absolute: {os.path.abspath(OUT_H)})")
+    print(f"\nWritten to {OutH} (absolute: {os.path.abspath(OutH)})")
     print("Done.")
 
 

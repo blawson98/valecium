@@ -11,297 +11,295 @@ import tempfile
 import time
 import shlex
 
-SECTOR_SIZE = 512
-STAGE2_LOAD_ADDR = 0x7E00
-COREFS_LOAD_ADDR = 0x57E00
-DEFAULT_LABEL = "VALECIUM"
+SectorSize = 512
+Stage2LoadAddr = 0x7E00
+CorefsLoadAddr = 0x57E00
+DefaultLabel = "VALECIUM"
 
 
 class DiskBuildError(RuntimeError):
     pass
 
 
-def run_command(args, input_text=None, **kwargs):
+def RunCommand(Args, InputText=None, **Kwargs):
     subprocess.run(
-        args,
+        Args,
         check=True,
-        input=input_text,
-        text=input_text is not None,
-        **kwargs,
+        input=InputText,
+        text=InputText is not None,
+        **Kwargs,
     )
 
 
-def require_tool(name):
-    if shutil.which(name) is None:
-        raise DiskBuildError(f"Missing required tool: {name}")
+def RequireTool(Name):
+    if shutil.which(Name) is None:
+        raise DiskBuildError(f"Missing required tool: {Name}")
 
 
-def parse_size(value):
-    value = value.strip()
-    if not value:
+def ParseSize(Value):
+    Value = Value.strip()
+    if not Value:
         raise DiskBuildError("Image size is empty")
 
-    suffix = value[-1].upper()
-    if suffix in ("K", "M", "G", "T"):
-        number = value[:-1]
-        if not number:
-            raise DiskBuildError(f"Invalid size: {value}")
-        multiplier = {
+    Suffix = Value[-1].upper()
+    if Suffix in ("K", "M", "G", "T"):
+        Number = Value[:-1]
+        if not Number:
+            raise DiskBuildError(f"Invalid size: {Value}")
+        Multiplier = {
             "K": 1024,
             "M": 1024 * 1024,
             "G": 1024 * 1024 * 1024,
             "T": 1024 * 1024 * 1024 * 1024,
-        }[suffix]
-        return int(number) * multiplier
+        }[Suffix]
+        return int(Number) * Multiplier
 
-    return int(value)
-
-
-def align_up(value, align):
-    return (value + align - 1) // align * align
+    return int(Value)
 
 
-def get_dir_size(path):
-    total = 0
-    for root, _, files in os.walk(path):
-        for name in files:
-            full = os.path.join(root, name)
+def AlignUp(Value, Align):
+    return (Value + Align - 1) // Align * Align
+
+
+def GetDirSize(Path):
+    Total = 0
+    for Root, _, Files in os.walk(Path):
+        for Name in Files:
+            Full = os.path.join(Root, Name)
             try:
-                total += os.lstat(full).st_size
+                Total += os.lstat(Full).st_size
             except FileNotFoundError:
                 continue
-    return total
+    return Total
 
 
-def patch_stage1(stage1_bytes, stage2_lba, stage2_sectors):
-    sig = b"VLSP"
-    idx = stage1_bytes.find(sig)
-    if idx == -1:
+def PatchStage1(Stage1Bytes, Stage2Lba, Stage2Sectors):
+    Sig = b"VLSP"
+    Idx = Stage1Bytes.find(Sig)
+    if Idx == -1:
         raise DiskBuildError("Stage1 signature VLSP not found")
-    if stage1_bytes.find(sig, idx + 1) != -1:
+    if Stage1Bytes.find(Sig, Idx + 1) != -1:
         raise DiskBuildError("Stage1 signature VLSP appears multiple times")
 
-    data = bytearray(stage1_bytes)
-    struct.pack_into("<I", data, idx + 4, stage2_lba)
-    struct.pack_into("<H", data, idx + 8, stage2_sectors)
-    return bytes(data)
+    Data = bytearray(Stage1Bytes)
+    struct.pack_into("<I", Data, Idx + 4, Stage2Lba)
+    struct.pack_into("<H", Data, Idx + 8, Stage2Sectors)
+    return bytes(Data)
 
 
-def patch_stage2(stage2_bytes, label_bytes, uuid_bytes):
-    sig = b"VLSF"
-    idx = stage2_bytes.find(sig)
-    if idx == -1:
+def PatchStage2(Stage2Bytes, LabelBytes, UuidBytes):
+    Sig = b"VLSF"
+    Idx = Stage2Bytes.find(Sig)
+    if Idx == -1:
         raise DiskBuildError("Stage2 signature VLSF not found")
-    if stage2_bytes.find(sig, idx + 1) != -1:
+    if Stage2Bytes.find(Sig, Idx + 1) != -1:
         raise DiskBuildError("Stage2 signature VLSF appears multiple times")
 
-    data = bytearray(stage2_bytes)
-    struct.pack_into("<I", data, idx + 4, COREFS_LOAD_ADDR)
-    data[idx + 8 : idx + 8 + 32] = label_bytes
-    data[idx + 40 : idx + 40 + 16] = uuid_bytes
-    return bytes(data)
+    Data = bytearray(Stage2Bytes)
+    struct.pack_into("<I", Data, Idx + 4, CorefsLoadAddr)
+    Data[Idx + 8 : Idx + 8 + 32] = LabelBytes
+    Data[Idx + 40 : Idx + 40 + 16] = UuidBytes
+    return bytes(Data)
 
 
-def build_label_bytes(label):
-    if not label:
+def BuildLabelBytes(Label):
+    if not Label:
         return b"\x00" * 32
-    encoded = label.encode("ascii", errors="replace")
-    return encoded[:32].ljust(32, b"\x00")
+    Encoded = Label.encode("ascii", errors="replace")
+    return Encoded[:32].ljust(32, b"\x00")
 
 
-def parse_uuid_bytes(uuid_str):
-    if not uuid_str:
+def ParseUuidBytes(UuidStr):
+    if not UuidStr:
         return None
-    compact = uuid_str.replace("-", "").strip()
-    if len(compact) != 32:
+    Compact = UuidStr.replace("-", "").strip()
+    if len(Compact) != 32:
         return None
     try:
-        return bytes.fromhex(compact)
+        return bytes.fromhex(Compact)
     except ValueError:
         return None
 
 
-def build_stage2_blob(stage2_bytes, corefs_bytes):
-    if corefs_bytes is None:
-        combined = stage2_bytes
+def BuildStage2Blob(Stage2Bytes, CorefsBytes):
+    if CorefsBytes is None:
+        Combined = Stage2Bytes
     else:
-        corefs_offset = COREFS_LOAD_ADDR - STAGE2_LOAD_ADDR
-        if corefs_offset < len(stage2_bytes):
+        CorefsOffset = CorefsLoadAddr - Stage2LoadAddr
+        if CorefsOffset < len(Stage2Bytes):
             raise DiskBuildError(
                 "Stage2 is larger than the corefs load offset; refuse to append corefs."
             )
-        padding = corefs_offset - len(stage2_bytes)
-        combined = stage2_bytes + (b"\x00" * padding) + corefs_bytes
+        Padding = CorefsOffset - len(Stage2Bytes)
+        Combined = Stage2Bytes + (b"\x00" * Padding) + CorefsBytes
 
-    sectors = (len(combined) + SECTOR_SIZE - 1) // SECTOR_SIZE
-    total = sectors * SECTOR_SIZE
-    combined = combined.ljust(total, b"\x00")
-    return combined, sectors
-
-
-def write_at(path, offset, data):
-    with open(path, "r+b") as handle:
-        handle.seek(offset)
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
+    Sectors = (len(Combined) + SectorSize - 1) // SectorSize
+    Total = Sectors * SectorSize
+    Combined = Combined.ljust(Total, b"\x00")
+    return Combined, Sectors
 
 
-def _resolve_link_source(link_path, staging_root):
-    """Resolve a symlink target relative to the staging root.
+def WriteAt(Path, Offset, Data):
+    with open(Path, "r+b") as Handle:
+        Handle.seek(Offset)
+        Handle.write(Data)
+        Handle.flush()
+        os.fsync(Handle.fileno())
+
+
+def ResolveLinkSource(LinkPath, StagingRoot):
+    """Resolve a symlink target relative to the StagingRoot.
 
     If the symlink target starts with ``/``, the ``/`` is treated as the
-    staging root directory.  Relative targets are resolved from the
+    StagingRoot directory.  Relative targets are resolved from the
     symlink's parent directory.  The caller is responsible for checking
     that the returned path exists.
     """
-    target = os.readlink(link_path)
-    if target.startswith("/"):
-        resolved = os.path.normpath(os.path.join(staging_root, target.lstrip("/")))
+    Target = os.readlink(LinkPath)
+    if Target.startswith("/"):
+        Resolved = os.path.normpath(os.path.join(StagingRoot, Target.lstrip("/")))
     else:
-        resolved = os.path.normpath(os.path.join(os.path.dirname(link_path), target))
-    return resolved
+        Resolved = os.path.normpath(os.path.join(os.path.dirname(LinkPath), Target))
+    return Resolved
 
 
-def _copy_link(link_path, staging_root, dst_path):
-    """Copy the content that *link_path* points to to *dst_path*.
+def CopyLink(LinkPath, StagingRoot, DstPath):
+    """Copy the content that *LinkPath* points to to *DstPath*.
 
     Symlinks cannot be created on the target filesystem (e.g. vfat), so
     the actual file or directory tree is copied instead.
     """
-    resolved = _resolve_link_source(link_path, staging_root)
-    if not os.path.lexists(resolved):
-        raise DiskBuildError(
-            f"Symlink target does not exist: {link_path} -> {resolved}"
-        )
-    if os.path.isdir(resolved):
-        os.makedirs(dst_path, exist_ok=True)
-        copy_tree_contents(resolved, dst_path)
+    Resolved = ResolveLinkSource(LinkPath, StagingRoot)
+    if not os.path.lexists(Resolved):
+        raise DiskBuildError(f"Symlink target does not exist: {LinkPath} -> {Resolved}")
+    if os.path.isdir(Resolved):
+        os.makedirs(DstPath, exist_ok=True)
+        CopyTreeContents(Resolved, DstPath)
     else:
-        shutil.copy2(resolved, dst_path, follow_symlinks=False)
+        shutil.copy2(Resolved, DstPath, follow_symlinks=False)
 
 
-def copy_tree_contents(src, dst):
-    for root, dirs, files in os.walk(src):
-        rel = os.path.relpath(root, src)
-        target_root = dst if rel == "." else os.path.join(dst, rel)
-        os.makedirs(target_root, exist_ok=True)
-        shutil.copystat(root, target_root, follow_symlinks=False)
-        for name in dirs:
-            src_path = os.path.join(root, name)
-            dst_path = os.path.join(target_root, name)
-            if os.path.islink(src_path):
-                if os.path.lexists(dst_path):
-                    os.remove(dst_path)
-                _copy_link(src_path, src, dst_path)
+def CopyTreeContents(Src, Dst):
+    for Root, Dirs, Files in os.walk(Src):
+        Rel = os.path.relpath(Root, Src)
+        TargetRoot = Dst if Rel == "." else os.path.join(Dst, Rel)
+        os.makedirs(TargetRoot, exist_ok=True)
+        shutil.copystat(Root, TargetRoot, follow_symlinks=False)
+        for Name in Dirs:
+            SrcPath = os.path.join(Root, Name)
+            DstPath = os.path.join(TargetRoot, Name)
+            if os.path.islink(SrcPath):
+                if os.path.lexists(DstPath):
+                    os.remove(DstPath)
+                CopyLink(SrcPath, Src, DstPath)
             else:
-                os.makedirs(dst_path, exist_ok=True)
-                shutil.copystat(src_path, dst_path, follow_symlinks=False)
-        for name in files:
-            src_path = os.path.join(root, name)
-            dst_path = os.path.join(target_root, name)
-            if os.path.islink(src_path):
-                if os.path.lexists(dst_path):
-                    os.remove(dst_path)
-                _copy_link(src_path, src, dst_path)
+                os.makedirs(DstPath, exist_ok=True)
+                shutil.copystat(SrcPath, DstPath, follow_symlinks=False)
+        for Name in Files:
+            SrcPath = os.path.join(Root, Name)
+            DstPath = os.path.join(TargetRoot, Name)
+            if os.path.islink(SrcPath):
+                if os.path.lexists(DstPath):
+                    os.remove(DstPath)
+                CopyLink(SrcPath, Src, DstPath)
             else:
-                shutil.copy2(src_path, dst_path, follow_symlinks=False)
+                shutil.copy2(SrcPath, DstPath, follow_symlinks=False)
 
 
-def wait_for_partition(loop_dev):
-    candidates = [f"{loop_dev}p1", f"{loop_dev}1"]
+def WaitForPartition(LoopDev):
+    Candidates = [f"{LoopDev}p1", f"{LoopDev}1"]
     for _ in range(50):
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                return candidate
-        run_command(["udevadm", "settle"], stdout=subprocess.DEVNULL)
+        for Candidate in Candidates:
+            if os.path.exists(Candidate):
+                return Candidate
+        RunCommand(["udevadm", "settle"], stdout=subprocess.DEVNULL)
         time.sleep(0.1)
     raise DiskBuildError("Partition device did not appear for loopback")
 
 
-def partition_mbr(image_path, start_lba, total_sectors):
-    end_lba = total_sectors - 1
-    if end_lba <= start_lba:
+def PartitionMbr(ImagePath, StartLba, TotalSectors):
+    EndLba = TotalSectors - 1
+    if EndLba <= StartLba:
         raise DiskBuildError("Partition size is invalid")
 
-    run_command(["parted", "-s", image_path, "mklabel", "msdos"])
-    run_command(
+    RunCommand(["parted", "-s", ImagePath, "mklabel", "msdos"])
+    RunCommand(
         [
             "parted",
             "-s",
             "-a",
             "minimal",
-            image_path,
+            ImagePath,
             "mkpart",
             "primary",
-            f"{start_lba}s",
-            f"{end_lba}s",
+            f"{StartLba}s",
+            f"{EndLba}s",
         ]
     )
-    run_command(["parted", "-s", image_path, "set", "1", "boot", "on"])
+    RunCommand(["parted", "-s", ImagePath, "set", "1", "boot", "on"])
 
 
-def partition_gpt(image_path, start_lba, total_sectors, label):
+def PartitionGpt(ImagePath, StartLba, TotalSectors, Label):
     if not shutil.which("parted"):
         raise DiskBuildError("GPT requires parted")
 
-    end_lba = total_sectors - 34
-    if end_lba <= start_lba:
+    EndLba = TotalSectors - 34
+    if EndLba <= StartLba:
         raise DiskBuildError("Image size is too small for GPT partition")
 
-    run_command(["parted", "-s", image_path, "mklabel", "gpt"])
-    run_command(
+    RunCommand(["parted", "-s", ImagePath, "mklabel", "gpt"])
+    RunCommand(
         [
             "parted",
             "-s",
             "-a",
             "minimal",
-            image_path,
+            ImagePath,
             "mkpart",
             "primary",
-            f"{start_lba}s",
-            f"{end_lba}s",
+            f"{StartLba}s",
+            f"{EndLba}s",
         ]
     )
-    run_command(["parted", "-s", image_path, "name", "1", label])
+    RunCommand(["parted", "-s", ImagePath, "name", "1", Label])
 
 
-def mkfs_label_args(fs_type, label):
-    if not label:
+def MkfsLabelArgs(FsType, Label):
+    if not Label:
         return []
-    mapping = {
-        "ext2": ["-L", label],
-        "ext3": ["-L", label],
-        "ext4": ["-L", label],
-        "xfs": ["-L", label],
-        "btrfs": ["-L", label],
-        "vfat": ["-n", label],
-        "fat": ["-n", label],
-        "msdos": ["-n", label],
-        "exfat": ["-n", label],
-        "f2fs": ["-l", label],
+    Mapping = {
+        "ext2": ["-L", Label],
+        "ext3": ["-L", Label],
+        "ext4": ["-L", Label],
+        "xfs": ["-L", Label],
+        "btrfs": ["-L", Label],
+        "vfat": ["-n", Label],
+        "fat": ["-n", Label],
+        "msdos": ["-n", Label],
+        "exfat": ["-n", Label],
+        "f2fs": ["-l", Label],
     }
-    return mapping.get(fs_type, [])
+    return Mapping.get(FsType, [])
 
 
-def read_blkid(part_dev):
-    result = subprocess.run(
-        ["blkid", "-o", "export", part_dev],
+def ReadBlkid(PartDev):
+    Result = subprocess.run(
+        ["blkid", "-o", "export", PartDev],
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         text=True,
     )
-    if result.returncode != 0:
+    if Result.returncode != 0:
         return None, None
-    label = None
-    uuid = None
-    for line in result.stdout.splitlines():
-        if line.startswith("LABEL="):
-            label = line.split("=", 1)[1].strip()
-        elif line.startswith("UUID="):
-            uuid = line.split("=", 1)[1].strip()
-    return label, uuid
+    Label = None
+    Uuid = None
+    for Line in Result.stdout.splitlines():
+        if Line.startswith("LABEL="):
+            Label = Line.split("=", 1)[1].strip()
+        elif Line.startswith("UUID="):
+            Uuid = Line.split("=", 1)[1].strip()
+    return Label, Uuid
 
 
 def main():
@@ -323,7 +321,7 @@ def main():
         choices=["mbr", "gpt"],
         help="Partition scheme",
     )
-    parser.add_argument("--label", default=DEFAULT_LABEL, help="Filesystem label")
+    parser.add_argument("--label", default=DefaultLabel, help="Filesystem label")
     parser.add_argument("--image-size", help="Image size (bytes or with K/M/G)")
     parser.add_argument(
         "--partition-start",
@@ -351,177 +349,177 @@ def main():
         help="Overwrite existing output image",
     )
 
-    args = parser.parse_args()
+    Args = parser.parse_args()
 
     if not sys.platform.startswith("linux"):
         raise DiskBuildError("This script only supports Linux")
     if os.geteuid() != 0:
         raise DiskBuildError("Run this script as root (sudo)")
 
-    stage1_path = os.path.abspath(args.stage1)
-    stage2_path = os.path.abspath(args.stage2)
-    staging_dir = os.path.abspath(args.staging)
-    output_path = os.path.abspath(args.output)
+    Stage1Path = os.path.abspath(Args.stage1)
+    Stage2Path = os.path.abspath(Args.stage2)
+    StagingDir = os.path.abspath(Args.staging)
+    OutputPath = os.path.abspath(Args.output)
 
-    if not os.path.isfile(stage1_path):
-        raise DiskBuildError(f"Stage1 not found: {stage1_path}")
-    if not os.path.isfile(stage2_path):
-        raise DiskBuildError(f"Stage2 not found: {stage2_path}")
-    if not os.path.isdir(staging_dir):
-        raise DiskBuildError(f"Staging dir not found: {staging_dir}")
+    if not os.path.isfile(Stage1Path):
+        raise DiskBuildError(f"Stage1 not found: {Stage1Path}")
+    if not os.path.isfile(Stage2Path):
+        raise DiskBuildError(f"Stage2 not found: {Stage2Path}")
+    if not os.path.isdir(StagingDir):
+        raise DiskBuildError(f"Staging dir not found: {StagingDir}")
 
-    require_tool("losetup")
-    require_tool("parted")
-    require_tool("mount")
-    require_tool("umount")
-    require_tool("blkid")
-    require_tool("udevadm")
-    require_tool("partprobe")
-    require_tool(f"mkfs.{args.fs}")
+    RequireTool("losetup")
+    RequireTool("parted")
+    RequireTool("mount")
+    RequireTool("umount")
+    RequireTool("blkid")
+    RequireTool("udevadm")
+    RequireTool("partprobe")
+    RequireTool(f"mkfs.{Args.fs}")
 
-    if args.scheme == "gpt":
+    if Args.scheme == "gpt":
         if not shutil.which("parted"):
             raise DiskBuildError("GPT requires parted")
 
-    if os.path.exists(output_path):
-        if args.force:
-            os.remove(output_path)
+    if os.path.exists(OutputPath):
+        if Args.force:
+            os.remove(OutputPath)
         else:
-            raise DiskBuildError(f"Output already exists: {output_path} (use --force)")
+            raise DiskBuildError(f"Output already exists: {OutputPath} (use --force)")
 
-    with open(stage1_path, "rb") as handle:
-        stage1_bytes = handle.read()
-    with open(stage2_path, "rb") as handle:
-        stage2_base = handle.read()
+    with open(Stage1Path, "rb") as Handle:
+        Stage1Bytes = Handle.read()
+    with open(Stage2Path, "rb") as Handle:
+        Stage2Base = Handle.read()
 
-    stage2_start = args.stage2_start
-    if stage2_start is None:
-        stage2_start = 1 if args.scheme == "mbr" else 34
+    Stage2Start = Args.stage2_start
+    if Stage2Start is None:
+        Stage2Start = 1 if Args.scheme == "mbr" else 34
 
-    if stage2_start <= 0:
+    if Stage2Start <= 0:
         raise DiskBuildError("Stage2 start LBA must be >= 1")
-    if args.scheme == "gpt" and stage2_start < 34:
+    if Args.scheme == "gpt" and Stage2Start < 34:
         raise DiskBuildError("GPT stage2 start must be >= 34")
 
-    corefs_bytes = None
-    corefs_path = None
-    if args.corefs:
-        corefs_path = os.path.abspath(args.corefs)
-        if not os.path.isfile(corefs_path):
-            raise DiskBuildError(f"Corefs not found: {corefs_path}")
-        with open(corefs_path, "rb") as handle:
-            corefs_bytes = handle.read()
+    CorefsBytes = None
+    CorefsPath = None
+    if Args.corefs:
+        CorefsPath = os.path.abspath(Args.corefs)
+        if not os.path.isfile(CorefsPath):
+            raise DiskBuildError(f"Corefs not found: {CorefsPath}")
+        with open(CorefsPath, "rb") as Handle:
+            CorefsBytes = Handle.read()
     else:
-        guessed = os.path.join(os.path.dirname(stage2_path), f"corefs_{args.fs}.bin")
-        if os.path.isfile(guessed):
-            corefs_path = guessed
-            with open(corefs_path, "rb") as handle:
-                corefs_bytes = handle.read()
+        Guessed = os.path.join(os.path.dirname(Stage2Path), f"corefs_{Args.fs}.bin")
+        if os.path.isfile(Guessed):
+            CorefsPath = Guessed
+            with open(CorefsPath, "rb") as Handle:
+                CorefsBytes = Handle.read()
         else:
             print(
-                f"Warning: corefs_{args.fs}.bin not found; stage2 will not "
+                f"Warning: corefs_{Args.fs}.bin not found; stage2 will not "
                 "include a filesystem driver.",
                 file=sys.stderr,
             )
 
-    if corefs_bytes is not None:
-        corefs_offset = COREFS_LOAD_ADDR - STAGE2_LOAD_ADDR
-        if len(stage2_base) >= corefs_offset:
+    if CorefsBytes is not None:
+        CorefsOffset = CorefsLoadAddr - Stage2LoadAddr
+        if len(Stage2Base) >= CorefsOffset:
             print(
                 "Warning: Stage2 is already at/after the corefs offset; "
                 "skipping corefs append.",
                 file=sys.stderr,
             )
-            corefs_bytes = None
+            CorefsBytes = None
 
-    _, stage2_sectors = build_stage2_blob(stage2_base, corefs_bytes)
+    _, Stage2Sectors = BuildStage2Blob(Stage2Base, CorefsBytes)
 
-    if stage2_start + stage2_sectors > args.partition_start:
+    if Stage2Start + Stage2Sectors > Args.partition_start:
         raise DiskBuildError(
             "Stage2 overlaps the main partition; adjust start LBAs or size"
         )
 
-    staging_size = get_dir_size(staging_dir)
-    min_size = args.partition_start * SECTOR_SIZE + staging_size + 64 * 1024 * 1024
-    if args.image_size:
-        image_size = parse_size(args.image_size)
-        if image_size < min_size:
+    StagingSize = GetDirSize(StagingDir)
+    MinSize = Args.partition_start * SectorSize + StagingSize + 64 * 1024 * 1024
+    if Args.image_size:
+        ImageSize = ParseSize(Args.image_size)
+        if ImageSize < MinSize:
             raise DiskBuildError("Image size is too small for staging content")
     else:
-        image_size = align_up(min_size, 1024 * 1024)
+        ImageSize = AlignUp(MinSize, 1024 * 1024)
 
-    total_sectors = image_size // SECTOR_SIZE
-    if total_sectors <= args.partition_start:
+    TotalSectors = ImageSize // SectorSize
+    if TotalSectors <= Args.partition_start:
         raise DiskBuildError("Image size does not allow a partition")
 
-    with open(output_path, "wb") as handle:
-        handle.truncate(image_size)
+    with open(OutputPath, "wb") as Handle:
+        Handle.truncate(ImageSize)
 
-    if args.scheme == "mbr":
-        partition_mbr(output_path, args.partition_start, total_sectors)
+    if Args.scheme == "mbr":
+        PartitionMbr(OutputPath, Args.partition_start, TotalSectors)
     else:
-        partition_gpt(output_path, args.partition_start, total_sectors, args.label)
+        PartitionGpt(OutputPath, Args.partition_start, TotalSectors, Args.label)
 
-    stage1_patched = patch_stage1(stage1_bytes, stage2_start, stage2_sectors)
-    if len(stage1_patched) > 0x1BE:
-        raise DiskBuildError(f"Stage1 size exceeds 0x1BE bytes: {len(stage1_patched)}")
-    stage1_patched = stage1_patched.ljust(0x1BE, b"\x00")
-    write_at(output_path, 0, stage1_patched)
+    Stage1Patched = PatchStage1(Stage1Bytes, Stage2Start, Stage2Sectors)
+    if len(Stage1Patched) > 0x1BE:
+        raise DiskBuildError(f"Stage1 size exceeds 0x1BE bytes: {len(Stage1Patched)}")
+    Stage1Patched = Stage1Patched.ljust(0x1BE, b"\x00")
+    WriteAt(OutputPath, 0, Stage1Patched)
 
-    loop_dev = None
-    mount_dir = None
-    part_dev = None
+    LoopDev = None
+    MountDir = None
+    PartDev = None
 
     try:
-        loop_dev = subprocess.check_output(
-            ["losetup", "--find", "--show", "--partscan", output_path],
+        LoopDev = subprocess.check_output(
+            ["losetup", "--find", "--show", "--partscan", OutputPath],
             text=True,
         ).strip()
-        run_command(["partprobe", loop_dev], stdout=subprocess.DEVNULL)
-        part_dev = wait_for_partition(loop_dev)
+        RunCommand(["partprobe", LoopDev], stdout=subprocess.DEVNULL)
+        PartDev = WaitForPartition(LoopDev)
 
-        mkfs_cmd = [f"mkfs.{args.fs}"]
-        mkfs_cmd.extend(mkfs_label_args(args.fs, args.label))
-        if args.mkfs_args:
-            mkfs_cmd.extend(shlex.split(args.mkfs_args))
-        mkfs_cmd.append(part_dev)
-        run_command(mkfs_cmd)
+        MkfsCmd = [f"mkfs.{Args.fs}"]
+        MkfsCmd.extend(MkfsLabelArgs(Args.fs, Args.label))
+        if Args.mkfs_args:
+            MkfsCmd.extend(shlex.split(Args.mkfs_args))
+        MkfsCmd.append(PartDev)
+        RunCommand(MkfsCmd)
 
-        fs_label, fs_uuid = read_blkid(part_dev)
-        if not fs_label:
-            fs_label = args.label
-        uuid_bytes = parse_uuid_bytes(fs_uuid)
-        if uuid_bytes is None:
-            uuid_bytes = b"\x00" * 16
+        FsLabel, FsUuid = ReadBlkid(PartDev)
+        if not FsLabel:
+            FsLabel = Args.label
+        UuidBytes = ParseUuidBytes(FsUuid)
+        if UuidBytes is None:
+            UuidBytes = b"\x00" * 16
 
-        label_bytes = build_label_bytes(fs_label)
-        stage2_patched = patch_stage2(stage2_base, label_bytes, uuid_bytes)
-        stage2_blob, _ = build_stage2_blob(stage2_patched, corefs_bytes)
-        write_at(output_path, stage2_start * SECTOR_SIZE, stage2_blob)
+        LabelBytes = BuildLabelBytes(FsLabel)
+        Stage2Patched = PatchStage2(Stage2Base, LabelBytes, UuidBytes)
+        Stage2Blob, _ = BuildStage2Blob(Stage2Patched, CorefsBytes)
+        WriteAt(OutputPath, Stage2Start * SectorSize, Stage2Blob)
 
-        mount_dir = tempfile.mkdtemp(prefix="valecium-img-")
-        run_command(["mount", part_dev, mount_dir])
-        copy_tree_contents(staging_dir, mount_dir)
-        run_command(["sync"])
-        run_command(["umount", mount_dir])
-        shutil.rmtree(mount_dir, ignore_errors=True)
-        mount_dir = None
+        MountDir = tempfile.mkdtemp(prefix="valecium-img-")
+        RunCommand(["mount", PartDev, MountDir])
+        CopyTreeContents(StagingDir, MountDir)
+        RunCommand(["sync"])
+        RunCommand(["umount", MountDir])
+        shutil.rmtree(MountDir, ignore_errors=True)
+        MountDir = None
     finally:
-        if mount_dir:
+        if MountDir:
             try:
-                run_command(["umount", mount_dir])
+                RunCommand(["umount", MountDir])
             except Exception:
                 pass
-            shutil.rmtree(mount_dir, ignore_errors=True)
-        if loop_dev:
+            shutil.rmtree(MountDir, ignore_errors=True)
+        if LoopDev:
             try:
-                run_command(["losetup", "-d", loop_dev])
+                RunCommand(["losetup", "-d", LoopDev])
             except Exception:
                 pass
 
-    print("Disk image written:", output_path)
-    print("Stage2 LBA:", stage2_start)
-    print("Stage2 sectors:", stage2_sectors)
+    print("Disk image written:", OutputPath)
+    print("Stage2 LBA:", Stage2Start)
+    print("Stage2 sectors:", Stage2Sectors)
 
 
 if __name__ == "__main__":

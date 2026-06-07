@@ -62,21 +62,21 @@ def GetBootloaderBuildConfig(
             f"Unsupported boot type: {BootType}. Supported: {list(BootloaderProfiles.keys())}"
         )
 
-    config = copy.deepcopy(BootloaderProfiles[BootType])
-    supported_architectures = config.get("SupportedArchitectures", [])
-    if supported_architectures and Architecture not in supported_architectures:
+    Config = copy.deepcopy(BootloaderProfiles[BootType])
+    SupportedArchitectures = Config.get("SupportedArchitectures", [])
+    if SupportedArchitectures and Architecture not in SupportedArchitectures:
         raise ValueError(
             f"Unsupported architecture {Architecture} for boot type {BootType}. "
-            f"Supported: {supported_architectures}"
+            f"Supported: {SupportedArchitectures}"
         )
 
-    config["BootType"] = BootType
-    config["Architecture"] = Architecture
-    config["Version"] = Version
-    config["BuildConfig"] = BuildConfig
-    config["OutputName"] = f"TheBootloader-{Version}_{BuildConfig}"
+    Config["BootType"] = BootType
+    Config["Architecture"] = Architecture
+    Config["Version"] = Version
+    Config["BuildConfig"] = BuildConfig
+    Config["OutputName"] = f"TheBootloader-{Version}_{BuildConfig}"
 
-    return config
+    return Config
 
 
 def ConfigureBootloaderEnvironment(
@@ -253,15 +253,15 @@ def CreateElTorito(
             f"Invalid corefs load address: {CoreFsLoadAddress:#x} <= {ElToritoLoadAddress:#x}"
         )
 
-    corefs_offset = CoreFsLoadAddress - ElToritoLoadAddress
-    corefs_start = len(Stage1Data) + len(Stage2Data)
-    if corefs_start > corefs_offset:
+    CorefsOffset = CoreFsLoadAddress - ElToritoLoadAddress
+    CorefsStart = len(Stage1Data) + len(Stage2Data)
+    if CorefsStart > CorefsOffset:
         raise ValueError(
-            f"core.bin exceeds corefs load boundary: {corefs_start:#x} > {corefs_offset:#x}"
+            f"core.bin exceeds corefs load boundary: {CorefsStart:#x} > {CorefsOffset:#x}"
         )
 
-    if corefs_start < corefs_offset:
-        Stage2Data = Stage2Data + b"\x00" * (corefs_offset - corefs_start)
+    if CorefsStart < CorefsOffset:
+        Stage2Data = Stage2Data + b"\x00" * (CorefsOffset - CorefsStart)
 
     Combined = Stage1Data + Stage2Data + CoreFsData
 
