@@ -251,8 +251,7 @@ void FDC_Reset(void)
 
    // Wait for IRQ after reset
    if (fdc_wait_irq() < 0)
-   {
-   }
+   {}
 
    // Sense interrupt status 4 times (for 4 drives)
    for (int i = 0; i < 4; i++)
@@ -319,7 +318,8 @@ int FDC_ReadLba(DISK *disk, uint32_t lba, uint8_t *buffer, size_t count)
    /* Spin-up delay: ~300 ms on real hardware.  In QEMU the floppy is
     * virtual so the loop need not be huge, but a generous delay prevents
     * races when the motor was previously off for a long time. */
-   for (volatile int i = 0; i < 500000; i++);
+   for (volatile int i = 0; i < 500000; i++)
+      ;
 
    for (size_t i = 0; i < count; i++)
    {
@@ -415,7 +415,8 @@ int FDC_WriteLba(DISK *disk, uint32_t lba, const uint8_t *buffer, size_t count)
 
    fdc_motor_on(drive);
 
-   for (volatile int i = 0; i < 500000; i++);
+   for (volatile int i = 0; i < 500000; i++)
+      ;
 
    for (size_t i = 0; i < count; i++)
    {
@@ -526,7 +527,8 @@ int FDC_Scan(DISK *disks, int maxDisks)
 
       g_HalIoOperations->outb(FDC_DOR, fdc_make_dor(drive, true));
 
-      for (volatile int i = 0; i < 100000; i++);
+      for (volatile int i = 0; i < 100000; i++)
+         ;
 
       int recalibrate_rc = fdc_recalibrate(drive);
 

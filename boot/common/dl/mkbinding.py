@@ -244,7 +244,7 @@ def GenerateHeader(Functions: list[tuple[str, str]]) -> str:
         Lines.append(f'    {Name} = ({FpType})dlsym(NULL, "{Name}");')
         Lines.append(f"    if (!{Name}) return -1;")
 
-    lines += [
+    Lines += [
         "    return 0;",
         "}",
         "#endif /* DL_RESOLVE_FN */",
@@ -261,23 +261,13 @@ def main():
 
     OutH = sys.argv[1]
 
-    print(f"Scanning {CommonDir} for public functions …")
     Functions = FindPublicFunctions()
     Functions.sort(key=lambda t: t[0])
-
-    if not Functions:
-        print("No public functions found, generating empty header.")
-    else:
-        print(f"Found {len(Functions)} public functions:")
-        for Name, Sig in Functions:
-            print(f"  {Sig}")
 
     Header = GenerateHeader(Functions)
 
     with open(OutH, "w") as f:
         f.write(Header)
-
-    print(f"\nWritten to {OutH}")
 
 
 if __name__ == "__main__":

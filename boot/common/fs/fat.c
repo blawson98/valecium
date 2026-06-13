@@ -826,12 +826,14 @@ int FAT_Open(const char *path)
    while (*path != '\0')
    {
       const char *start = path;
-      while (*path != '/' && *path != '\0') path++;
+      while (*path != '/' && *path != '\0')
+         path++;
       int comp_len = (int)(path - start);
 
       if (comp_len == 0)
       {
-         while (*path == '/') path++;
+         while (*path == '/')
+            path++;
          continue;
       }
 
@@ -852,7 +854,8 @@ int FAT_Open(const char *path)
       current_cluster = file_cluster;
       current_attrs = file_attrs;
 
-      while (*path == '/') path++;
+      while (*path == '/')
+         path++;
    }
 
    if (current_attrs & ATTR_DIRECTORY) return -EINVAL;

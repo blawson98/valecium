@@ -78,7 +78,8 @@ static void clear_screen(uint32_t pixel)
 {
    uint32_t x, y;
    for (y = 0; y < s_Info.height; y++)
-      for (x = 0; x < s_Info.width; x++) put_pixel((int)x, (int)y, pixel);
+      for (x = 0; x < s_Info.width; x++)
+         put_pixel((int)x, (int)y, pixel);
 }
 
 static void draw_glyph(uint8_t c, int x, int y, uint32_t fg)
@@ -182,7 +183,8 @@ int VBE_PutChar(char c, int x, int y, char color)
       uint32_t y;
       uint8_t *fb = (uint8_t *)(uintptr_t)s_Info.framebuffer_addr;
 
-      for (y = 0; y < copy_rows * row_bytes; y++) fb[y] = fb[y + src_off];
+      for (y = 0; y < copy_rows * row_bytes; y++)
+         fb[y] = fb[y + src_off];
 
       /* Clear the newly exposed bottom rows. */
       for (y = fb_bytes - scroll_pixels * row_bytes; y < fb_bytes; y++)

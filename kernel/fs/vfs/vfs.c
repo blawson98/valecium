@@ -63,7 +63,8 @@ static int vfs_normalize_mount(const char *location, char *normalized,
    }
 
    /* Strip trailing slashes except for root */
-   while (len > 1 && location[len - 1] == '/') len--;
+   while (len > 1 && location[len - 1] == '/')
+      len--;
 
    if (len >= normalized_size) len = normalized_size - 1;
 

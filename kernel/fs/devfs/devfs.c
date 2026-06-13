@@ -56,7 +56,8 @@ static const char *normalize_device_path(const char *path)
    if (!path) return NULL;
 
    /* Skip leading slashes */
-   while (*path == '/') path++;
+   while (*path == '/')
+      path++;
 
    /* Skip "dev/" prefix if present */
    if (strncmp(path, "dev/", 4) == 0)

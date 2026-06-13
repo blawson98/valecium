@@ -66,7 +66,8 @@ Process *Process_CreateKernel(uint32_t entry_point)
    proc->eflags = 0x202u;
    proc->saved_regs = NULL;
 
-   for (int i = 0; i < 16; ++i) proc->fd_table[i] = NULL;
+   for (int i = 0; i < 16; ++i)
+      proc->fd_table[i] = NULL;
 
    if (Process_InitializeStandardIO(proc) != 0)
    {

@@ -208,8 +208,7 @@ void heap_check_integrity(void)
          /* Call panic function if available */
          logfmt(LOG_ERROR, "[MEM] PANIC: Heap corruption detected!\n");
          while (1)
-         {
-         } /* Hang */
+         {} /* Hang */
       }
 
       cur += sizeof(HeapBlockHeader) + h->size;
@@ -281,7 +280,8 @@ void Heap_SelfTest(void)
       logfmt(LOG_ERROR, "[MEM] kmalloc failed\n");
       return;
    }
-   for (int i = 0; i < 32; ++i) p[i] = (char)(i + 1);
+   for (int i = 0; i < 32; ++i)
+      p[i] = (char)(i + 1);
 
    char *q = (char *)realloc(p, 64);
    if (!q)

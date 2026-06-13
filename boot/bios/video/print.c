@@ -18,7 +18,8 @@ static const char g_HexUpper[] = "0123456789ABCDEF";
 
 static void put_reverse(const char *buf, int len)
 {
-   while (--len >= 0) putc(buf[len]);
+   while (--len >= 0)
+      putc(buf[len]);
 }
 
 static void put_unsigned(unsigned long long val, unsigned radix,
@@ -29,7 +30,8 @@ static void put_unsigned(unsigned long long val, unsigned radix,
 
    if (radix < 2 || radix > 16) return;
 
-   do {
+   do
+   {
       buf[pos++] = digits[val % radix];
       val /= radix;
    } while (val > 0 && pos < (int)sizeof(buf));
@@ -80,7 +82,8 @@ void putc(char c)
 void puts(const char *str)
 {
    if (!str) return;
-   for (; *str; ++str) putc(*str);
+   for (; *str; ++str)
+      putc(*str);
 }
 
 void puti(int val) { put_signed(val, 10, g_HexLower, 0, false); }

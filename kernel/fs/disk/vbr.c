@@ -72,7 +72,8 @@ void VBR_ProbeIdentity(Partition *vol, const char *rootCmdVal)
    vol->label[11] = '\0';
 
    /* Trim trailing space padding (0x20) that FAT pads short labels with */
-   for (int i = 10; i >= 0 && vol->label[i] == ' '; i--) vol->label[i] = '\0';
+   for (int i = 10; i >= 0 && vol->label[i] == ' '; i--)
+      vol->label[i] = '\0';
 
    logfmt(LOG_INFO, "[DISK] VBR identity: uuid=0x%08X label=\"%s\"\n",
           vol->uuid, vol->label);

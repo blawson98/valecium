@@ -706,7 +706,8 @@ static int ext2_resolve(const char *path, uint32_t *out_inode,
    while (*path != '\0')
    {
       const char *start = path;
-      while (*path != '/' && *path != '\0') path++;
+      while (*path != '/' && *path != '\0')
+         path++;
       int comp_len = (int)(path - start);
 
       uint32_t child_inode, child_size;
@@ -717,7 +718,8 @@ static int ext2_resolve(const char *path, uint32_t *out_inode,
       cur_inode = child_inode;
       cur_size = child_size;
 
-      while (*path == '/') path++;
+      while (*path == '/')
+         path++;
    }
 
    *out_inode = cur_inode;

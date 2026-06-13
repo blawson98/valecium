@@ -294,7 +294,8 @@ static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
       if (!(dir_flags & 2)) return -ENOTDIR;
 
       const char *start = path;
-      while (*path != '/' && *path != '\0') path++;
+      while (*path != '/' && *path != '\0')
+         path++;
       int comp_len = (int)(path - start);
 
       uint32_t child_lba, child_size;
@@ -308,7 +309,8 @@ static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
       dir_size = child_size;
       dir_flags = child_flags;
 
-      while (*path == '/') path++;
+      while (*path == '/')
+         path++;
    }
 
    *out_lba = (uint32_t)dir_lba;

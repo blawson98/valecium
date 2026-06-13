@@ -3,9 +3,19 @@ IndentWidth: 3
 TabWidth: 3
 UseTab: Never
 ColumnLimit: 80
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+  SplitEmptyFunction: false
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLoopsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: All
 AllowShortBlocksOnASingleLine: Empty
 IndentCaseLabels: false

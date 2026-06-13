@@ -128,7 +128,8 @@ static int ata_wait_busy(uint16_t tf_port)
       if (!(status & ATA_STATUS_BSY)) return 0;
 
       // Small delay to prevent bus saturation
-      for (volatile int i = 0; i < 100; i++);
+      for (volatile int i = 0; i < 100; i++)
+         ;
    }
 
    return -1; // Timeout
@@ -158,7 +159,8 @@ static int ata_wait_drq(uint16_t tf_port)
       /* Step 1: BSY must clear before we trust other bits */
       if (status & ATA_STATUS_BSY)
       {
-         for (volatile int i = 0; i < 100; i++);
+         for (volatile int i = 0; i < 100; i++)
+            ;
          continue;
       }
 
@@ -166,7 +168,8 @@ static int ata_wait_drq(uint16_t tf_port)
       if (status & ATA_STATUS_ERR) return -1;
       if (status & ATA_STATUS_DRQ) return 0;
 
-      for (volatile int i = 0; i < 100; i++);
+      for (volatile int i = 0; i < 100; i++)
+         ;
    }
 
    return -1; /* Timeout */
@@ -185,7 +188,8 @@ static int ata_wait_for_ready(uint16_t tf_port)
       if (!(status & ATA_STATUS_BSY) && (status & ATA_STATUS_DRDY)) return 0;
 
       // Small delay
-      for (volatile int i = 0; i < 100; i++);
+      for (volatile int i = 0; i < 100; i++)
+         ;
    }
 
    return -1; // Timeout
@@ -200,13 +204,15 @@ static void ata_soft_reset(uint16_t dcr_port)
    g_HalIoOperations->outb(dcr_port, 0x04);
 
    // Wait a bit
-   for (volatile int i = 0; i < 100000; i++);
+   for (volatile int i = 0; i < 100000; i++)
+      ;
 
    // Clear SRST bit
    g_HalIoOperations->outb(dcr_port, 0x00);
 
    // Wait for reset to complete
-   for (volatile int i = 0; i < 100000; i++);
+   for (volatile int i = 0; i < 100000; i++)
+      ;
 }
 
 /**
@@ -397,7 +403,8 @@ int ATA_Write(DISK *disk, uint32_t lba, const uint8_t *buffer, uint32_t count)
       if (sec < count - 1)
       {
          // Brief delay between sectors
-         for (volatile int i = 0; i < 10000; i++);
+         for (volatile int i = 0; i < 10000; i++)
+            ;
       }
       else
       {

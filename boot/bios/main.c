@@ -338,7 +338,8 @@ int main(const BootParams *bootParams)
                   char chunk[64];
                   int bytes = FS_Read(fd, chunk, sizeof(chunk));
                   if (bytes <= 0) break;
-                  for (int ci = 0; ci < bytes; ci++) putc(chunk[ci]);
+                  for (int ci = 0; ci < bytes; ci++)
+                     putc(chunk[ci]);
                }
                FS_Close(fd);
                puts("\n--- EOF ---\n");
@@ -347,7 +348,8 @@ int main(const BootParams *bootParams)
       }
    }
 
-   for (;;);
+   for (;;)
+      ;
 
    return 0;
 }

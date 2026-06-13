@@ -50,8 +50,10 @@ double fabs(double x) { return x < 0.0 ? -x : x; }
 float sinf(float x)
 {
    /* Reduce x to [-pi, pi] */
-   while (x > M_PI) x -= 2 * M_PI;
-   while (x < -M_PI) x += 2 * M_PI;
+   while (x > M_PI)
+      x -= 2 * M_PI;
+   while (x < -M_PI)
+      x += 2 * M_PI;
 
    float result = x;
    float term = x;
@@ -66,8 +68,10 @@ float sinf(float x)
 
 double sin(double x)
 {
-   while (x > M_PI) x -= 2 * M_PI;
-   while (x < -M_PI) x += 2 * M_PI;
+   while (x > M_PI)
+      x -= 2 * M_PI;
+   while (x < -M_PI)
+      x += 2 * M_PI;
 
    double result = x;
    double term = x;
@@ -83,8 +87,10 @@ double sin(double x)
 /* cos(x) using Taylor series: 1 - x^2/2! + x^4/4! - x^6/6! + ... */
 float cosf(float x)
 {
-   while (x > M_PI) x -= 2 * M_PI;
-   while (x < -M_PI) x += 2 * M_PI;
+   while (x > M_PI)
+      x -= 2 * M_PI;
+   while (x < -M_PI)
+      x += 2 * M_PI;
 
    float result = 1.0f;
    float term = 1.0f;
@@ -99,8 +105,10 @@ float cosf(float x)
 
 double cos(double x)
 {
-   while (x > M_PI) x -= 2 * M_PI;
-   while (x < -M_PI) x += 2 * M_PI;
+   while (x > M_PI)
+      x -= 2 * M_PI;
+   while (x < -M_PI)
+      x += 2 * M_PI;
 
    double result = 1.0;
    double term = 1.0;

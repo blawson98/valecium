@@ -44,7 +44,8 @@ int Serial_PutChar(char c, int x, int y, char color)
    if (!s_Initialized) return -ENODEV;
 
    /* Wait until the transmitter holding register is empty */
-   while (!(inb(SERIAL_LSR) & LSR_THR_EMPTY));
+   while (!(inb(SERIAL_LSR) & LSR_THR_EMPTY))
+      ;
 
    outb(SERIAL_DATA, (uint8_t)c);
    return SUCCESS;

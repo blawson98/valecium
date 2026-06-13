@@ -501,8 +501,7 @@ static void vga_handle_ansi_command(char cmd)
       s_TermCursorX -= n;
       break;
    case 'H':
-   case 'f':
-   {
+   case 'f': {
       int row = (s_AnsiParamCount > 0) ? s_AnsiParams[0] : 1;
       int col = (s_AnsiParamCount > 1) ? s_AnsiParams[1] : 1;
       if (row < 1) row = 1;
@@ -520,8 +519,7 @@ static void vga_handle_ansi_command(char cmd)
          vga_present();
       }
       break;
-   case 'K':
-   {
+   case 'K': {
       uint16_t *row = s_TermBuffer[s_TermCursorY];
 
       if (n == 0)

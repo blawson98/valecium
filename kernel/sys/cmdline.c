@@ -49,7 +49,8 @@ static const char *next_token(const char *src, char *keyOut, size_t keyMax,
                               char *valOut, size_t valMax)
 {
    /* Skip leading whitespace */
-   while (*src == ' ') src++;
+   while (*src == ' ')
+      src++;
    if (!*src) return NULL;
 
    /* -- Copy key: stop at '=' or space ---------------------------------- */
@@ -64,12 +65,14 @@ static const char *next_token(const char *src, char *keyOut, size_t keyMax,
    {
       src++; /* consume '=' */
       size_t vi = 0;
-      while (*src && *src != ' ' && vi + 1 < valMax) valOut[vi++] = *src++;
+      while (*src && *src != ' ' && vi + 1 < valMax)
+         valOut[vi++] = *src++;
       valOut[vi] = '\0';
    }
 
    /* Skip trailing whitespace so the next call starts cleanly */
-   while (*src == ' ') src++;
+   while (*src == ' ')
+      src++;
 
    return src; /* may point to '\0' — caller checks *src */
 }

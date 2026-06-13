@@ -121,7 +121,8 @@ backup:
    hold(-1);
 
 end:
-   for (;;);
+   for (;;)
+      ;
 }
 
 static void __attribute__((unused, noreturn)) fallback(void)
@@ -130,6 +131,5 @@ static void __attribute__((unused, noreturn)) fallback(void)
    hold(-1);
 
    for (;;)
-   {
-   }
+   {}
 }

@@ -44,7 +44,8 @@ void interact(void)
          else if (strcmp(buf, "read") == 0 || strncmp(buf, "read ", 5) == 0)
          {
             char *path = buf + 4;
-            while (*path == ' ') path++;
+            while (*path == ' ')
+               path++;
 
             if (*path == '\0')
             {
@@ -97,7 +98,8 @@ void interact(void)
          else if (strcmp(buf, "ls") == 0 || strncmp(buf, "ls ", 3) == 0)
          {
             char *path = buf + 2;
-            while (*path == ' ') path++;
+            while (*path == ' ')
+               path++;
             if (*path == '\0') path = "/";
 
             VFS_File *dir = VFS_OpenDir(path);

@@ -84,7 +84,8 @@ static void set_mode_0x13(void)
    outb(VGA_MISC_OUT, misc);
 
    /* Sequencer */
-   for (uint8_t i = 0; i < 5; i++) seq_w(i, 0x03);
+   for (uint8_t i = 0; i < 5; i++)
+      seq_w(i, 0x03);
    seq_w(0x01, 0x01);
    seq_w(0x02, 0x0F);
    seq_w(0x03, 0x00);
@@ -93,9 +94,11 @@ static void set_mode_0x13(void)
    /* Unlock CRTC */
    crtc_w(0x11, crtc[0x11] & ~0x80);
 
-   for (uint8_t i = 0; i < 25; i++) crtc_w(i, crtc[i]);
+   for (uint8_t i = 0; i < 25; i++)
+      crtc_w(i, crtc[i]);
 
-   for (uint8_t i = 0; i < 9; i++) gc_w(i, gc[i]);
+   for (uint8_t i = 0; i < 9; i++)
+      gc_w(i, gc[i]);
 
    for (uint8_t i = 0; i < 21; i++)
    {
@@ -143,12 +146,14 @@ static void clear_screen(uint8_t colour)
    uint32_t val = (uint32_t)colour * 0x01010101u;
    volatile uint32_t *fb32 = (volatile uint32_t *)VGA_FB;
 
-   for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) s_Shadow[i] = colour;
+   for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++)
+      s_Shadow[i] = colour;
 
    /* Write to VGA framebuffer using 32-bit accesses for reliability
     * with Cirrus chain-4 mode.  dword writes send 4 bytes at once,
     * one to each VGA plane, ensuring the full 64KB is covered. */
-   for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT / 4; i++) fb32[i] = val;
+   for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT / 4; i++)
+      fb32[i] = val;
 }
 
 int VGA_Initialize(void)

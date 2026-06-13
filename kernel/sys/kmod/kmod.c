@@ -268,8 +268,7 @@ static int apply_relocations(uint32_t base, Elf32_Rel *rel_table,
           * runtime, assume it was already relocated and skip rewriting it.
           */
          if (addend >= base && addend <= base + 0x00f00000)
-         {
-         }
+         {}
          else if (addend < 0x01000000)
          {
             /* If addend is a small offset, treat it as an addend and
@@ -318,21 +317,18 @@ static int apply_relocations(uint32_t base, Elf32_Rel *rel_table,
 
                switch (type)
                {
-               case R_386_32:
-               {
+               case R_386_32: {
                   uint32_t newv = sym_addr + addend;
                   *where = newv;
                }
                break;
-               case R_386_PC32:
-               {
+               case R_386_PC32: {
                   uint32_t newv = sym_addr + addend - (uint32_t)where;
                   *where = newv;
                }
                break;
                case R_386_GLOB_DAT:
-               case R_386_JMP_SLOT:
-               {
+               case R_386_JMP_SLOT: {
                   uint32_t newv = sym_addr;
                   *where = newv;
                }

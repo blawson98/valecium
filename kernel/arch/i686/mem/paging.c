@@ -255,7 +255,8 @@ void i686_Paging_PageFaultHandler(uint32_t fault_address, uint32_t error_code)
           (error_code & 1) != 0, (error_code & 2) != 0, (error_code & 4) != 0,
           (error_code & 8) != 0, (error_code & 16) != 0);
    // In a real kernel, handle or panic. For now, halt.
-   for (;;) __asm__ __volatile__("hlt");
+   for (;;)
+      __asm__ __volatile__("hlt");
 }
 
 void i686_Paging_InvalidateTlbEntry(uint32_t vaddr) { invlpg(vaddr); }

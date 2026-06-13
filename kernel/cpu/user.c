@@ -145,7 +145,8 @@ Process *Process_CreateUser(uint32_t entry_point)
       proc->saved_regs = frame;
    }
 
-   for (int i = 0; i < 16; ++i) proc->fd_table[i] = NULL;
+   for (int i = 0; i < 16; ++i)
+      proc->fd_table[i] = NULL;
 
    if (Process_InitializeStandardIO(proc) != 0)
    {

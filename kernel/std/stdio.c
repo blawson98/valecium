@@ -39,7 +39,8 @@ void putc(char c)
 
 void puts(const char *str)
 {
-   for (int i = 0; str[i]; i++) putc(str[i]);
+   for (int i = 0; str[i]; i++)
+      putc(str[i]);
 }
 
 const char g_HexChars[] = "0123456789abcdef";
@@ -54,7 +55,8 @@ void printf_unsigned(unsigned long long number, int radix, int width,
    if (width > 31) width = 31;
 
    // convert number to ASCII
-   do {
+   do
+   {
       unsigned long long rem = number % radix;
       number /= radix;
       buffer[pos++] = g_HexChars[rem];
@@ -67,7 +69,8 @@ void printf_unsigned(unsigned long long number, int radix, int width,
    }
 
    // print number in reverse order
-   while (--pos >= 0) putc(buffer[pos]);
+   while (--pos >= 0)
+      putc(buffer[pos]);
 }
 
 void printf_signed(long long number, int radix, int width, bool zero_pad)
@@ -386,14 +389,16 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list ap)
 
 /* helper to emit a single char */
 #define EMIT_CH(c)                                                             \
-   do {                                                                        \
+   do                                                                          \
+   {                                                                           \
       if (out_idx + 1 < buf_size) buffer[out_idx++] = (c);                     \
       would_have++;                                                            \
    } while (0)
 
 /* helper to emit a whole string */
 #define EMIT_STR(s)                                                            \
-   do {                                                                        \
+   do                                                                          \
+   {                                                                           \
       const char *_p = (s);                                                    \
       while (*_p)                                                              \
       {                                                                        \
@@ -451,7 +456,8 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list ap)
             tmp[t++] = '0' + (val % 10);
             val /= 10;
          }
-         while (t--) EMIT_CH(tmp[t]);
+         while (t--)
+            EMIT_CH(tmp[t]);
       }
       else if (spec == 'u')
       {
@@ -464,7 +470,8 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list ap)
             tmp[t++] = '0' + (val % 10);
             val /= 10;
          }
-         while (t--) EMIT_CH(tmp[t]);
+         while (t--)
+            EMIT_CH(tmp[t]);
       }
       else if (spec == 'x' || spec == 'X' || spec == 'p')
       {
@@ -479,7 +486,8 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list ap)
             tmp[t++] = hex[val & 0xF];
             val >>= 4;
          }
-         while (t--) EMIT_CH(tmp[t]);
+         while (t--)
+            EMIT_CH(tmp[t]);
       }
       else if (spec == 'o')
       {
@@ -492,7 +500,8 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list ap)
             tmp[t++] = '0' + (val & 7);
             val >>= 3;
          }
-         while (t--) EMIT_CH(tmp[t]);
+         while (t--)
+            EMIT_CH(tmp[t]);
       }
       else
       {

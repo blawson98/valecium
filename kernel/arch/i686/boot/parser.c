@@ -64,7 +64,8 @@ static void CopyString(char *dst, const char *src, uint32_t maxLen)
 static void ZeroBytes(void *ptr, uint32_t len)
 {
    uint8_t *p = (uint8_t *)ptr;
-   for (uint32_t i = 0; i < len; i++) p[i] = 0;
+   for (uint32_t i = 0; i < len; i++)
+      p[i] = 0;
 }
 
 /* -------------------------------------------------------------------------
@@ -90,13 +91,15 @@ void Parser_Multiboot(uint32_t magic, multiboot_info_t *mbi)
        * Not a Multiboot-compliant boot; halt the processor.
        * No panic/printf available at this stage.
        */
-      for (;;) __asm__ volatile("hlt");
+      for (;;)
+         __asm__ volatile("hlt");
    }
 
    /* --- Sanity-check the info pointer ----------------------------------- */
    if (!mbi || (uint32_t)mbi < 0x1000)
    {
-      for (;;) __asm__ volatile("hlt");
+      for (;;)
+         __asm__ volatile("hlt");
    }
 
    /* --- Command line (Multiboot flags bit 2) ----------------------------- */
@@ -136,5 +139,6 @@ void Parser_Multiboot(uint32_t magic, multiboot_info_t *mbi)
    start(&s_bootInfo);
 
    /* Should never reach here; loop defensively. */
-   for (;;) __asm__ volatile("hlt");
+   for (;;)
+      __asm__ volatile("hlt");
 }
