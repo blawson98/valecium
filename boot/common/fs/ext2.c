@@ -6,6 +6,9 @@
 
 #include <constants.h>
 
+typedef struct FS_File FS_File;
+typedef struct FS_Operations FS_Operations;
+
 static int ext2_read_block(uint32_t block_idx, void *buffer);
 static int ext2_read_sector(uint64_t lba, void *buffer);
 static int ext2_bgdt_offset(void);
@@ -148,7 +151,7 @@ static uint32_t s_DescSize = 32;
 static uint32_t s_RootInode = 2;
 static uint32_t s_RootSize = 0;
 
-static struct FS_File s_OpenFiles[MAX_OPEN_FILES];
+static FS_File s_OpenFiles[MAX_OPEN_FILES];
 
 extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
                      uint8_t head, uint8_t count, void *buffer);
@@ -885,7 +888,7 @@ int EXT2_Read(int fd, void *buffer, int count)
 {
    if (fd < 0 || fd >= MAX_OPEN_FILES || !s_OpenFiles[fd].used) return -EBADF;
 
-   struct FS_File *f = &s_OpenFiles[fd];
+   FS_File *f = &s_OpenFiles[fd];
    uint8_t *buf = (uint8_t *)buffer;
 
    if (f->position >= f->size) return 0;
@@ -938,7 +941,7 @@ int EXT2_Close(int fd)
 
 #ifdef COREFS
 
-static const struct FS_Operations fs_exports
+static const FS_Operations fs_exports
     __attribute__((section(".exports"), used)) = {
         .EXT2_Initialize = (uint32_t)EXT2_Initialize,
         .EXT2_Open = (uint32_t)EXT2_Open,

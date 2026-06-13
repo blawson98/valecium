@@ -9,8 +9,8 @@
 // #include <dl/dlbind_gen.h>
 // #undef DL_RESOLVE
 
-struct fs_operations;
-struct mbi_tag_framebuffer;
+typedef struct FsOperations FsOperations;
+typedef struct MbiTagFramebuffer MbiTagFramebuffer;
 typedef struct BootParams BootParams;
 
 static void init_framebuffer_info(uint8_t *ptr);
@@ -29,7 +29,7 @@ static void print_stage3_fs_location(const BootParams *bootParams);
 #define BUILD_TYPE "debug"
 #endif
 
-struct fs_operations
+struct FsOperations
 {
    uint32_t FS_Initialize;
    uint32_t FS_Open;
@@ -37,7 +37,7 @@ struct fs_operations
    uint32_t FS_Close;
 };
 
-struct mbi_tag_framebuffer
+struct MbiTagFramebuffer
 {
    uint32_t type;
    uint32_t size;
@@ -83,11 +83,9 @@ static void init_framebuffer_info(uint8_t *ptr)
 
       if (type == MBI_TAG_END) break;
 
-      if (type == MBI_TAG_FRAMEBUFFER &&
-          size >= sizeof(struct mbi_tag_framebuffer))
+      if (type == MBI_TAG_FRAMEBUFFER && size >= sizeof(MbiTagFramebuffer))
       {
-         const struct mbi_tag_framebuffer *tag =
-             (const struct mbi_tag_framebuffer *)ptr;
+         const MbiTagFramebuffer *tag = (const MbiTagFramebuffer *)ptr;
          if (tag->framebuffer_type == 1)
          {
             VBE_Info info;
@@ -295,8 +293,7 @@ int main(const BootParams *bootParams)
 
    {
       puts("Entering filesystem setup.\n");
-      struct fs_operations *fs_ops =
-          (struct fs_operations *)bootParams->corefsAddr;
+      FsOperations *fs_ops = (FsOperations *)bootParams->corefsAddr;
       const uint8_t *partitionUuid =
           (const uint8_t *)(uintptr_t)bootParams->corefsPartitionUuidAddr;
       const uint8_t *partitionLabel =
