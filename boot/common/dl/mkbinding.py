@@ -212,42 +212,48 @@ def GenerateHeader(Functions: list[tuple[str, str]]) -> str:
         "#include <stdbool.h>",
         "#include <stdint.h>",
         "",
-        "/* =========================================================",
-        " * Function pointers – populated by dl_resolve_all().",
-        " * Each pointer is initialised to NULL and must be resolved",
-        " * before use.",
-        " * ========================================================= */",
-        "",
+        "// MainBootOperations \u2013 one-shot resolved struct of bootloader function pointers.",
+        "typedef struct MainBootOperations",
+        "{",
     ]
 
-    # --- function pointer declarations ---
+    # --- struct members ---
     for Name, Sig in Functions:
         Fp = FunctionPointerDecl(Sig, Name)
-        Lines.append(f"static {Fp} = NULL;")
+        Lines.append(f"    {Fp};")
 
     Lines += [
+        "} MainBootOperations;",
         "",
-        "/* =========================================================",
-        " * Resolver – call once during initialisation to look up",
-        " * every symbol via dlsym().  Returns 0 on success, -1 if",
-        " * any symbol could not be resolved.",
-        " * ========================================================= */",
+        "#ifdef DL_RESOLVE",
         "",
-        "#ifdef DL_RESOLVE_FN",
+        "// Backing storage and public pointer \u2013 populated by dl_resolve_all().",
+        "static MainBootOperations s_MainBootOperations;",
+        "MainBootOperations *g_MainBootOperations = NULL;",
+        "",
+        "// Resolver \u2013 call once during init. Returns 0 on success, -1 on failure.",
         "static inline int dl_resolve_all(void)",
         "{",
+        "    g_MainBootOperations = &s_MainBootOperations;",
     ]
 
     # --- dlsym calls ---
     for Name, _Sig in Functions:
         FpType = FunctionPointerType(_Sig, Name)
-        Lines.append(f'    {Name} = ({FpType})dlsym(NULL, "{Name}");')
-        Lines.append(f"    if (!{Name}) return -1;")
+        Lines.append(
+            f'    g_MainBootOperations->{Name} = ({FpType})dlsym(NULL, "{Name}");'
+        )
+        Lines.append(f"    if (!g_MainBootOperations->{Name}) return -1;")
 
     Lines += [
         "    return 0;",
         "}",
-        "#endif /* DL_RESOLVE_FN */",
+        "",
+        "#else",
+        "",
+        "// Extern declaration \u2013 defined in the DL_RESOLVE compilation unit (main.c in core).",
+        "extern MainBootOperations *g_MainBootOperations;",
+        "#endif /* DL_RESOLVE */",
         "",
     ]
 

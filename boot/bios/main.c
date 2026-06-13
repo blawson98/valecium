@@ -4,7 +4,10 @@
 
 #include "video/video.h"
 #include <constants.h>
-#include <dl/dlbind_gen.h>
+
+// #define DL_RESOLVE
+// #include <dl/dlbind_gen.h>
+// #undef DL_RESOLVE
 
 struct fs_operations;
 struct mbi_tag_framebuffer;
