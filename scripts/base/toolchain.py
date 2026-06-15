@@ -34,12 +34,14 @@ Versions = {
     "binutils": "2.45",
     "gcc": "15.2.0",
     "musl": "1.2.6",
+    "linux": "6.12.7",
 }
 
 Urls = {
     "binutils": "https://ftp.gnu.org/gnu/binutils/binutils-{version}.tar.xz",
     "gcc": "https://ftp.gnu.org/gnu/gcc/gcc-{version}/gcc-{version}.tar.xz",
     "musl": "https://musl.libc.org/releases/musl-{version}.tar.gz",
+    "linux": "https://cdn.kernel.org/pub/linux/kernel/v{major}.x/linux-{version}.tar.xz",
 }
 
 
@@ -113,7 +115,7 @@ class ToolchainBuilder:
 
         # Derived paths
         self.bin_dir = self.prefix / "bin"
-        self.sysroot = self.prefix / self.target / "sysroot"
+        self.sysroot = self.prefix / self.target
 
         # Source/build directories
         self.srcpath = self.prefix / "src"
@@ -132,10 +134,15 @@ class ToolchainBuilder:
         self.sysroot.mkdir(parents=True, exist_ok=True)
         (self.sysroot / "usr").mkdir(exist_ok=True)
 
+    def _resolve_url(self, pkg: str, version: str) -> str:
+        """Resolve the download URL for a package, handling version-specific formatting."""
+        major = version.split(".")[0]
+        return Urls[pkg].format(version=version, major=major)
+
     def DownloadSources(self):
         """Download all source tarballs."""
-        for Pkg, Version in VERSIONS.items():
-            Url = URLS[Pkg].format(version=Version)
+        for Pkg, Version in Versions.items():
+            Url = self._resolve_url(Pkg, Version)
             FileName = Url.split("/")[-1]
             Dest = self.srcpath / FileName
 
@@ -147,8 +154,8 @@ class ToolchainBuilder:
 
     def ExtractSources(self):
         """Extract all source tarballs."""
-        for Pkg, Version in VERSIONS.items():
-            Url = URLS[Pkg].format(version=Version)
+        for Pkg, Version in Versions.items():
+            Url = self._resolve_url(Pkg, Version)
             FileName = Url.split("/")[-1]
             Archive = self.srcpath / FileName
 
@@ -172,6 +179,55 @@ class ToolchainBuilder:
     def _get_configure_opts(self, pkg: str) -> list:
         """Get platform-specific configure options."""
         return []
+
+    def _target_to_linux_arch(self) -> str:
+        """Map target triple to Linux kernel ARCH name."""
+        mapping = {
+            "i686": "x86",
+            "x86_64": "x86",
+            "aarch64": "arm64",
+        }
+        for prefix, arch in mapping.items():
+            if self.target.startswith(prefix):
+                return arch
+        raise ValueError(f"Cannot determine Linux ARCH for target: {self.target}")
+
+    def BuildLinuxHeaders(self):
+        """Download and install Linux kernel headers into sysroot."""
+        print("\n" + "=" * 60)
+        print("Building Linux kernel headers")
+        print("=" * 60)
+
+        Version = Versions["linux"]
+        Url = self._resolve_url("linux", Version)
+        ArchiveName = Url.split("/")[-1]
+        Archive = self.srcpath / ArchiveName
+        SrcPath = self.srcpath / f"linux-{Version}"
+
+        if (self.sysroot / "usr" / "include" / "linux" / "kernel.h").exists():
+            print("Linux headers already installed, skipping...")
+            return
+
+        # Download
+        if not Archive.exists():
+            DownloadFile(Url, str(Archive))
+
+        # Extract
+        if not SrcPath.exists():
+            ExtractArchive(str(Archive), str(self.srcpath))
+
+        # Install headers
+        LinuxArch = self._target_to_linux_arch()
+        print(f"  ARCH={LinuxArch} INSTALL_HDR_PATH={self.sysroot / 'usr'}")
+        RunCommand(
+            [
+                "make",
+                f"ARCH={LinuxArch}",
+                f"INSTALL_HDR_PATH={self.sysroot / 'usr'}",
+                "headers_install",
+            ],
+            Cwd=str(SrcPath),
+        )
 
     def BuildBinutils(self):
         """Build and install binutils."""
@@ -210,12 +266,12 @@ class ToolchainBuilder:
 
         RunCommand(
             [str(SrcPath / "configure")] + ConfigureOpts,
-            env={**self.build_env, **CleanEnv},
-            cwd=str(BuildPath),
+            Env={**self.build_env, **CleanEnv},
+            Cwd=str(BuildPath),
         )
 
-        RunCommand(["make", f"-j{self.jobs}"], cwd=str(BuildPath))
-        RunCommand(["make", "install"], cwd=str(BuildPath))
+        RunCommand(["make", f"-j{self.jobs}"], Cwd=str(BuildPath))
+        RunCommand(["make", "install"], Cwd=str(BuildPath))
 
     def BuildGccStage1(self):
         """Build GCC stage 1 (C only, no libc)."""
@@ -244,22 +300,23 @@ class ToolchainBuilder:
             "--disable-shared",
             "--with-newlib",
             f"--with-sysroot={self.sysroot}",
+            f"--with-build-sysroot={self.sysroot}",
             "--with-native-system-header-dir=/usr/include",
         ] + self._get_configure_opts("gcc")
 
         RunCommand(
             [str(SrcPath / "configure")] + ConfigureOpts,
-            env=self.build_env,
-            cwd=str(BuildPath),
+            Env=self.build_env,
+            Cwd=str(BuildPath),
         )
 
         RunCommand(
             ["make", f"-j{self.jobs}", "all-gcc", "all-target-libgcc"],
-            cwd=str(BuildPath),
+            Cwd=str(BuildPath),
         )
         RunCommand(
             ["make", "install-gcc", "install-target-libgcc"],
-            cwd=str(BuildPath),
+            Cwd=str(BuildPath),
         )
 
     def BuildMusl(self):
@@ -288,7 +345,7 @@ class ToolchainBuilder:
 
         ConfigureOpts = [
             "--prefix=/usr",
-            "--syslibdir=/lib",
+            # "--syslibdir=/lib",
             f"--host={self.target}",
             "--enable-static",
             "--enable-shared",
@@ -296,15 +353,15 @@ class ToolchainBuilder:
 
         RunCommand(
             [str(SrcPath / "configure")] + ConfigureOpts,
-            env=CrossEnv,
-            cwd=str(BuildPath),
+            Env=CrossEnv,
+            Cwd=str(BuildPath),
         )
 
-        RunCommand(["make", f"-j{self.jobs}"], env=CrossEnv, cwd=str(BuildPath))
+        RunCommand(["make", f"-j{self.jobs}"], Env=CrossEnv, Cwd=str(BuildPath))
         RunCommand(
             ["make", "install", f"DESTDIR={self.sysroot}"],
-            env=CrossEnv,
-            cwd=str(BuildPath),
+            Env=CrossEnv,
+            Cwd=str(BuildPath),
         )
 
     def BuildGccStage2(self):
@@ -327,17 +384,18 @@ class ToolchainBuilder:
             "--disable-libsanitizer",
             "--enable-shared",
             f"--with-sysroot={self.sysroot}",
+            f"--with-build-sysroot={self.sysroot}",
             "--with-native-system-header-dir=/usr/include",
         ] + self._get_configure_opts("gcc")
 
         RunCommand(
             [str(SrcPath / "configure")] + ConfigureOpts,
-            env=self.build_env,
-            cwd=str(BuildPath),
+            Env=self.build_env,
+            Cwd=str(BuildPath),
         )
 
-        RunCommand(["make", f"-j{self.jobs}"], cwd=str(BuildPath))
-        RunCommand(["make", "install"], cwd=str(BuildPath))
+        RunCommand(["make", f"-j{self.jobs}"], Cwd=str(BuildPath))
+        RunCommand(["make", "install"], Cwd=str(BuildPath))
 
     def GetRuntimeSysroot(self) -> Path:
         """Return the sysroot whose contents should be copied into image root."""
@@ -361,6 +419,7 @@ class ToolchainBuilder:
 
         self.BuildBinutils()
         self.BuildGccStage1()
+        self.BuildLinuxHeaders()
         self.BuildMusl()
         self.BuildGccStage2()
 
@@ -400,6 +459,7 @@ class ToolchainBuilder:
             self.bin_dir / f"{self.target}-as",
             self.bin_dir / f"{self.target}-gcc",
             self.sysroot / "usr" / "lib" / "libc.so",
+            self.sysroot / "usr" / "include" / "linux" / "kernel.h",
         ]
         return all(Path.exists() for Path in RequiredTools)
 
@@ -413,17 +473,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="Build cross-compilation toolchain for Valecium OS",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  %(prog)s toolchain/                    # Build for default target (i686-linux-musl)
-  %(prog)s toolchain/ -a x86_64             # Build for x86_64
-  %(prog)s toolchain/ -t x86_64-elf      # Build for custom target
-    %(prog)s toolchain/ --check            # Exit if installed, build if missing
-    %(prog)s toolchain/ --check-only       # Check only (exit 0/1)
-    %(prog)s toolchain/ --ensure           # Ensure installed (skip/build)
-  %(prog)s toolchain/ --clean            # Remove build files
-  %(prog)s toolchain/ --clean-all        # Remove everything
-""",
     )
 
     parser.add_argument("prefix", help="Toolchain installation prefix")
@@ -455,22 +504,6 @@ Examples:
     parser.add_argument(
         "--gcc-stage1-only", action="store_true", help="Build only GCC stage 1"
     )
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="Check toolchain: exit if installed, build if missing",
-    )
-    parser.add_argument(
-        "--check-only",
-        action="store_true",
-        help="Only check if toolchain is installed (exit 0/1)",
-    )
-    parser.add_argument(
-        "--ensure",
-        action="store_true",
-        help="Ensure toolchain is installed (skip if present, build if missing)",
-    )
-
     Args = parser.parse_args()
 
     # Determine target triple
@@ -492,24 +525,6 @@ Examples:
             Builder.CleanAll()
         elif Args.clean:
             Builder.Clean()
-        elif Args.check_only:
-            if Builder.IsInstalled():
-                print(f"Toolchain installed for {Builder.target}")
-                print(f"  Location: {Builder.prefix}")
-                sys.exit(0)
-            else:
-                print(f"Toolchain not installed for {Builder.target}")
-                print(f"  Expected location: {Builder.prefix}")
-                sys.exit(1)
-        elif Args.check or Args.ensure:
-            if Builder.IsInstalled():
-                print(f"Toolchain already installed for {Builder.target}")
-                print(f"  Location: {Builder.prefix}")
-                sys.exit(0)
-
-            print(f"Toolchain not installed for {Builder.target}")
-            print("  Building toolchain...")
-            Builder.BuildAll()
         elif Args.binutils_only:
             Builder.SetupDirectories()
             Builder.DownloadSources()

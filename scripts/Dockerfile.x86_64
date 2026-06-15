@@ -8,6 +8,10 @@ RUN dpkg --add-architecture amd64 && \
     python3-pil scons xorriso mtools \
     grub-pc-bin:amd64 \
     grub-efi-amd64-bin:amd64 \
+    parted \
+    git \
+    e2fsprogs \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/opt/cross/bin:${PATH}"
