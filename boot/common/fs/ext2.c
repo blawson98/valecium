@@ -6,6 +6,10 @@
 
 #include <constants.h>
 
+#ifndef COREFS
+#include <dl/callback.h>
+#endif
+
 typedef struct FS_File FS_File;
 typedef struct FS_Operations FS_Operations;
 
@@ -153,10 +157,15 @@ static uint32_t s_RootSize = 0;
 
 static FS_File s_OpenFiles[MAX_OPEN_FILES];
 
+#ifdef COREFS
 extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
                      uint8_t head, uint8_t count, void *buffer);
 extern int DISK_ReadLBA(uint8_t drive, uint64_t lba, uint16_t count,
                         void *buffer);
+#else
+#define DISK_Read g_DlCallbackOps->DISK_Read
+#define DISK_ReadLBA g_DlCallbackOps->DISK_ReadLBA
+#endif
 extern bool MBR_Probe(int driveId);
 extern int MBR_List(int driveId, int **offset);
 extern bool GPT_Probe(int driveId);
