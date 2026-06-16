@@ -3,8 +3,12 @@
 from SCons.Script import File
 
 Import("CoreSources")
+Import("Sources")
 
 CoreSources += [
-    File("dlopen.c"),
-    File("dlsym.c"),
+    File("loader.c"),
+]
+
+Sources += [
+    File("callback.c"),
 ]

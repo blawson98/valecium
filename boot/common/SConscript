@@ -20,10 +20,10 @@ if os.path.exists(MklogoPath) and not os.path.exists(LogoGenH):
     subprocess.run([sys.executable, MklogoPath, LogoGenH], check=True)
 
 MkbindingPath = os.path.join(DlPath, "mkbinding.py")
-BindGenH = os.path.join(DlPath, "dlbind_gen.h")
+BindGenH = os.path.join(DlPath, "binding_gen.h")
 if os.path.exists(MkbindingPath) and not os.path.exists(BindGenH):
     subprocess.run([sys.executable, MkbindingPath, BindGenH], check=True)
 
 SConscript("fs/SConscript", exports=["Sources", "CoreFsSources", "CoreFsSharedSources"])
-SConscript("dl/SConscript", exports=["CoreSources"])
+SConscript("dl/SConscript", exports=["Sources", "CoreSources"])
 SConscript("video/SConscript", exports=["Sources"])

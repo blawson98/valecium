@@ -6,7 +6,8 @@
 #include <constants.h>
 
 // #define DL_RESOLVE
-// #include <dl/dlbind_gen.h>
+// #include <dl/binding_gen.h.h>
+// #include <dl/dl.h>
 // #undef DL_RESOLVE
 
 typedef struct FsOperations FsOperations;
