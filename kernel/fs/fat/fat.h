@@ -1,11 +1,10 @@
-#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
 
-/*
-This is a local header file, and it is not allowed to directly include
-this file, so for external modules, include fs/fs.h instead.
-To interact with the filesystem, use the VFS interface defined in fs/fs.h.
-*/
+#include <constants.h>
+
+// This is a local header file, and it is not allowed to directly include
+// this file, so for external modules, include fs/fs.h instead.
+// To interact with the filesystem, use the VFS interface defined in fs/fs.h.
 
 #ifndef FAT_H
 #define FAT_H
@@ -13,7 +12,7 @@ To interact with the filesystem, use the VFS interface defined in fs/fs.h.
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Opaque per-volume instance — defined in fat.c */
+// Opaque per-volume instance — defined in fat.c
 typedef struct FAT_Instance FAT_Instance;
 
 #define FAT_EDISK (-2)
@@ -22,28 +21,28 @@ typedef struct FAT_Instance FAT_Instance;
 
 typedef struct
 {
-   uint8_t Name[11];
-   uint8_t Attributes;
-   uint8_t _Reserved;
-   uint8_t CreatedTimeTenths;
-   uint16_t CreatedTime;
-   uint16_t CreatedDate;
-   uint16_t AccessedDate;
-   uint16_t FirstClusterHigh;
-   uint16_t ModifiedTime;
-   uint16_t ModifiedDate;
-   uint16_t FirstClusterLow;
-   uint32_t Size;
+   uint8_t name[11];
+   uint8_t attributes;
+   uint8_t _reserved;
+   uint8_t created_time_tenths;
+   uint16_t created_time;
+   uint16_t created_date;
+   uint16_t accessed_date;
+   uint16_t first_cluster_high;
+   uint16_t modified_time;
+   uint16_t modified_date;
+   uint16_t first_cluster_low;
+   uint32_t size;
 } __attribute__((packed)) FAT_DirectoryEntry;
 
 typedef struct
 {
-   int Handle;
-   bool IsDirectory;
-   uint32_t Position;
-   uint32_t Size;
-   uint8_t Name[11];       /* FAT name (11 bytes, space-padded) */
-   FAT_Instance *instance; /* Back-pointer to owning FAT_Instance */
+   int handle;
+   bool is_directory;
+   uint32_t position;
+   uint32_t size;
+   uint8_t name[11];       // FAT name (11 bytes, space-padded)
+   FAT_Instance *instance; // Back-pointer to owning FAT_Instance
 } FAT_File;
 
 enum FAT_Attributes
@@ -58,9 +57,9 @@ enum FAT_Attributes
                        FAT_ATTRIBUTE_SYSTEM | FAT_ATTRIBUTE_VOLUME_ID
 };
 
-/* Allocate, initialise and return the per-volume FAT_Instance.
- * The caller must store the returned pointer in
- * partition->fs->private_data.  Returns NULL on failure. */
+// Allocate, initialise and return the per-volume FAT_Instance.
+// The caller must store the returned pointer in
+// partition->fs->private_data.  Returns NULL on failure.
 FAT_Instance *FAT_Initialize(Partition *disk);
 FAT_File *FAT_Open(Partition *disk, const char *path);
 uint32_t FAT_Read(Partition *disk, FAT_File *file, uint32_t byte_count,
@@ -102,14 +101,14 @@ FAT_File *FAT_Create(Partition *disk, const char *name, uint16_t mode);
 // Returns FAT_OK on success.
 int FAT_Delete(Partition *disk, const char *name);
 
-/* Invalidate FAT cache and reset file handles for the given instance */
+// Invalidate FAT cache and reset file handles for the given instance
 void FAT_InvalidateCache(FAT_Instance *inst);
 
-/* VFS Integration */
+// VFS Integration
 struct VFS_Operations;
 typedef struct VFS_Operations VFS_Operations;
 
-/* Get VFS operations structure for FAT filesystem */
+// Get VFS operations structure for FAT filesystem
 const VFS_Operations *FAT_GetVFSOperations(void);
 
 #endif
