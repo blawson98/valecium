@@ -19,7 +19,7 @@ typedef struct
    uint8_t chsStart[3];
 
    // 0x04	1	Partition type
-   uint8_t partitionType;
+   uint8_t partition_type;
 
    // 0x05	3	CHS address of last partition sector
    uint8_t chsEnd[3];
@@ -32,11 +32,11 @@ typedef struct
 
 } __attribute__((packed)) MBR_Entry;
 
-Partition **MBR_DetectPartition(DISK *disk, int *outCount)
+Partition **MBR_DetectPartition(DISK *disk, int *out_count)
 {
-   if (!outCount || !disk) return NULL;
+   if (!out_count || !disk) return NULL;
 
-   *outCount = 0;
+   *out_count = 0;
 
    /* Floppy disks have no MBR partition table.  DISK_Scan handles them
     * directly by creating a synthetic FAT12 volume entry; this function
@@ -47,7 +47,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
              "[MBR] MBR_DetectPartition called on floppy disk (fd%u) — "
              "floppy partitioning is handled by DISK_Scan directly\n",
              disk->id);
-      *outCount = 0;
+      *out_count = 0;
       return NULL;
    }
 
@@ -57,7 +57,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
    if (!mbr_buffer)
    {
       list[0] = NULL;
-      *outCount = 0;
+      *out_count = 0;
       return list;
    }
    int read_rc = DISK_ReadSectors(disk, 0, 1, mbr_buffer);
@@ -80,9 +80,9 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
             if (!part) continue;
 
             part->disk = disk;
-            part->partitionOffset = *(uint32_t *)(entry + 8);
-            part->partitionSize = *(uint32_t *)(entry + 12);
-            part->partitionType = type;
+            part->partition_offset = *(uint32_t *)(entry + 8);
+            part->partition_size = *(uint32_t *)(entry + 12);
+            part->partition_type = type;
 
             /* Register ATA partition in devfs: hda1, hda2, hdb1, etc. */
             char devname[8];
@@ -93,7 +93,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
             devname[2] = 'a' + disk_idx;
             devname[3] = '1' + count; /* partition number */
             devname[4] = '\0';
-            uint32_t part_size = part->partitionSize * 512;
+            uint32_t part_size = part->partition_size * 512;
             DEVFS_RegisterDevice(devname, DEVFS_TYPE_BLOCK, 3,
                                  disk_idx * 16 + count + 1, part_size,
                                  &s_PartitionOps, part);
@@ -111,14 +111,14 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
       if (part)
       {
          part->disk = disk;
-         part->partitionOffset = (read_rc == SUCCESS) ? 16 : 0;
-         part->partitionSize = 0x100000;
+         part->partition_offset = (read_rc == SUCCESS) ? 16 : 0;
+         part->partition_size = 0x100000;
          list[0] = part;
          count = 1;
       }
    }
 
    free(mbr_buffer);
-   *outCount = count;
+   *out_count = count;
    return list;
 }

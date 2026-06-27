@@ -32,7 +32,7 @@ static uint32_t null_write(DEVFS_DeviceNode *node, uint32_t offset,
    return size; /* Accept all writes */
 }
 
-const DEVFS_DeviceOps s_NullOps = {
+const DEVFS_DeviceOps g_NullOps = {
     .read = null_read, .write = null_write, .ioctl = NULL, .close = NULL};
 
 /* /dev/zero - reads return zeros, writes are discarded */
@@ -48,7 +48,7 @@ static uint32_t zero_read(DEVFS_DeviceNode *node, uint32_t offset,
    return size;
 }
 
-const DEVFS_DeviceOps s_ZeroOps = {.read = zero_read,
+const DEVFS_DeviceOps g_ZeroOps = {.read = zero_read,
                                    .write =
                                        null_write, /* Same as null - discard */
                                    .ioctl = NULL,
@@ -65,7 +65,7 @@ static uint32_t full_write(DEVFS_DeviceNode *node, uint32_t offset,
    return 0; /* No space - return 0 bytes written */
 }
 
-const DEVFS_DeviceOps s_FullOps = {
+const DEVFS_DeviceOps g_FullOps = {
     .read = zero_read, .write = full_write, .ioctl = NULL, .close = NULL};
 
 /* TTY device operations - use external functions from tty.c */
@@ -77,13 +77,13 @@ static const DEVFS_DeviceOps s_TtyOps = {.read = TTY_DevfsRead,
 void register_standard_devices(void)
 {
    /* Register /dev/null */
-   DEVFS_RegisterDevice("null", DEVFS_TYPE_CHAR, 1, 3, 0, &s_NullOps, NULL);
+   DEVFS_RegisterDevice("null", DEVFS_TYPE_CHAR, 1, 3, 0, &g_NullOps, NULL);
 
    /* Register /dev/zero */
-   DEVFS_RegisterDevice("zero", DEVFS_TYPE_CHAR, 1, 5, 0, &s_ZeroOps, NULL);
+   DEVFS_RegisterDevice("zero", DEVFS_TYPE_CHAR, 1, 5, 0, &g_ZeroOps, NULL);
 
    /* Register /dev/full */
-   DEVFS_RegisterDevice("full", DEVFS_TYPE_CHAR, 1, 7, 0, &s_FullOps, NULL);
+   DEVFS_RegisterDevice("full", DEVFS_TYPE_CHAR, 1, 7, 0, &g_FullOps, NULL);
 
    /* Register /dev/tty - controlling terminal (uses active TTY) */
    DEVFS_RegisterDevice("tty", DEVFS_TYPE_CHAR, 5, 0, 0, &s_TtyOps, NULL);

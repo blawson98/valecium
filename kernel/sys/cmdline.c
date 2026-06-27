@@ -62,7 +62,7 @@ void CmdLine_Initialize(void)
 {
    if (s_parsed) return;
 
-   const char *raw = g_SysInfo->boot.commandLine;
+   const char *raw = g_SysInfo->boot.command_line;
    if (!raw)
    {
       s_parsed = 1;

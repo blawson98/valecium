@@ -67,29 +67,29 @@ void Parser_Multiboot(uint32_t magic, multiboot_info_t *mbi)
    // Command line (Multiboot flags bit 2)
    if (mbi->flags & (1u << 2))
    {
-      CopyString(s_bootInfo.commandLine, (const char *)(uintptr_t)mbi->cmdline,
-                 sizeof(s_bootInfo.commandLine));
+      CopyString(s_bootInfo.command_line, (const char *)(uintptr_t)mbi->cmdline,
+                 sizeof(s_bootInfo.command_line));
    }
 
    // Bootloader name (Multiboot flags bit 9)
    if (mbi->flags & (1u << 9))
    {
-      CopyString(s_bootInfo.bootLoaderName,
+      CopyString(s_bootInfo.boot_loader_name,
                  (const char *)(uintptr_t)mbi->boot_loader_name,
-                 sizeof(s_bootInfo.bootLoaderName));
+                 sizeof(s_bootInfo.boot_loader_name));
    }
 
    // Basic memory bounds (Multiboot flags bit 0)
    if (mbi->flags & (1u << 0))
    {
-      s_bootInfo.totalMemoryUpper = mbi->mem_upper;
+      s_bootInfo.total_memory_upper = mbi->mem_upper;
    }
 
    // Memory map (Multiboot flags bit 6)
    if (mbi->flags & (1u << 6))
    {
-      s_bootInfo.memMapAddr = mbi->mmap_addr;
-      s_bootInfo.memMapLength = mbi->mmap_length;
+      s_bootInfo.mem_map_addr = mbi->mmap_addr;
+      s_bootInfo.mem_map_length = mbi->mmap_length;
    }
 
    // Hand off to the kernel

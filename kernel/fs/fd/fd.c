@@ -83,17 +83,17 @@ int FD_Open(void *proc_ptr, const char *path, int flags, uint16_t mode)
    file->inode = VFS_Open(path);
    if (file->inode)
    {
-      uint8_t accessMask = 0;
+      uint8_t access_mask = 0;
       if ((flags & O_WRONLY) == O_WRONLY)
-         accessMask |= VFS_ACCESS_WRITE;
+         access_mask |= VFS_ACCESS_WRITE;
       else if ((flags & O_RDWR) == O_RDWR)
-         accessMask |= (VFS_ACCESS_READ | VFS_ACCESS_WRITE);
+         access_mask |= (VFS_ACCESS_READ | VFS_ACCESS_WRITE);
       else
-         accessMask |= VFS_ACCESS_READ;
+         access_mask |= VFS_ACCESS_READ;
 
-      if (flags & O_TRUNC) accessMask |= VFS_ACCESS_WRITE;
+      if (flags & O_TRUNC) access_mask |= VFS_ACCESS_WRITE;
 
-      if (VFS_Access(path, proc->euid, proc->egid, accessMask) < 0)
+      if (VFS_Access(path, proc->euid, proc->egid, access_mask) < 0)
       {
          VFS_Close((VFS_File *)file->inode);
          free(file);

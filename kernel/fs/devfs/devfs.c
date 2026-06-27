@@ -29,9 +29,9 @@ static Filesystem s_DevfsFilesystem;
 /* Forward declarations for VFS operations */
 static VFS_File *devfs_vfs_open(Partition *partition, const char *path);
 static uint32_t devfs_vfs_read(Partition *partition, void *fs_file,
-                               uint32_t byte_count, void *dataOut);
+                               uint32_t byte_count, void *data_out);
 static uint32_t devfs_vfs_write(Partition *partition, void *fs_file,
-                                uint32_t byte_count, const void *dataIn);
+                                uint32_t byte_count, const void *data_in);
 static int devfs_vfs_seek(Partition *partition, void *fs_file, uint32_t pos);
 static void devfs_vfs_close(void *fs_file);
 static uint32_t devfs_vfs_get_size(void *fs_file);
@@ -251,15 +251,15 @@ void DEVFS_Close(DEVFS_File *file)
    free(file);
 }
 
-uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byte_count, void *dataOut)
+uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byte_count, void *data_out)
 {
-   if (!file || !file->node || !dataOut || byte_count == 0) return 0;
+   if (!file || !file->node || !data_out || byte_count == 0) return 0;
 
    /* Use device-specific read if available */
    if (file->node->ops && file->node->ops->read)
    {
       uint32_t bytes_read = file->node->ops->read(file->node, file->position,
-                                                  byte_count, dataOut);
+                                                  byte_count, data_out);
       file->position += bytes_read;
       return bytes_read;
    }
@@ -268,15 +268,15 @@ uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byte_count, void *dataOut)
    return 0;
 }
 
-uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byte_count, const void *dataIn)
+uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byte_count, const void *data_in)
 {
-   if (!file || !file->node || !dataIn || byte_count == 0) return 0;
+   if (!file || !file->node || !data_in || byte_count == 0) return 0;
 
    /* Use device-specific write if available */
    if (file->node->ops && file->node->ops->write)
    {
       uint32_t bytes_written = file->node->ops->write(
-          file->node, file->position, byte_count, dataIn);
+          file->node, file->position, byte_count, data_in);
       file->position += bytes_written;
       return bytes_written;
    }
@@ -327,21 +327,21 @@ static VFS_File *devfs_vfs_open(Partition *partition, const char *path)
 }
 
 static uint32_t devfs_vfs_read(Partition *partition, void *fs_file,
-                               uint32_t byte_count, void *dataOut)
+                               uint32_t byte_count, void *data_out)
 {
    (void)partition;
-   if (!fs_file || !dataOut || byte_count == 0) return 0;
+   if (!fs_file || !data_out || byte_count == 0) return 0;
 
-   return DEVFS_Read((DEVFS_File *)fs_file, byte_count, dataOut);
+   return DEVFS_Read((DEVFS_File *)fs_file, byte_count, data_out);
 }
 
 static uint32_t devfs_vfs_write(Partition *partition, void *fs_file,
-                                uint32_t byte_count, const void *dataIn)
+                                uint32_t byte_count, const void *data_in)
 {
    (void)partition;
-   if (!fs_file || !dataIn || byte_count == 0) return 0;
+   if (!fs_file || !data_in || byte_count == 0) return 0;
 
-   return DEVFS_Write((DEVFS_File *)fs_file, byte_count, dataIn);
+   return DEVFS_Write((DEVFS_File *)fs_file, byte_count, data_in);
 }
 
 static int devfs_vfs_seek(Partition *partition, void *fs_file, uint32_t pos)
@@ -398,13 +398,13 @@ int DEVFS_Initialize(void)
    /* Initialize the in-memory partition structure */
    memset(&s_DevfsPartition, 0, sizeof(Partition));
    s_DevfsPartition.disk = NULL; /* No backing disk */
-   s_DevfsPartition.partitionOffset = 0;
-   s_DevfsPartition.partitionSize = 0;
-   s_DevfsPartition.partitionType = 0;
+   s_DevfsPartition.partition_offset = 0;
+   s_DevfsPartition.partition_size = 0;
+   s_DevfsPartition.partition_type = 0;
    s_DevfsPartition.fs = &s_DevfsFilesystem;
    s_DevfsPartition.uuid = 0xDEADBEEF; /* Marker UUID for devfs */
    strncpy(s_DevfsPartition.label, "devfs", sizeof(s_DevfsPartition.label) - 1);
-   s_DevfsPartition.isRootPartition = false;
+   s_DevfsPartition.is_root_partition = false;
 
    /* Place devfs partition in the reserved volume slot */
    g_SysInfo->volume[DEVFS_VOLUME] = s_DevfsPartition;

@@ -41,10 +41,10 @@ typedef struct
 } __attribute__((packed)) Elf32_Phdr;
 
 // Load an ELF32 file from an opened VFS_File into memory. On success returns
-// true and sets *entryOut to the ELF entry point (as a pointer). The loader
+// true and sets *entry_out to the ELF entry point (as a pointer). The loader
 // will read program headers (PT_LOAD) and copy them to their p_paddr (or
 // p_vaddr if p_paddr is zero), zeroing the BSS area when necessary.
-int ELF_Load(VFS_File *file, void **entryOut);
+int ELF_Load(VFS_File *file, void **entry_out);
 
 // Load an ELF32 executable file into a new process's isolated address space.
 // Opens the file by name through VFS, parses the ELF header, allocates

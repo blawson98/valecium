@@ -36,17 +36,17 @@ typedef struct VFS_Operations
 {
    VFS_File *(*open)(Partition *partition, const char *path);
    VFS_File *(*create)(Partition *partition, const char *path, uint16_t mode);
-   int (*readdir)(Partition *partition, void *fs_file, VFS_DirEntry *entryOut);
+   int (*readdir)(Partition *partition, void *fs_file, VFS_DirEntry *entry_out);
    uint32_t (*read)(Partition *partition, void *fs_file, uint32_t byte_count,
-                    void *dataOut);
+                    void *data_out);
    uint32_t (*write)(Partition *partition, void *fs_file, uint32_t byte_count,
-                     const void *dataIn);
+                     const void *data_in);
    int (*seek)(Partition *partition, void *fs_file, uint32_t position);
    void (*close)(void *fs_file);
    uint32_t (*get_size)(void *fs_file);
    int (*delete)(Partition *partition, const char *path);
    int (*access)(Partition *partition, const char *path, uint32_t uid,
-                 uint32_t gid, uint8_t accessMask);
+                 uint32_t gid, uint8_t access_mask);
    int (*chmod)(Partition *partition, const char *path, uint16_t mode);
    int (*chown)(Partition *partition, const char *path, uint32_t uid,
                 uint32_t gid);
@@ -76,14 +76,14 @@ int FS_Umount(Partition *volume);
 VFS_File *VFS_Open(const char *path);
 VFS_File *VFS_OpenDir(const char *path);
 VFS_File *VFS_Create(const char *path, uint16_t mode);
-int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entryOut);
-uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *dataOut);
-uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *dataIn);
+int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entry_out);
+uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *data_out);
+uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *data_in);
 int VFS_Seek(VFS_File *file, uint32_t position);
 void VFS_Close(VFS_File *file);
 int VFS_Delete(const char *path);
 int VFS_Access(const char *path, uint32_t uid, uint32_t gid,
-               uint8_t accessMask);
+               uint8_t access_mask);
 int VFS_Chmod(const char *path, uint16_t mode);
 int VFS_Chown(const char *path, uint32_t uid, uint32_t gid);
 

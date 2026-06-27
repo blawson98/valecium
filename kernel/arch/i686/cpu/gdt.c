@@ -101,10 +101,10 @@ GDTEntry g_GDT[] = {
 GDTDescriptor g_GDTDescriptor = {sizeof(g_GDT) - 1, g_GDT};
 
 void __attribute__((cdecl)) i686_GDT_Load(GDTDescriptor *descriptor,
-                                          uint16_t codeSegment,
-                                          uint16_t dataSegment);
+                                          uint16_t code_segment,
+                                          uint16_t data_segment);
 
-void i686_GDT_Initialize()
+void i686_GDT_Initialize(void)
 {
    i686_GDT_Load(&g_GDTDescriptor, i686_GDT_CODE_SEGMENT,
                  i686_GDT_DATA_SEGMENT);

@@ -41,7 +41,7 @@ void i686_IRQ_Handler(Registers *regs)
    s_Driver->SendEndOfInterrupt(irq);
 }
 
-void i686_IRQ_Initialize()
+void i686_IRQ_Initialize(void)
 {
    logfmt(LOG_INFO, "[IRQ] initialized\n");
    const PICDriver *drivers[] = {

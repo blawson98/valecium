@@ -314,9 +314,9 @@ VFS_File *VFS_Create(const char *path, uint16_t mode)
    return result;
 }
 
-int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entryOut)
+int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entry_out)
 {
-   if (!directory || !entryOut) return -EINVAL;
+   if (!directory || !entry_out) return -EINVAL;
    if (!directory->is_directory) return -EINVAL;
 
    if (!directory->partition || !directory->partition->fs ||
@@ -325,7 +325,7 @@ int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entryOut)
       return -EINVAL;
 
    return directory->partition->fs->ops->readdir(directory->partition,
-                                                 directory->fs_file, entryOut);
+                                                 directory->fs_file, entry_out);
 }
 
 int VFS_Delete(const char *path)
@@ -437,27 +437,27 @@ int VFS_Chown(const char *path, uint32_t uid, uint32_t gid)
    return result;
 }
 
-uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *dataOut)
+uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *data_out)
 {
-   if (!file || !dataOut || byte_count == 0) return 0;
+   if (!file || !data_out || byte_count == 0) return 0;
    if (!file->partition || !file->partition->fs || !file->partition->fs->ops ||
        !file->partition->fs->ops->read)
       return 0;
 
    uint32_t result = file->partition->fs->ops->read(
-       file->partition, file->fs_file, byte_count, dataOut);
+       file->partition, file->fs_file, byte_count, data_out);
    return result;
 }
 
-uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *dataIn)
+uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *data_in)
 {
-   if (!file || !dataIn || byte_count == 0) return 0;
+   if (!file || !data_in || byte_count == 0) return 0;
    if (!file->partition || !file->partition->fs || !file->partition->fs->ops ||
        !file->partition->fs->ops->write)
       return 0;
 
    return file->partition->fs->ops->write(file->partition, file->fs_file,
-                                          byte_count, dataIn);
+                                          byte_count, data_in);
 }
 
 int VFS_Seek(VFS_File *file, uint32_t position)

@@ -54,9 +54,9 @@ int DISK_Initialize(void);
 int DISK_Scan(void);
 int DISK_GetDevfsIndex(void); // Get volume index for devfs (-1 if not found)
 int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors,
-                     void *lowerDataOut);
+                     void *lower_data_out);
 int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
-                      const void *dataIn);
+                      const void *data_in);
 
 /* Devfs device operations for raw disk access */
 struct DEVFS_DeviceNode;
@@ -72,24 +72,24 @@ typedef struct Filesystem Filesystem;
 typedef struct Partition
 {
    DISK *disk;
-   uint32_t partitionOffset;
-   uint32_t partitionSize;
-   uint32_t partitionType;
+   uint32_t partition_offset;
+   uint32_t partition_size;
+   uint32_t partition_type;
 
    Filesystem *fs;
 
    uint32_t uuid;
    char label[12];
-   bool isRootPartition;
+   bool is_root_partition;
 } Partition;
 
-Partition **MBR_DetectPartition(DISK *disk, int *outCount);
+Partition **MBR_DetectPartition(DISK *disk, int *out_count);
 
 int Partition_ReadSectors(Partition *disk, uint32_t lba, uint8_t sectors,
-                          void *lowDataOut);
+                          void *low_data_out);
 
 int Partition_WriteSectors(Partition *part, uint32_t lba, uint8_t sectors,
-                           const void *lowerDataIn);
+                           const void *lower_data_in);
 
 /* Devfs device operations for partition access */
 uint32_t Partition_DevfsRead(struct DEVFS_DeviceNode *node, uint32_t offset,
@@ -97,6 +97,6 @@ uint32_t Partition_DevfsRead(struct DEVFS_DeviceNode *node, uint32_t offset,
 uint32_t Partition_DevfsWrite(struct DEVFS_DeviceNode *node, uint32_t offset,
                               uint32_t size, const void *buffer);
 
-void VBR_ProbeIdentity(Partition *vol, const char *rootCmdVal);
+void VBR_ProbeIdentity(Partition *vol, const char *root_cmd_val);
 
 #endif

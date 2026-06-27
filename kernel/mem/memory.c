@@ -112,15 +112,15 @@ int strncmp(const char *s1, const char *s2, size_t n)
 }
 
 // Derive total physical memory from g_SysInfo->boot. Walks the
-// BOOT_MemMapEntry table (type-1 regions), falls back to totalMemoryUpper,
+// BOOT_MemMapEntry table (type-1 regions), falls back to total_memory_upper,
 // then to a 256 MB default. Returns total RAM in bytes (32-bit clamped).
 static uint32_t PollTotalMemory(void)
 {
    const uint32_t defaultMem = 256 * 1024 * 1024; /* 256 MB fallback */
 
    /* --- Prefer the full memory map when available ----------------------- */
-   uint32_t mapAddr = g_SysInfo->boot.memMapAddr;
-   uint32_t mapLength = g_SysInfo->boot.memMapLength;
+   uint32_t mapAddr = g_SysInfo->boot.mem_map_addr;
+   uint32_t mapLength = g_SysInfo->boot.mem_map_length;
 
    if (mapAddr >= 0x1000 && mapLength > 0)
    {
@@ -133,9 +133,9 @@ static uint32_t PollTotalMemory(void)
          if (entry->type == 1) /* Available RAM */
          {
             /* Clamp to 32-bit address space; ignore regions above 4 GB. */
-            if (entry->baseAddr < 0x100000000ULL)
+            if (entry->base_addr < 0x100000000ULL)
             {
-               uint64_t regionEnd = entry->baseAddr + entry->length;
+               uint64_t regionEnd = entry->base_addr + entry->length;
                if (regionEnd > 0x100000000ULL) regionEnd = 0x100000000ULL;
                if ((uint32_t)regionEnd > highMark)
                   highMark = (uint32_t)regionEnd;
@@ -149,9 +149,9 @@ static uint32_t PollTotalMemory(void)
    }
 
    /* --- Fall back to the simple mem_upper field (KB above 1 MB) --------- */
-   if (g_SysInfo->boot.totalMemoryUpper > 0)
+   if (g_SysInfo->boot.total_memory_upper > 0)
    {
-      uint32_t total = g_SysInfo->boot.totalMemoryUpper * 1024;
+      uint32_t total = g_SysInfo->boot.total_memory_upper * 1024;
       if (total >= 16u * 1024u * 1024u) return total;
    }
    return defaultMem;

@@ -32,9 +32,9 @@ void FDC_Reset(void);
 /**
  * Scan for floppy disks
  * @param disks - Array to store detected disks
- * @param maxDisks - Maximum number of disks to detect
+ * @param max_disks - Maximum number of disks to detect
  * @return Number of disks detected
  */
-int FDC_Scan(DISK *disks, int maxDisks);
+int FDC_Scan(DISK *disks, int max_disks);
 
 #endif

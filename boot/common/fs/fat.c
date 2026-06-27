@@ -170,10 +170,10 @@ extern int DISK_ReadLBA(uint8_t drive, uint64_t lba, uint16_t count,
 #define DISK_Read g_DlCallbackOps->DISK_Read
 #define DISK_ReadLBA g_DlCallbackOps->DISK_ReadLBA
 #endif
-extern bool MBR_Probe(int driveId);
-extern int MBR_List(int driveId, int **offset);
-extern bool GPT_Probe(int driveId);
-extern int GPT_List(int driveId, int **offset);
+extern bool MBR_Probe(int drive_id);
+extern int MBR_List(int drive_id, int **offset);
+extern bool GPT_Probe(int drive_id);
+extern int GPT_List(int drive_id, int **offset);
 
 static int fat_read_sector(uint64_t lba, void *buffer)
 {
@@ -768,15 +768,17 @@ static int check_partition(uint8_t drive, int part_lba,
    return 1;
 }
 
-int FAT_Initialize(const uint8_t *biosDriveList, uint32_t bios_drive_list_count,
-                   const uint8_t *partitionUuid, const uint8_t *partitionLabel)
+int FAT_Initialize(const uint8_t *bios_drive_list,
+                   uint32_t bios_drive_list_count,
+                   const uint8_t *partition_uuid,
+                   const uint8_t *partition_label)
 {
-   if (!biosDriveList || bios_drive_list_count == 0) return -EINVAL;
+   if (!bios_drive_list || bios_drive_list_count == 0) return -EINVAL;
 
    int found = 0;
    for (uint32_t i = 0; i < bios_drive_list_count && !found; i++)
    {
-      uint8_t drive = biosDriveList[i];
+      uint8_t drive = bios_drive_list[i];
       int *offsets = NULL;
       int count = -1;
 
@@ -787,7 +789,7 @@ int FAT_Initialize(const uint8_t *biosDriveList, uint32_t bios_drive_list_count,
 
       if (count <= 0)
       {
-         if (check_partition(drive, 0, partitionLabel, partitionUuid))
+         if (check_partition(drive, 0, partition_label, partition_uuid))
          {
             if (read_bpb(drive, 0) == SUCCESS)
             {
@@ -801,7 +803,8 @@ int FAT_Initialize(const uint8_t *biosDriveList, uint32_t bios_drive_list_count,
 
       for (int j = 0; j < count && !found; j++)
       {
-         if (check_partition(drive, offsets[j], partitionLabel, partitionUuid))
+         if (check_partition(drive, offsets[j], partition_label,
+                             partition_uuid))
          {
             if (read_bpb(drive, (uint32_t)offsets[j]) == SUCCESS)
             {

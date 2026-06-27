@@ -75,7 +75,7 @@ static int setup_initial_user_stack(Process *proc, const char *filename)
    return 0;
 }
 
-int ELF_Load(VFS_File *file, void **entryOut)
+int ELF_Load(VFS_File *file, void **entry_out)
 {
    // read ELF header
    if (VFS_Seek(file, 0) < 0)
@@ -170,13 +170,13 @@ int ELF_Load(VFS_File *file, void **entryOut)
 
       // read file data for this segment
       uint32_t remaining = phdr.p_filesz;
-      uint32_t fileOffset = phdr.p_offset;
+      uint32_t file_offset = phdr.p_offset;
       const uint32_t CHUNK =
           512; // FAT sector size, read in sector-sized chunks
 
       if (remaining > 0)
       {
-         if (VFS_Seek(file, fileOffset) < 0)
+         if (VFS_Seek(file, file_offset) < 0)
          {
             logfmt(LOG_ERROR, "[ELF] seek segment data failed\n");
             return -EIO;
@@ -184,8 +184,8 @@ int ELF_Load(VFS_File *file, void **entryOut)
 
          while (remaining > 0)
          {
-            uint32_t toRead = remaining > CHUNK ? CHUNK : remaining;
-            uint32_t got = VFS_Read(file, toRead, dest);
+            uint32_t to_read = remaining > CHUNK ? CHUNK : remaining;
+            uint32_t got = VFS_Read(file, to_read, dest);
             if (got == 0)
             {
                logfmt(LOG_ERROR, "[ELF] short read for segment\n");
@@ -206,7 +206,7 @@ int ELF_Load(VFS_File *file, void **entryOut)
    }
 
    // return entry point
-   *entryOut = (void *)ehdr.e_entry;
+   *entry_out = (void *)ehdr.e_entry;
    return SUCCESS;
 }
 

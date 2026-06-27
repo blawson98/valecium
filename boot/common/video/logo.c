@@ -8,7 +8,7 @@ void LOGO_GetValecium(uint32_t *width, uint32_t *height,
 {
    *width = VALECIUM_LOGO_W;
    *height = VALECIUM_LOGO_H;
-   *palette = g_ValeciumLogo_PaletteRGB;
+   *palette = s_ValeciumLogo_PaletteRGB;
    *palette_size = VALECIUM_LOGO_PALETTE_SIZE;
-   *data = g_ValeciumLogo_Data4bpp;
+   *data = s_ValeciumLogo_Data4bpp;
 }

@@ -68,7 +68,7 @@ void i8259_SetMask(uint16_t new_mask)
    i686_iowait();
 }
 
-uint16_t i8259_GetMask()
+uint16_t i8259_GetMask(void)
 {
    return i686_inb(PIC1_DATA_PORT) | (i686_inb(PIC2_DATA_PORT) << 8);
 }
@@ -128,7 +128,7 @@ void i8259_Mask(int irq) { i8259_SetMask(s_PicMask | (1 << irq)); }
 
 void i8259_Unmask(int irq) { i8259_SetMask(s_PicMask & ~(1 << irq)); }
 
-uint16_t i8259_ReadIrqRequestRegister()
+uint16_t i8259_ReadIrqRequestRegister(void)
 {
    i686_outb(PIC1_COMMAND_PORT, PIC_CMD_READ_IRR);
    i686_outb(PIC2_COMMAND_PORT, PIC_CMD_READ_IRR);
@@ -136,7 +136,7 @@ uint16_t i8259_ReadIrqRequestRegister()
           (((uint16_t)i686_inb(PIC2_COMMAND_PORT)) << 8);
 }
 
-uint16_t i8259_ReadInServiceRegister()
+uint16_t i8259_ReadInServiceRegister(void)
 {
    i686_outb(PIC1_COMMAND_PORT, PIC_CMD_READ_ISR);
    i686_outb(PIC2_COMMAND_PORT, PIC_CMD_READ_ISR);

@@ -45,7 +45,7 @@ static const char *const s_Exceptions[] = {"Divide by zero error",
 
 void i686_ISR_InitializeGates(void);
 
-void i686_ISR_Initialize()
+void i686_ISR_Initialize(void)
 {
    i686_ISR_InitializeGates();
    i686_IDT_SetGate(0x80, i686_ISR128, i686_GDT_CODE_SEGMENT,

@@ -8,7 +8,7 @@
 #include <sys/sys.h>
 
 int Partition_ReadSectors(Partition *part, uint32_t lba, uint8_t sectors,
-                          void *lowerDataOut)
+                          void *lower_data_out)
 {
    if (!part) return -EINVAL;
 
@@ -32,12 +32,12 @@ int Partition_ReadSectors(Partition *part, uint32_t lba, uint8_t sectors,
 
    if (!part->disk) return PARTITION_EDISK;
 
-   return DISK_ReadSectors(part->disk, lba + part->partitionOffset, sectors,
-                           lowerDataOut);
+   return DISK_ReadSectors(part->disk, lba + part->partition_offset, sectors,
+                           lower_data_out);
 }
 
 int Partition_WriteSectors(Partition *part, uint32_t lba, uint8_t sectors,
-                           const void *lowerDataIn)
+                           const void *lower_data_in)
 {
    if (!part) return -EINVAL;
 
@@ -57,8 +57,8 @@ int Partition_WriteSectors(Partition *part, uint32_t lba, uint8_t sectors,
 
    if (!part->disk) return PARTITION_EDISK;
 
-   return DISK_WriteSectors(part->disk, lba + part->partitionOffset, sectors,
-                            lowerDataIn);
+   return DISK_WriteSectors(part->disk, lba + part->partition_offset, sectors,
+                            lower_data_in);
 }
 
 /*
@@ -79,10 +79,10 @@ uint32_t Partition_DevfsRead(DEVFS_DeviceNode *node, uint32_t offset,
    uint32_t sectors_needed = (size + sector_size - 1) / sector_size;
 
    /* Bounds check */
-   if (start_sector >= part->partitionSize) return 0;
-   if (start_sector + sectors_needed > part->partitionSize)
+   if (start_sector >= part->partition_size) return 0;
+   if (start_sector + sectors_needed > part->partition_size)
    {
-      sectors_needed = part->partitionSize - start_sector;
+      sectors_needed = part->partition_size - start_sector;
    }
 
    /* Allocate temporary buffer */
@@ -125,10 +125,10 @@ uint32_t Partition_DevfsWrite(DEVFS_DeviceNode *node, uint32_t offset,
    uint32_t offset_in_sector = offset % sector_size;
 
    /* Bounds check */
-   if (start_sector >= part->partitionSize) return 0;
-   if (start_sector + sectors_needed > part->partitionSize)
+   if (start_sector >= part->partition_size) return 0;
+   if (start_sector + sectors_needed > part->partition_size)
    {
-      sectors_needed = part->partitionSize - start_sector;
+      sectors_needed = part->partition_size - start_sector;
    }
 
    /* Allocate temp buffer */

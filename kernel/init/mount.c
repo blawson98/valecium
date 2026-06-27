@@ -20,7 +20,7 @@ int Init_MountRoot(void)
    for (int i = 0; i < MAX_DISKS; i++)
    {
       /* Skip entries that have not been tagged as root */
-      if (!g_SysInfo->volume[i].disk || !g_SysInfo->volume[i].isRootPartition)
+      if (!g_SysInfo->volume[i].disk || !g_SysInfo->volume[i].is_root_partition)
          continue;
 
       Partition *part = &g_SysInfo->volume[i];
@@ -42,12 +42,12 @@ int Init_MountRoot(void)
              "[MOUNT] Root filesystem mounted from volume[%d] at \"/\"\n", i);
 
       // Post-mount probe: verify /boot/init.sys exists
-      struct VFS_File *initSys = VFS_Open("/boot/init.sys");
-      if (initSys)
+      struct VFS_File *init_sys = VFS_Open("/boot/init.sys");
+      if (init_sys)
       {
          logfmt(LOG_INFO, "[MOUNT] Found /boot/init.sys — userspace transition "
                           "ready\n");
-         VFS_Close(initSys);
+         VFS_Close(init_sys);
       }
       else
       {

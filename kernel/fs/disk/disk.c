@@ -84,13 +84,13 @@ int DISK_Scan(void)
          Partition *vol = &g_SysInfo->volume[floppy_slot];
          memset(vol, 0, sizeof(Partition));
          vol->disk = disk;
-         vol->partitionOffset = 0;
-         vol->partitionSize = (uint32_t)disk->cylinders *
-                              (uint32_t)disk->heads * (uint32_t)disk->sectors;
-         vol->partitionType = 0x01; /* FAT12 */
+         vol->partition_offset = 0;
+         vol->partition_size = (uint32_t)disk->cylinders *
+                               (uint32_t)disk->heads * (uint32_t)disk->sectors;
+         vol->partition_type = 0x01; /* FAT12 */
 
          logfmt(LOG_INFO, "[DISK] Floppy volume[%d]: fd%u, %u sectors\n",
-                floppy_slot, disk->id, vol->partitionSize);
+                floppy_slot, disk->id, vol->partition_size);
 
          VBR_ProbeIdentity(vol, root_cmd_val);
 
@@ -155,19 +155,19 @@ int DISK_Scan(void)
          logfmt(
              LOG_INFO,
              "[DISK] Populated volume[%d]: Offset=%u, Size=%u, Type=0x%02x\n",
-             volume_index, g_SysInfo->volume[volume_index].partitionOffset,
-             g_SysInfo->volume[volume_index].partitionSize,
-             g_SysInfo->volume[volume_index].partitionType);
+             volume_index, g_SysInfo->volume[volume_index].partition_offset,
+             g_SysInfo->volume[volume_index].partition_size,
+             g_SysInfo->volume[volume_index].partition_type);
 
          /*
           * Step B — Read the VBR of this partition and extract FAT identity
           * metadata (UUID and volume label), then test against root=.
           *
-          *   AbsoluteOffset = (Partition.partitionOffset × 512) +
+          *   AbsoluteOffset = (Partition.partition_offset × 512) +
           * BootRecordOffset
           *
           * BootRecordOffset = 0 because the VBR is the first sector of the
-          * partition, so the physical LBA is simply partitionOffset.
+          * partition, so the physical LBA is simply partition_offset.
           */
          VBR_ProbeIdentity(&g_SysInfo->volume[volume_index], root_cmd_val);
 
@@ -183,9 +183,9 @@ int DISK_Scan(void)
             continue;
          }
 
-         uint8_t partType = volume->partitionType & 0xFF;
-         if (partType == 0x04 || partType == 0x06 || partType == 0x0B ||
-             partType == 0x0C)
+         uint8_t part_type = volume->partition_type & 0xFF;
+         if (part_type == 0x04 || part_type == 0x06 || part_type == 0x0B ||
+             part_type == 0x0C)
          {
             FAT_Instance *fat_instance = FAT_Initialize(volume);
             if (fat_instance)
@@ -223,14 +223,14 @@ int DISK_Scan(void)
             logfmt(
                 LOG_INFO,
                 "[DISK] Skipping filesystem init for partition type 0x%02x\n",
-                partType);
+                part_type);
          }
 
          /* Set the correct FilesystemType on the Filesystem struct so the
           * VFS can route through the right operations table. */
          if (volume->fs)
          {
-            if (partType == 0x04 || partType == 0x06)
+            if (part_type == 0x04 || part_type == 0x06)
                volume->fs->type = FAT16;
             else /* 0x0B or 0x0C */
                volume->fs->type = FAT32;
@@ -265,22 +265,22 @@ int DISK_GetDevfsIndex(void)
    return -1;
 }
 
-void DISK_LBA2CHS(DISK *disk, uint32_t lba, uint16_t *cylinderOut,
-                  uint16_t *sectorOut, uint16_t *headOut)
+void DISK_LBA2CHS(DISK *disk, uint32_t lba, uint16_t *cylinder_out,
+                  uint16_t *sector_out, uint16_t *head_out)
 {
    // sector = (LBA % sectors per track + 1)
-   *sectorOut = lba % disk->sectors + 1;
+   *sector_out = lba % disk->sectors + 1;
 
    // cylinder = (LBA / sectors per track) / heads
-   *cylinderOut = (lba / disk->sectors) / disk->heads;
+   *cylinder_out = (lba / disk->sectors) / disk->heads;
 
    // head = (LBA / sectors per track) % heads
-   *headOut = (lba / disk->sectors) % disk->heads;
+   *head_out = (lba / disk->sectors) % disk->heads;
 }
 
-int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
+int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *data_out)
 {
-   if (!disk || sectors == 0 || !dataOut) return -EINVAL;
+   if (!disk || sectors == 0 || !data_out) return -EINVAL;
 
    if (disk->type == DISK_TYPE_FLOPPY)
    {
@@ -288,7 +288,7 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
        * floppy controller. This avoids relying on BIOS INT13 services from
        * the kernel.
        */
-      int rc = FDC_ReadLba(disk, lba, (uint8_t *)dataOut, sectors);
+      int rc = FDC_ReadLba(disk, lba, (uint8_t *)data_out, sectors);
       if (rc != 0) return (rc < 0) ? rc : -EIO;
       return SUCCESS;
    }
@@ -297,7 +297,7 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
       /* Hard disk (ATA): use the kernel ATA driver with primary master
        * channel/drive.
        */
-      int rc = ATA_Read(disk, lba, (uint8_t *)dataOut, sectors);
+      int rc = ATA_Read(disk, lba, (uint8_t *)data_out, sectors);
       if (rc != 0) return (rc < 0) ? rc : -EIO;
       return SUCCESS;
    }
@@ -306,16 +306,16 @@ int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors, void *dataOut)
 }
 
 int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
-                      const void *dataIn)
+                      const void *data_in)
 {
-   if (!disk || sectors == 0 || !dataIn) return -EINVAL;
+   if (!disk || sectors == 0 || !data_in) return -EINVAL;
 
    if (disk->type == DISK_TYPE_FLOPPY)
    {
       /* Floppy drive: use the kernel FDC driver which speaks directly to the
        * floppy controller.
        */
-      int rc = FDC_WriteLba(disk, lba, (const uint8_t *)dataIn, sectors);
+      int rc = FDC_WriteLba(disk, lba, (const uint8_t *)data_in, sectors);
       if (rc != 0) return (rc < 0) ? rc : -EIO;
       return SUCCESS;
    }
@@ -324,7 +324,7 @@ int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,
       /* Hard disk (ATA): use the kernel ATA driver with primary master
        * channel/drive.
        */
-      int rc = ATA_Write(disk, lba, (const uint8_t *)dataIn, sectors);
+      int rc = ATA_Write(disk, lba, (const uint8_t *)data_in, sectors);
       if (rc != 0) return (rc < 0) ? rc : -EIO;
       return SUCCESS;
    }

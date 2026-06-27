@@ -24,7 +24,7 @@ IDTEntry g_IDT[256];
 
 IDTDescriptor g_IDTDescriptor = {sizeof(g_IDT) - 1, g_IDT};
 
-void __attribute__((cdecl)) i686_IDT_Load(IDTDescriptor *idtDescriptor);
+void __attribute__((cdecl)) i686_IDT_Load(IDTDescriptor *idt_descriptor);
 
 void i686_IDT_SetGate(int interrupt, void *base, uint16_t segment_descriptor,
                       uint8_t flags)
@@ -46,7 +46,7 @@ void i686_IDT_DisableGate(int interrupt)
    FLAG_UNSET(g_IDT[interrupt].Flags, IDT_FLAG_PRESENT);
 }
 
-void i686_IDT_Initialize()
+void i686_IDT_Initialize(void)
 {
    i686_IDT_Load(&g_IDTDescriptor);
    logfmt(LOG_INFO, "[IDT] initialized\n");

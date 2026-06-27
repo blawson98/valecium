@@ -139,9 +139,9 @@ typedef struct
 /* Internal handle storage — one library at a time */
 static dl_handle s_Handle;
 
-void *DL_LoadLibrary(void *fileData)
+void *DL_LoadLibrary(void *file_data)
 {
-   unsigned char *ident = (unsigned char *)fileData;
+   unsigned char *ident = (unsigned char *)file_data;
    dl_handle *h = &s_Handle;
 
    /* Validate ELF magic */
@@ -155,8 +155,8 @@ void *DL_LoadLibrary(void *fileData)
 
    if (ident[EI_CLASS] == ELFCLASS32)
    {
-      elf32_ehdr *ehdr = (elf32_ehdr *)fileData;
-      elf32_shdr *shdr = (elf32_shdr *)((uintptr_t)fileData + ehdr->e_shoff);
+      elf32_ehdr *ehdr = (elf32_ehdr *)file_data;
+      elf32_shdr *shdr = (elf32_shdr *)((uintptr_t)file_data + ehdr->e_shoff);
 
       h->is_64bit = 0;
 
@@ -164,12 +164,12 @@ void *DL_LoadLibrary(void *fileData)
       {
          if (shdr[i].sh_type == SHT_SYMTAB || shdr[i].sh_type == SHT_DYNSYM)
          {
-            h->symtab = (void *)((uintptr_t)fileData + shdr[i].sh_offset);
+            h->symtab = (void *)((uintptr_t)file_data + shdr[i].sh_offset);
             h->sym_count = shdr[i].sh_size / shdr[i].sh_entsize;
 
             /* Companion string table is pointed to by sh_link */
             if (shdr[i].sh_link < (uint32_t)ehdr->e_shnum)
-               h->strtab = (void *)((uintptr_t)fileData +
+               h->strtab = (void *)((uintptr_t)file_data +
                                     shdr[shdr[i].sh_link].sh_offset);
             return h;
          }
@@ -177,8 +177,8 @@ void *DL_LoadLibrary(void *fileData)
    }
    else if (ident[EI_CLASS] == ELFCLASS64)
    {
-      elf64_ehdr *ehdr = (elf64_ehdr *)fileData;
-      elf64_shdr *shdr = (elf64_shdr *)((uintptr_t)fileData + ehdr->e_shoff);
+      elf64_ehdr *ehdr = (elf64_ehdr *)file_data;
+      elf64_shdr *shdr = (elf64_shdr *)((uintptr_t)file_data + ehdr->e_shoff);
 
       h->is_64bit = 1;
 
@@ -186,11 +186,11 @@ void *DL_LoadLibrary(void *fileData)
       {
          if (shdr[i].sh_type == SHT_SYMTAB || shdr[i].sh_type == SHT_DYNSYM)
          {
-            h->symtab = (void *)((uintptr_t)fileData + shdr[i].sh_offset);
+            h->symtab = (void *)((uintptr_t)file_data + shdr[i].sh_offset);
             h->sym_count = shdr[i].sh_size / shdr[i].sh_entsize;
 
             if (shdr[i].sh_link < (uint32_t)ehdr->e_shnum)
-               h->strtab = (void *)((uintptr_t)fileData +
+               h->strtab = (void *)((uintptr_t)file_data +
                                     shdr[shdr[i].sh_link].sh_offset);
             return h;
          }

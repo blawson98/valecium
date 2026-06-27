@@ -670,7 +670,7 @@ Command *parse(char command[PATH_MAX])
    return cmd;
 }
 
-void loop()
+void loop(void)
 {
    while (true)
    {
@@ -725,7 +725,7 @@ void loop()
    }
 }
 
-void init()
+void init(void)
 {
    g_Shell.g_Version = g_Version;
    g_Shell.starter = '$';

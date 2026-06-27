@@ -25,7 +25,7 @@ typedef enum
 void i686_IDT_Initialize(void);
 void i686_IDT_DisableGate(int interrupt);
 void i686_IDT_EnableGate(int interrupt);
-void i686_IDT_SetGate(int interrupt, void *base, uint16_t segmentDescriptor,
+void i686_IDT_SetGate(int interrupt, void *base, uint16_t segment_descriptor,
                       uint8_t flags);
 
 #endif

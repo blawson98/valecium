@@ -11,7 +11,7 @@ typedef struct
 {
    const char *Name;
    int (*Probe)(void);
-   void (*Initialize)(uint8_t offsetPic1, uint8_t offsetPic2, bool autoEoi);
+   void (*Initialize)(uint8_t offset_pic1, uint8_t offset_pic2, bool auto_eoi);
    void (*Disable)();
    void (*SendEndOfInterrupt)(int irq);
    void (*Mask)(int irq);

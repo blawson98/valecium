@@ -63,10 +63,10 @@ enum FAT_Attributes
  * partition->fs->private_data.  Returns NULL on failure. */
 FAT_Instance *FAT_Initialize(Partition *disk);
 FAT_File *FAT_Open(Partition *disk, const char *path);
-uint32_t FAT_Read(Partition *disk, FAT_File *file, uint32_t byteCount,
-                  void *dataOut);
+uint32_t FAT_Read(Partition *disk, FAT_File *file, uint32_t byte_count,
+                  void *data_out);
 int FAT_ReadEntry(Partition *disk, FAT_File *file,
-                  FAT_DirectoryEntry *dirEntry);
+                  FAT_DirectoryEntry *dir_entry);
 void FAT_Close(FAT_File *file);
 
 // Seek to a specific byte position in an opened FAT file. Returns FAT_OK on
@@ -78,12 +78,12 @@ int FAT_Seek(Partition *disk, FAT_File *file, uint32_t position);
 // Write a directory entry to a directory at the current file position.
 // File must be opened as a directory. Advances file position to next entry.
 int FAT_WriteEntry(Partition *disk, FAT_File *file,
-                   const FAT_DirectoryEntry *dirEntry);
+                   const FAT_DirectoryEntry *dir_entry);
 
 // Write data to an opened file. File position is advanced by bytes written.
 // File size is updated if write extends past end. Returns bytes written.
-uint32_t FAT_Write(Partition *disk, FAT_File *file, uint32_t byteCount,
-                   const void *dataIn);
+uint32_t FAT_Write(Partition *disk, FAT_File *file, uint32_t byte_count,
+                   const void *data_in);
 
 // Truncate (shrink to 0 bytes) an opened file and free all its clusters.
 // File position and size are reset to 0. Returns FAT_OK on success.

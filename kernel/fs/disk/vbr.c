@@ -15,38 +15,38 @@
  *
  * The absolute byte address of the boot record on the physical medium is:
  *
- *   AbsoluteOffset = (Partition.partitionOffset × 512) + BootRecordOffset
+ *   AbsoluteOffset = (Partition.partition_offset × 512) + BootRecordOffset
  *
  * where BootRecordOffset = 0 for the partition-relative VBR, giving us
- * LBA = partitionOffset + 0 = partitionOffset.
+ * LBA = partition_offset + 0 = partition_offset.
  *
  * After filling vol->uuid and vol->label, the function compares the probed
  * metadata against the `root=` kernel command-line argument.  If the value
- * matches (formats LABEL=<name> or PARTUUID=<hex>), vol->isRootPartition
+ * matches (formats LABEL=<name> or PARTUUID=<hex>), vol->is_root_partition
  * is set to true.
  *
  * Only FAT12/16/32 partition types are probed; other types are skipped.
  */
-void VBR_ProbeIdentity(Partition *vol, const char *rootCmdVal)
+void VBR_ProbeIdentity(Partition *vol, const char *root_cmd_val)
 {
    if (!vol || !vol->disk) return;
 
-   uint8_t ptype = (uint8_t)(vol->partitionType & 0xFFu);
+   uint8_t ptype = (uint8_t)(vol->partition_type & 0xFFu);
 
    /* Only probe recognised FAT types */
-   bool isFAT32 = (ptype == 0x0Bu || ptype == 0x0Cu);
-   bool isFAT1X = (ptype == 0x01u || ptype == 0x04u || ptype == 0x06u);
-   if (!isFAT32 && !isFAT1X) return;
+   bool is_fat32 = (ptype == 0x0Bu || ptype == 0x0Cu);
+   bool is_fat1x = (ptype == 0x01u || ptype == 0x04u || ptype == 0x06u);
+   if (!is_fat32 && !is_fat1x) return;
 
    /* Allocate a single-sector (512-byte) scratch buffer */
    uint8_t *vbr = (uint8_t *)kmalloc(512);
    if (!vbr) return;
 
    /*
-    * Read the VBR — absolute LBA = partitionOffset, relative offset = 0.
-    * AbsoluteOffset = (partitionOffset × 512) + 0
+    * Read the VBR — absolute LBA = partition_offset, relative offset = 0.
+    * AbsoluteOffset = (partition_offset × 512) + 0
     */
-   if (DISK_ReadSectors(vol->disk, vol->partitionOffset, 1, vbr) < 0)
+   if (DISK_ReadSectors(vol->disk, vol->partition_offset, 1, vbr) < 0)
    {
       free(vbr);
       return;
@@ -61,8 +61,8 @@ void VBR_ProbeIdentity(Partition *vol, const char *rootCmdVal)
    }
 
    /* Select the correct BPB offsets based on the FAT sub-type */
-   uint32_t off_id = isFAT32 ? FAT32_BPB_VOLID : FAT1X_BPB_VOLID;
-   uint32_t off_lab = isFAT32 ? FAT32_BPB_VOLLIB : FAT1X_BPB_VOLLIB;
+   uint32_t off_id = is_fat32 ? FAT32_BPB_VOLID : FAT1X_BPB_VOLID;
+   uint32_t off_lab = is_fat32 ? FAT32_BPB_VOLLIB : FAT1X_BPB_VOLLIB;
 
    /* Extract 4-byte volume serial number */
    memcpy(&vol->uuid, vbr + off_id, 4);
@@ -84,31 +84,31 @@ void VBR_ProbeIdentity(Partition *vol, const char *rootCmdVal)
     *   LABEL=<volume-label>          (case-sensitive 11-char match)
     *   PARTUUID=<8 uppercase hex>    (e.g. PARTUUID=DEADBEEF)
     * -------------------------------------------------------------------- */
-   if (!rootCmdVal)
+   if (!root_cmd_val)
    {
       free(vbr);
       return;
    }
 
-   if (strncmp(rootCmdVal, "LABEL=", 6) == 0)
+   if (strncmp(root_cmd_val, "LABEL=", 6) == 0)
    {
-      if (strcmp(vol->label, rootCmdVal + 6) == 0)
+      if (strcmp(vol->label, root_cmd_val + 6) == 0)
       {
-         vol->isRootPartition = true;
+         vol->is_root_partition = true;
          logfmt(LOG_INFO, "[DISK] Root partition tagged by LABEL=\"%s\"\n",
                 vol->label);
       }
    }
-   else if (strncmp(rootCmdVal, "PARTUUID=", 9) == 0)
+   else if (strncmp(root_cmd_val, "PARTUUID=", 9) == 0)
    {
       /* Format uuid as 8 uppercase hex digits and compare */
-      char uuidStr[9];
-      snprintf(uuidStr, sizeof(uuidStr), "%08X", vol->uuid);
-      if (strcmp(uuidStr, rootCmdVal + 9) == 0)
+      char uuid_str[9];
+      snprintf(uuid_str, sizeof(uuid_str), "%08X", vol->uuid);
+      if (strcmp(uuid_str, root_cmd_val + 9) == 0)
       {
-         vol->isRootPartition = true;
+         vol->is_root_partition = true;
          logfmt(LOG_INFO, "[DISK] Root partition tagged by PARTUUID=%s\n",
-                uuidStr);
+                uuid_str);
       }
    }
 

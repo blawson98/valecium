@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <sys/sys.h>
 
-/* Parse the command line from g_SysInfo->boot.commandLine into s_params_table
+/* Parse the command line from g_SysInfo->boot.command_line into s_params_table
  */
 void CmdLine_Initialize(void);
 

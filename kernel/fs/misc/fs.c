@@ -44,8 +44,8 @@ int FS_Initialize(void)
    /* Call DISK_Initialize to scan and populate all volumes.
     * This will also trigger drivers to register their devices
     * in devfs during the scan process. */
-   int disksDetected = DISK_Initialize();
-   if (disksDetected < 0)
+   int disks_detected = DISK_Initialize();
+   if (disks_detected < 0)
    {
       logfmt(LOG_ERROR, "[FS] Disk initialization failed\n");
       return FS_EDISK_INIT;
