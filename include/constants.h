@@ -18,4 +18,12 @@
 #define EACCES 13
 #define ENOMEM 12
 
+/* Architecture bit-width detection.
+   Set by the build system via -DI686, -Dx86_64, or -DAARCH64. */
+#if defined(I686)
+#define BIT32 32
+#elif defined(x86_64) || defined(AARCH64)
+#define BIT64 64
+#endif
+
 #endif /* CONSTANTS_H */

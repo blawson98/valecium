@@ -7,7 +7,7 @@
 #include <constants.h>
 
 #ifndef COREFS
-#include <dl/dl.h>
+#include <dl/callback.h>
 #endif
 
 typedef struct FS_File FS_File;

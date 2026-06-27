@@ -241,7 +241,7 @@ def GenerateHeader(Functions: list[tuple[str, str]]) -> str:
     for Name, _Sig in Functions:
         FpType = FunctionPointerType(_Sig, Name)
         Lines.append(
-            f'    g_MainBootOperations->{Name} = ({FpType})dlsym(NULL, "{Name}");'
+            f'    g_MainBootOperations->{Name} = ({FpType})DL_LoadSymbol(NULL, "{Name}");'
         )
         Lines.append(f"    if (!g_MainBootOperations->{Name}) return -1;")
 

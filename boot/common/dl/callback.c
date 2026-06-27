@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "dl.h"
+#include "callback.h"
 
 DL_CallbackOpsPatch g_DlCallbackOpsPatch = {
     ._signature = {'V', 'L', 'S', 'O'},
