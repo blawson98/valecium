@@ -20,7 +20,7 @@ const char *strchr(const char *str, char chr)
 
 char *strcpy(char *dst, const char *src)
 {
-   char *origDst = dst;
+   char *orig_dst = dst;
 
    if (dst == NULL) return NULL;
 
@@ -38,7 +38,7 @@ char *strcpy(char *dst, const char *src)
    }
 
    *dst = '\0';
-   return origDst;
+   return orig_dst;
 }
 
 unsigned strlen(const char *str)
@@ -67,7 +67,7 @@ int str_eq(const char *a, const char *b)
 
 char *strncpy(char *dst, const char *src, unsigned n)
 {
-   char *origDst = dst;
+   char *orig_dst = dst;
 
    if (dst == NULL) return NULL;
 
@@ -79,7 +79,7 @@ char *strncpy(char *dst, const char *src, unsigned n)
          ++dst;
          --n;
       }
-      return origDst;
+      return orig_dst;
    }
 
    while (n > 0 && *src)
@@ -98,7 +98,7 @@ char *strncpy(char *dst, const char *src, unsigned n)
       --n;
    }
 
-   return origDst;
+   return orig_dst;
 }
 
 int strcmp(const char *a, const char *b)

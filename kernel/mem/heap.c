@@ -11,9 +11,9 @@
 extern uint8_t __end; /* linker-provided end of kernel image */
 
 /* Simple bump allocator state */
-static uintptr_t heap_start = 0;
-static uintptr_t heap_end = 0;
-static uintptr_t heap_ptr = 0;
+static uintptr_t s_HeapStart = 0;
+static uintptr_t s_HeapEnd = 0;
+static uintptr_t s_HeapPtr = 0;
 
 /* Heap block header for safety checks */
 typedef struct
@@ -118,28 +118,28 @@ static uintptr_t align_up(uintptr_t v, size_t align)
 void Heap_Initialize(void)
 {
    /* place heap just after the kernel image end symbol */
-   heap_start = align_up((uintptr_t)&__end, 8);
+   s_HeapStart = align_up((uintptr_t)&__end, 8);
 
    /* Set heap to a reasonable size - 64 MiB should be plenty for a kernel */
    const uintptr_t heap_size = 64 * 1024 * 1024u; // 64 MiB
-   uintptr_t desired_end = heap_start + heap_size;
+   uintptr_t desired_end = s_HeapStart + heap_size;
 
    /* Check for overflow and cap at 32-bit max */
-   if (desired_end < heap_start || desired_end > 0xFFFFFFFFu)
+   if (desired_end < s_HeapStart || desired_end > 0xFFFFFFFFu)
    {
-      heap_end = 0xFFFFFFFFu;
+      s_HeapEnd = 0xFFFFFFFFu;
    }
    else
    {
-      heap_end = desired_end;
+      s_HeapEnd = desired_end;
    }
 
-   heap_ptr = heap_start;
+   s_HeapPtr = s_HeapStart;
 
    /* Concise banner to avoid noisy repeats */
    logfmt(LOG_INFO, "[MEM] start=0x%08x end=0x%08x size=%u MB\n",
-          (uint32_t)heap_start, (uint32_t)heap_end,
-          (uint32_t)((heap_end - heap_start) / (1024 * 1024)));
+          (uint32_t)s_HeapStart, (uint32_t)s_HeapEnd,
+          (uint32_t)((s_HeapEnd - s_HeapStart) / (1024 * 1024)));
 }
 
 void *kmalloc(size_t size)
@@ -148,17 +148,17 @@ void *kmalloc(size_t size)
 
    /* Allocate extra space for header with canaries */
    size_t total = size + sizeof(HeapBlockHeader);
-   uintptr_t cur = align_up(heap_ptr, 8);
+   uintptr_t cur = align_up(s_HeapPtr, 8);
 
-   if (cur > heap_end)
+   if (cur > s_HeapEnd)
    {
       logfmt(LOG_ERROR, "[MEM] kmalloc: EXHAUSTED (cur=0x%08x > end=0x%08x)\n",
-             (uint32_t)cur, (uint32_t)heap_end);
+             (uint32_t)cur, (uint32_t)s_HeapEnd);
       return NULL; /* heap already exhausted */
    }
 
-   /* available bytes from cur to heap_end (inclusive) */
-   uintptr_t avail = (heap_end - cur) + 1;
+   /* available bytes from cur to s_HeapEnd (inclusive) */
+   uintptr_t avail = (s_HeapEnd - cur) + 1;
    if (total > avail)
    {
       logfmt(LOG_ERROR, "[MEM] kmalloc: OUT OF MEMORY (need=%u avail=%u)\n",
@@ -172,7 +172,7 @@ void *kmalloc(size_t size)
    header->canary_before = HEAP_CANARY;
    header->canary_after = HEAP_CANARY;
 
-   heap_ptr = cur + total;
+   s_HeapPtr = cur + total;
 
    /* Return pointer after header */
    return (void *)(cur + sizeof(HeapBlockHeader));
@@ -186,15 +186,15 @@ void *kzalloc(size_t size)
    return p;
 }
 
-uintptr_t mem_heap_start(void) { return heap_start; }
-uintptr_t mem_heap_end(void) { return heap_end; }
+uintptr_t mem_heap_start(void) { return s_HeapStart; }
+uintptr_t mem_heap_end(void) { return s_HeapEnd; }
 
 void heap_check_integrity(void)
 {
-   uintptr_t cur = heap_start;
+   uintptr_t cur = s_HeapStart;
    uint32_t block_count = 0;
 
-   while (cur < heap_ptr)
+   while (cur < s_HeapPtr)
    {
       HeapBlockHeader *h = (HeapBlockHeader *)cur;
 
@@ -250,29 +250,30 @@ void *realloc(void *ptr, size_t size)
 int brk(void *addr)
 {
    uintptr_t target = (uintptr_t)addr;
-   if (target < heap_start || target > heap_end) return -1;
-   heap_ptr = target;
+   if (target < s_HeapStart || target > s_HeapEnd) return -1;
+   s_HeapPtr = target;
    return 0;
 }
 
 void *sbrk(intptr_t inc)
 {
-   uintptr_t old = heap_ptr;
+   uintptr_t old = s_HeapPtr;
    if (inc == 0) return (void *)old;
 
-   uintptr_t new_ptr = heap_ptr + inc;
-   if ((inc > 0 && new_ptr < heap_ptr) || new_ptr > heap_end) return (void *)-1;
-   if (new_ptr < heap_start) return (void *)-1;
+   uintptr_t new_ptr = s_HeapPtr + inc;
+   if ((inc > 0 && new_ptr < s_HeapPtr) || new_ptr > s_HeapEnd)
+      return (void *)-1;
+   if (new_ptr < s_HeapStart) return (void *)-1;
 
-   heap_ptr = new_ptr;
+   s_HeapPtr = new_ptr;
    return (void *)old;
 }
 
 /* Self-test ------------------------------------------------------------- */
 void Heap_SelfTest(void)
 {
-   logfmt(LOG_INFO, "[MEM] start=0x%08x end=0x%08x\n", (uint32_t)heap_start,
-          (uint32_t)heap_end);
+   logfmt(LOG_INFO, "[MEM] start=0x%08x end=0x%08x\n", (uint32_t)s_HeapStart,
+          (uint32_t)s_HeapEnd);
 
    char *p = (char *)kmalloc(32);
    if (!p)

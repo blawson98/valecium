@@ -20,9 +20,9 @@ static int name_match(const char *component, int comp_len,
                       const uint8_t *rec_name, int rec_name_len);
 static int label_nonzero(const uint8_t *label);
 static int label_match(const uint8_t *isoLabel, const uint8_t *expected);
-static int check_partition(uint8_t drive, int partLba,
-                           const uint8_t *expectedLabel,
-                           const uint8_t *expectedUuid);
+static int check_partition(uint8_t drive, int part_lba,
+                           const uint8_t *expected_label,
+                           const uint8_t *expected_uuid);
 static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
                             const char *component, int comp_len,
                             uint32_t *out_lba, uint32_t *out_size,
@@ -185,9 +185,9 @@ static int label_match(const uint8_t *isoLabel, const uint8_t *expected)
    return 1;
 }
 
-static int check_partition(uint8_t drive, int partLba,
-                           const uint8_t *expectedLabel,
-                           const uint8_t *expectedUuid)
+static int check_partition(uint8_t drive, int part_lba,
+                           const uint8_t *expected_label,
+                           const uint8_t *expected_uuid)
 {
    uint8_t buf[SECTOR_SIZE_ISO];
    uint64_t pvd_lba = 0;
@@ -197,12 +197,12 @@ static int check_partition(uint8_t drive, int partLba,
 
    if (drive >= 0xE0)
    {
-      pvd_lba = (uint64_t)(partLba + PVD_LBA);
+      pvd_lba = (uint64_t)(part_lba + PVD_LBA);
       pvd_count = 1;
    }
    else
    {
-      pvd_lba = (uint64_t)(partLba + PVD_SECTOR_512);
+      pvd_lba = (uint64_t)(part_lba + PVD_SECTOR_512);
       pvd_count = PVD_SECTOR_COUNT;
    }
 
@@ -211,24 +211,24 @@ static int check_partition(uint8_t drive, int partLba,
    if (buf[0] != 1) return 0;
    if (!mem_eq(&buf[1], ISO_SIGNATURE, 5)) return 0;
 
-   if (expectedLabel && label_nonzero(expectedLabel))
+   if (expected_label && label_nonzero(expected_label))
    {
-      if (label_match(&buf[VOLUME_LABEL_OFFSET], expectedLabel)) return 1;
+      if (label_match(&buf[VOLUME_LABEL_OFFSET], expected_label)) return 1;
    }
 
-   if (expectedUuid)
+   if (expected_uuid)
    {
       int uuid_nonzero = 0;
       for (int i = 0; i < UUID_SIZE; i++)
       {
-         if (expectedUuid[i] != 0)
+         if (expected_uuid[i] != 0)
          {
             uuid_nonzero = 1;
             break;
          }
       }
       if (uuid_nonzero &&
-          mem_eq(&buf[VOLUME_UUID_OFFSET], expectedUuid, UUID_SIZE))
+          mem_eq(&buf[VOLUME_UUID_OFFSET], expected_uuid, UUID_SIZE))
          return 1;
    }
 
@@ -328,17 +328,17 @@ static int resolve_path(const char *path, uint32_t *out_lba, uint32_t *out_size)
 }
 
 int ISO9660_Initialize(const uint8_t *biosDriveList,
-                       uint32_t biosDriveListCount,
+                       uint32_t bios_drive_list_count,
                        const uint8_t *partitionUuid,
                        const uint8_t *partitionLabel)
 {
    uint8_t buf[SECTOR_SIZE_ISO];
 
-   if (!biosDriveList || biosDriveListCount == 0) return -EINVAL;
+   if (!biosDriveList || bios_drive_list_count == 0) return -EINVAL;
 
    {
       int found = 0;
-      for (uint32_t i = 0; i < biosDriveListCount && !found; i++)
+      for (uint32_t i = 0; i < bios_drive_list_count && !found; i++)
       {
          uint8_t drive = biosDriveList[i];
          int *offsets = NULL;

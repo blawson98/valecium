@@ -8,8 +8,8 @@
 #include <sys/sys.h>
 #include <sys/system.h>
 
-static DEVFS_DeviceOps disk_ops = {.read = DISK_DevfsRead,
-                                   .write = DISK_DevfsWrite};
+static DEVFS_DeviceOps s_DiskOps = {.read = DISK_DevfsRead,
+                                    .write = DISK_DevfsWrite};
 
 // ATA register offsets from base port
 #define ATA_REG_DATA 0x00
@@ -57,24 +57,22 @@ typedef struct
  * partition_length starts at 0 and is filled in by ATA_Init from the
  * IDENTIFY device response – no hardcoded geometry or size anywhere.
  */
-static ata_driver_t primary_master = {
+static ata_driver_t s_PrimaryMaster = {
     .dcr_port = 0x3F6, .tf_port = 0x1F0, .slave_bits = 0xA0};
-static ata_driver_t primary_slave = {
+static ata_driver_t s_PrimarySlave = {
     .dcr_port = 0x3F6, .tf_port = 0x1F0, .slave_bits = 0xB0};
-static ata_driver_t secondary_master = {
+static ata_driver_t s_SecondaryMaster = {
     .dcr_port = 0x376, .tf_port = 0x170, .slave_bits = 0xA0};
-static ata_driver_t secondary_slave = {
+static ata_driver_t s_SecondarySlave = {
     .dcr_port = 0x376, .tf_port = 0x170, .slave_bits = 0xB0};
 
-/**
- * Get driver for channel and drive
- */
+// Get driver for channel and drive.
 static ata_driver_t *ata_get_driver(int channel, int drive)
 {
-   if (channel == 0 && drive == 0) return &primary_master;
-   if (channel == 0 && drive == 1) return &primary_slave;
-   if (channel == 1 && drive == 0) return &secondary_master;
-   if (channel == 1 && drive == 1) return &secondary_slave;
+   if (channel == 0 && drive == 0) return &s_PrimaryMaster;
+   if (channel == 0 && drive == 1) return &s_PrimarySlave;
+   if (channel == 1 && drive == 0) return &s_SecondaryMaster;
+   if (channel == 1 && drive == 1) return &s_SecondarySlave;
    return NULL;
 }
 
@@ -111,9 +109,7 @@ static inline int ata_is_floating_bus(uint16_t tf_port)
    return (status == ATA_FLOATING_BUS);
 }
 
-/**
- * Wait for drive to be ready (not busy)
- */
+// Wait for drive to be ready (not busy).
 static int ata_wait_busy(uint16_t tf_port)
 {
    // Timeout: ~1 second at 1MHz CPU (~1 million iterations per ms)
@@ -175,9 +171,7 @@ static int ata_wait_drq(uint16_t tf_port)
    return -1; /* Timeout */
 }
 
-/**
- * Wait for drive to be ready (not busy and DRDY set)
- */
+// Wait for drive to be ready (not busy and DRDY set).
 static int ata_wait_for_ready(uint16_t tf_port)
 {
    int timeout = 10000;
@@ -195,9 +189,7 @@ static int ata_wait_for_ready(uint16_t tf_port)
    return -1; // Timeout
 }
 
-/**
- * Perform software reset on ATA channel
- */
+// Perform software reset on ATA channel.
 static void ata_soft_reset(uint16_t dcr_port)
 {
    // Set SRST bit (software reset)
@@ -284,9 +276,7 @@ int ATA_Init(int channel, int drive, uint32_t partition_start,
    return 0;
 }
 
-/**
- * Read sectors from ATA drive using PIO mode (28-bit LBA)
- */
+// Read sectors from ATA drive using PIO mode (28-bit LBA).
 int ATA_Read(DISK *disk, uint32_t lba, uint8_t *buffer, uint32_t count)
 {
    /* Validate inputs and ensure private driver data exists */
@@ -347,9 +337,7 @@ int ATA_Read(DISK *disk, uint32_t lba, uint8_t *buffer, uint32_t count)
    return 0;
 }
 
-/**
- * Write sectors to ATA drive using PIO mode (28-bit LBA)
- */
+// Write sectors to ATA drive using PIO mode (28-bit LBA).
 int ATA_Write(DISK *disk, uint32_t lba, const uint8_t *buffer, uint32_t count)
 {
    /* Validate inputs and ensure private driver data exists */
@@ -430,9 +418,7 @@ int ATA_Write(DISK *disk, uint32_t lba, const uint8_t *buffer, uint32_t count)
    return 0;
 }
 
-/**
- * Perform software reset on ATA channel
- */
+// Perform software reset on ATA channel.
 void ATA_Reset(int channel)
 {
    uint16_t dcr_port = (channel == 0) ? 0x3F6 : 0x376;
@@ -476,10 +462,8 @@ int ATA_Identify(int channel, int drive, uint16_t *buffer)
    return 0;
 }
 
-/**
- * Scan for ATA disks
- */
-int ATA_Scan(DISK *disks, int maxDisks)
+// Scan for ATA disks.
+int ATA_Scan(DISK *disks, int max_disks)
 {
    int count = 0;
 
@@ -492,7 +476,7 @@ int ATA_Scan(DISK *disks, int maxDisks)
    {
       for (int dr = 0; dr < 2; dr++)
       {
-         if (count >= maxDisks) break;
+         if (count >= max_disks) break;
 
          // Attempt to initialize the controller/drive
          // We pass 0 for partition info as we are just probing
@@ -573,7 +557,7 @@ int ATA_Scan(DISK *disks, int maxDisks)
             /* Major 3 for IDE disks, minor = disk index */
             uint32_t disk_size = (uint32_t)(disks[count].size & 0xFFFFFFFF);
             DEVFS_RegisterDevice(devname, DEVFS_TYPE_BLOCK, 3, count, disk_size,
-                                 &disk_ops, &disks[count]);
+                                 &s_DiskOps, &disks[count]);
 
             count++;
          }

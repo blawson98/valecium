@@ -22,7 +22,7 @@ static inline intptr_t map_exec_error(int exec_result)
    return -1;
 }
 
-intptr_t sys_brk(void *addr)
+intptr_t Syscall_Brk(void *addr)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -37,7 +37,7 @@ intptr_t sys_brk(void *addr)
    return (intptr_t)addr;
 }
 
-void *sys_sbrk(intptr_t increment)
+void *Syscall_Sbrk(intptr_t increment)
 {
    Process *proc = get_current_process();
    if (!proc) return (void *)-1;
@@ -46,7 +46,7 @@ void *sys_sbrk(intptr_t increment)
 }
 
 // File descriptor syscalls
-intptr_t sys_open(const char *path, int flags, uint16_t mode)
+intptr_t Syscall_Open(const char *path, int flags, uint16_t mode)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -54,7 +54,7 @@ intptr_t sys_open(const char *path, int flags, uint16_t mode)
    return FD_Open(proc, path, flags, mode);
 }
 
-intptr_t sys_close(int fd)
+intptr_t Syscall_Close(int fd)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -62,7 +62,7 @@ intptr_t sys_close(int fd)
    return FD_Close(proc, fd);
 }
 
-intptr_t sys_read(int fd, void *buf, uint32_t count)
+intptr_t Syscall_Read(int fd, void *buf, uint32_t count)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -71,7 +71,7 @@ intptr_t sys_read(int fd, void *buf, uint32_t count)
    return FD_Read(proc, fd, buf, count);
 }
 
-intptr_t sys_write(int fd, const void *buf, uint32_t count)
+intptr_t Syscall_Write(int fd, const void *buf, uint32_t count)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -79,7 +79,7 @@ intptr_t sys_write(int fd, const void *buf, uint32_t count)
    return FD_Write(proc, fd, buf, count);
 }
 
-intptr_t sys_lseek(int fd, int32_t offset, int whence)
+intptr_t Syscall_Lseek(int fd, int32_t offset, int whence)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -87,7 +87,7 @@ intptr_t sys_lseek(int fd, int32_t offset, int whence)
    return FD_Lseek(proc, fd, offset, whence);
 }
 
-intptr_t sys_chmod(const char *path, uint16_t mode)
+intptr_t Syscall_Chmod(const char *path, uint16_t mode)
 {
    Process *proc = get_current_process();
    if (!proc || !path) return -1;
@@ -96,7 +96,7 @@ intptr_t sys_chmod(const char *path, uint16_t mode)
    return VFS_Chmod(path, mode);
 }
 
-intptr_t sys_chown(const char *path, uint32_t uid, uint32_t gid)
+intptr_t Syscall_Chown(const char *path, uint32_t uid, uint32_t gid)
 {
    Process *proc = get_current_process();
    if (!proc || !path) return -1;
@@ -105,7 +105,7 @@ intptr_t sys_chown(const char *path, uint32_t uid, uint32_t gid)
    return VFS_Chown(path, uid, gid);
 }
 
-intptr_t sys_fork(const Registers *regs)
+intptr_t Syscall_Fork(const Registers *regs)
 {
    Process *parent = get_current_process();
    if (!parent) return -1;
@@ -116,8 +116,8 @@ intptr_t sys_fork(const Registers *regs)
    return (intptr_t)child->pid;
 }
 
-intptr_t sys_execve(const char *path, const char *const argv[],
-                    const char *const envp[], Registers *regs)
+intptr_t Syscall_Execve(const char *path, const char *const argv[],
+                        const char *const envp[], Registers *regs)
 {
    Process *proc = get_current_process();
    if (!proc || !path || !regs) return -1;
@@ -138,7 +138,7 @@ intptr_t sys_execve(const char *path, const char *const argv[],
    return 0;
 }
 
-intptr_t sys_exit(int status)
+intptr_t Syscall_Exit(int status)
 {
    Process *proc = get_current_process();
    if (!proc) return -1;
@@ -219,14 +219,14 @@ intptr_t syscall_dispatch(uint32_t syscall_num, uint32_t *args, Registers *regs)
    switch (syscall_num)
    {
    case SYS_EXIT:
-      return sys_exit((int)args[0]);
+      return Syscall_Exit((int)args[0]);
 
    case SYS_FORK:
-      return sys_fork(regs);
+      return Syscall_Fork(regs);
 
    case SYS_EXECVE:
-      return sys_execve((const char *)args[0], (const char *const *)args[1],
-                        (const char *const *)args[2], regs);
+      return Syscall_Execve((const char *)args[0], (const char *const *)args[1],
+                            (const char *const *)args[2], regs);
 
    case SYS_WAIT4:
       return Syscall_Wait4((int32_t)args[0], (int *)args[1], (int)args[2],
@@ -251,31 +251,31 @@ intptr_t syscall_dispatch(uint32_t syscall_num, uint32_t *args, Registers *regs)
       return Syscall_GetGid();
 
    case SYS_BRK:
-      return sys_brk((void *)args[0]);
+      return Syscall_Brk((void *)args[0]);
 
    case SYS_SBRK:
-      return (intptr_t)sys_sbrk((intptr_t)args[0]);
+      return (intptr_t)Syscall_Sbrk((intptr_t)args[0]);
 
    case SYS_OPEN:
-      return sys_open((const char *)args[0], args[1], (uint16_t)args[2]);
+      return Syscall_Open((const char *)args[0], args[1], (uint16_t)args[2]);
 
    case SYS_CLOSE:
-      return sys_close(args[0]);
+      return Syscall_Close(args[0]);
 
    case SYS_READ:
-      return sys_read(args[0], (void *)args[1], args[2]);
+      return Syscall_Read(args[0], (void *)args[1], args[2]);
 
    case SYS_WRITE:
-      return sys_write(args[0], (const void *)args[1], args[2]);
+      return Syscall_Write(args[0], (const void *)args[1], args[2]);
 
    case SYS_LSEEK:
-      return sys_lseek(args[0], (int32_t)args[1], args[2]);
+      return Syscall_Lseek(args[0], (int32_t)args[1], args[2]);
 
    case SYS_CHMOD:
-      return sys_chmod((const char *)args[0], (uint16_t)args[1]);
+      return Syscall_Chmod((const char *)args[0], (uint16_t)args[1]);
 
    case SYS_CHOWN:
-      return sys_chown((const char *)args[0], args[1], args[2]);
+      return Syscall_Chown((const char *)args[0], args[1], args[2]);
 
    default:
       logfmt(LOG_ERROR, "[SYSCALL] unknown syscall %u\n", syscall_num);

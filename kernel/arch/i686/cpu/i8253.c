@@ -4,7 +4,7 @@
 #include <arch/i686/io/io.h>
 #include <sys/sys.h>
 
-volatile uint64_t system_ticks = 0;
+volatile uint64_t g_SystemTicks = 0;
 
 void i686_i8253_SetFrequency(uint32_t freq)
 {
@@ -28,5 +28,5 @@ void i686_i8253_Initialize(uint32_t frequency)
 void i686_i8253_TimerHandler(Registers *regs)
 {
    (void)regs;
-   system_ticks++;
+   g_SystemTicks++;
 }

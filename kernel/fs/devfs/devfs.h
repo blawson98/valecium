@@ -146,10 +146,10 @@ DEVFS_File *DEVFS_Open(Partition *partition, const char *path);
 void DEVFS_Close(DEVFS_File *file);
 
 /* Read from a device */
-uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byteCount, void *dataOut);
+uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byte_count, void *dataOut);
 
 /* Write to a device */
-uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byteCount, const void *dataIn);
+uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byte_count, const void *dataIn);
 
 /* Seek in a device */
 int DEVFS_Seek(DEVFS_File *file, uint32_t position);

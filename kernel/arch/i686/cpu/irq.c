@@ -13,7 +13,7 @@
 #define PIC_REMAP_OFFSET 0x20
 
 IRQHandler g_IRQHandlers[16];
-static const PICDriver *g_Driver = NULL;
+static const PICDriver *s_Driver = NULL;
 
 void i686_IRQ_Handler(Registers *regs)
 {
@@ -38,7 +38,7 @@ void i686_IRQ_Handler(Registers *regs)
    }
 
    // send EOI
-   g_Driver->SendEndOfInterrupt(irq);
+   s_Driver->SendEndOfInterrupt(irq);
 }
 
 void i686_IRQ_Initialize()
@@ -52,18 +52,18 @@ void i686_IRQ_Initialize()
    {
       if (drivers[i]->Probe() == SUCCESS)
       {
-         g_Driver = drivers[i];
+         s_Driver = drivers[i];
       }
    }
 
-   if (g_Driver == NULL)
+   if (s_Driver == NULL)
    {
       logfmt(LOG_WARNING, "[IRQ] No PIC found!\n");
       return;
    }
 
-   logfmt(LOG_INFO, "[IRQ] Found %s.\n", g_Driver->Name);
-   g_Driver->Initialize(PIC_REMAP_OFFSET, PIC_REMAP_OFFSET + 8, false);
+   logfmt(LOG_INFO, "[IRQ] Found %s.\n", s_Driver->Name);
+   s_Driver->Initialize(PIC_REMAP_OFFSET, PIC_REMAP_OFFSET + 8, false);
 
    // register ISR handlers for each of the 16 irq lines
    for (int i = 0; i < 16; i++)
@@ -72,8 +72,8 @@ void i686_IRQ_Initialize()
    // enable interrupts
    i686_EnableInterrupts();
 
-   g_Driver->Unmask(0);
-   g_Driver->Unmask(1);
+   s_Driver->Unmask(0);
+   s_Driver->Unmask(1);
 
    /* Populate IRQ info in SYS_Info */
    g_SysInfo->irq.irq_count = 16;
@@ -98,8 +98,8 @@ void i686_IRQ_Unmask(int irq)
       logfmt(LOG_INFO, "[IRQ] IRQ_Unmask: invalid IRQ %d\n", irq);
       return;
    }
-   if (g_Driver != NULL)
+   if (s_Driver != NULL)
    {
-      g_Driver->Unmask(irq);
+      s_Driver->Unmask(irq);
    }
 }

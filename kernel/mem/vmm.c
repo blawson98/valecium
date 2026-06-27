@@ -11,16 +11,16 @@
 #define PAGE_ALIGN_DOWN(v) ((v) & ~(PAGE_SIZE - 1))
 #define PAGE_ALIGN_UP(v) (((v) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
 
-static void *kernel_page_dir = NULL;
-static uint32_t kernel_next_vaddr =
+static void *s_KernelPageDir = NULL;
+static uint32_t s_KernelNextVaddr =
     HAL_ARCH_BASE; // Use arch-specific kernel base
-static uint32_t kernel_vaddr_limit = 0xFFFFFFFFu;
+static uint32_t s_KernelVaddrLimit = 0xFFFFFFFFu;
 
 void VMM_Initialize(void)
 {
    // Get the kernel page directory from paging subsystem
-   kernel_page_dir = g_HalPagingOperations->GetCurrentPageDirectory();
-   if (!kernel_page_dir)
+   s_KernelPageDir = g_HalPagingOperations->GetCurrentPageDirectory();
+   if (!s_KernelPageDir)
    {
       logfmt(LOG_ERROR, "[MEM] no kernel page directory!\n");
       // Skip further VMM work to avoid faults
@@ -40,12 +40,12 @@ void VMM_Initialize(void)
       }
       if ((uint32_t)dyn_limit > HAL_ARCH_BASE)
       {
-         kernel_vaddr_limit = (uint32_t)dyn_limit;
+         s_KernelVaddrLimit = (uint32_t)dyn_limit;
       }
    }
 
    logfmt(LOG_INFO, "[MEM] initialized with kernel page dir at 0x%08x\n",
-          (uint32_t)kernel_page_dir);
+          (uint32_t)s_KernelPageDir);
 }
 
 void *VMM_AllocateInDir(void *page_dir, uint32_t *next_vaddr_state,
@@ -58,12 +58,12 @@ void *VMM_AllocateInDir(void *page_dir, uint32_t *next_vaddr_state,
    uint32_t num_pages = aligned_size / PAGE_SIZE;
 
    // Choose bump pointer: per-dir state or kernel default
-   uint32_t *bump = next_vaddr_state ? next_vaddr_state : &kernel_next_vaddr;
+   uint32_t *bump = next_vaddr_state ? next_vaddr_state : &s_KernelNextVaddr;
    uint32_t limit =
-       (bump == &kernel_next_vaddr) ? kernel_vaddr_limit : HAL_ARCH_BASE;
+       (bump == &s_KernelNextVaddr) ? s_KernelVaddrLimit : HAL_ARCH_BASE;
 
    // Kernel allocator must never start below kernel virtual base.
-   if (bump == &kernel_next_vaddr && *bump < HAL_ARCH_BASE)
+   if (bump == &s_KernelNextVaddr && *bump < HAL_ARCH_BASE)
    {
       *bump = HAL_ARCH_BASE;
    }
@@ -128,7 +128,7 @@ fail_cleanup:
 
 void *VMM_Allocate(uint32_t size, uint32_t flags)
 {
-   return VMM_AllocateInDir(kernel_page_dir, &kernel_next_vaddr, size, flags);
+   return VMM_AllocateInDir(s_KernelPageDir, &s_KernelNextVaddr, size, flags);
 }
 
 void VMM_FreeInDir(void *page_dir, void *vaddr, uint32_t size)
@@ -156,7 +156,7 @@ void VMM_FreeInDir(void *page_dir, void *vaddr, uint32_t size)
 
 void VMM_Free(void *vaddr, uint32_t size)
 {
-   VMM_FreeInDir(kernel_page_dir, vaddr, size);
+   VMM_FreeInDir(s_KernelPageDir, vaddr, size);
 }
 
 int VMM_MapInDir(void *page_dir, uint32_t vaddr, uint32_t paddr, uint32_t size,
@@ -196,7 +196,7 @@ rollback:
 
 int VMM_Map(uint32_t vaddr, uint32_t paddr, uint32_t size, uint32_t flags)
 {
-   return VMM_MapInDir(kernel_page_dir, vaddr, paddr, size, flags);
+   return VMM_MapInDir(s_KernelPageDir, vaddr, paddr, size, flags);
 }
 
 int VMM_UnmapInDir(void *page_dir, uint32_t vaddr, uint32_t size)
@@ -217,7 +217,7 @@ int VMM_UnmapInDir(void *page_dir, uint32_t vaddr, uint32_t size)
 
 int VMM_Unmap(uint32_t vaddr, uint32_t size)
 {
-   return VMM_UnmapInDir(kernel_page_dir, vaddr, size);
+   return VMM_UnmapInDir(s_KernelPageDir, vaddr, size);
 }
 
 uint32_t VMM_GetPhysInDir(void *page_dir, uint32_t vaddr)
@@ -227,10 +227,10 @@ uint32_t VMM_GetPhysInDir(void *page_dir, uint32_t vaddr)
 
 uint32_t VMM_GetPhys(uint32_t vaddr)
 {
-   return VMM_GetPhysInDir(kernel_page_dir, vaddr);
+   return VMM_GetPhysInDir(s_KernelPageDir, vaddr);
 }
 
-void *VMM_GetPageDirectory(void) { return kernel_page_dir; }
+void *VMM_GetPageDirectory(void) { return s_KernelPageDir; }
 
 void VMM_SelfTest(void)
 {

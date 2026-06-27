@@ -12,48 +12,44 @@
 #include <sys/cmdline.h>
 #include <sys/sys.h>
 
-/* =========================================================================
- * Public disk subsystem interface
- * ====================================================================== */
-
-// Updated: Scan all disks and populate volumes
-int DISK_Initialize()
+// Public disk subsystem interface
+int DISK_Initialize(void)
 {
    DISK_Scan();
 
    return 0;
 }
 
-int DISK_Scan()
+int DISK_Scan(void)
 {
    for (int i = 0; i < MAX_DISKS; i++)
    {
       g_SysInfo->volume[i].disk = NULL;
    }
 
-   const char *rootCmdVal = NULL;
+   const char *root_cmd_val = NULL;
    for (uint32_t i = 0; i < g_SysInfo->boot_params.count; i++)
    {
       if (strcmp(g_SysInfo->boot_params.args[i].key, "root") == 0)
       {
-         rootCmdVal = g_SysInfo->boot_params.args[i].value;
+         root_cmd_val = g_SysInfo->boot_params.args[i].value;
          break;
       }
    }
 
-   DISK detectedDisks[32]; // Temp array for detected disks
-   int totalDisks = 0;
+   DISK detected_disks[32]; // Temp array for detected disks
+   int total_disks = 0;
 
    // Scan floppies
-   totalDisks += FDC_Scan(detectedDisks + totalDisks, 32 - totalDisks);
+   total_disks += FDC_Scan(detected_disks + total_disks, 32 - total_disks);
 
    // Scan ATA
-   totalDisks += ATA_Scan(detectedDisks + totalDisks, 32 - totalDisks);
+   total_disks += ATA_Scan(detected_disks + total_disks, 32 - total_disks);
 
    // Populate volume[] with detected disks and partitions
-   for (int i = 0; i < totalDisks; i++)
+   for (int i = 0; i < total_disks; i++)
    {
-      DISK *source = &detectedDisks[i];
+      DISK *source = &detected_disks[i];
       // Keep disk metadata on the heap so the pointer stays valid beyond this
       // stack frame.
       DISK *disk = (DISK *)kmalloc(sizeof(DISK));
@@ -65,13 +61,7 @@ int DISK_Scan()
       }
       memcpy(disk, source, sizeof(DISK));
 
-      /* ---------------------------------------------------------------
-       * Floppy disks have no MBR partition table.  Represent the entire
-       * medium as a single FAT12 volume occupying the raw device.
-       * The whole-disk devfs node (fd0, fd1, …) was already registered
-       * by FDC_Scan; only the Partition / Filesystem metadata is needed
-       * here so the VFS can mount the FAT12 image.
-       * ------------------------------------------------------------- */
+      // Floppy: represent the entire medium as a single FAT12 volume (no MBR).
       if (disk->type == DISK_TYPE_FLOPPY)
       {
          int floppy_slot = -1;
@@ -102,7 +92,7 @@ int DISK_Scan()
          logfmt(LOG_INFO, "[DISK] Floppy volume[%d]: fd%u, %u sectors\n",
                 floppy_slot, disk->id, vol->partitionSize);
 
-         VBR_ProbeIdentity(vol, rootCmdVal);
+         VBR_ProbeIdentity(vol, root_cmd_val);
 
          FAT_Instance *floppy_fat = FAT_Initialize(vol);
          if (floppy_fat)
@@ -136,16 +126,16 @@ int DISK_Scan()
       }
 
       /* ---- ATA / hard disk: parse the MBR partition table ---- */
-      int volumeIndex = -1;
+      int volume_index = -1;
       for (int j = 0; j < 32; j++)
       {
          if (g_SysInfo->volume[j].disk == NULL)
          {
-            volumeIndex = j;
+            volume_index = j;
             break;
          }
       }
-      if (volumeIndex == -1) break; // No slots
+      if (volume_index == -1) break; // No slots
 
       int part_count = 0;
       Partition **parts = MBR_DetectPartition(disk, &part_count);
@@ -153,20 +143,21 @@ int DISK_Scan()
       for (int p = 0; p < part_count; p++)
       {
          // Find next free slot for each partition
-         while (volumeIndex < 32 && g_SysInfo->volume[volumeIndex].disk != NULL)
+         while (volume_index < 32 &&
+                g_SysInfo->volume[volume_index].disk != NULL)
          {
-            volumeIndex++;
+            volume_index++;
          }
-         if (volumeIndex >= 32) break;
+         if (volume_index >= 32) break;
 
          // Copy partition data into system volume table
-         g_SysInfo->volume[volumeIndex] = *(parts[p]);
+         g_SysInfo->volume[volume_index] = *(parts[p]);
          logfmt(
              LOG_INFO,
              "[DISK] Populated volume[%d]: Offset=%u, Size=%u, Type=0x%02x\n",
-             volumeIndex, g_SysInfo->volume[volumeIndex].partitionOffset,
-             g_SysInfo->volume[volumeIndex].partitionSize,
-             g_SysInfo->volume[volumeIndex].partitionType);
+             volume_index, g_SysInfo->volume[volume_index].partitionOffset,
+             g_SysInfo->volume[volume_index].partitionSize,
+             g_SysInfo->volume[volume_index].partitionType);
 
          /*
           * Step B — Read the VBR of this partition and extract FAT identity
@@ -178,17 +169,17 @@ int DISK_Scan()
           * BootRecordOffset = 0 because the VBR is the first sector of the
           * partition, so the physical LBA is simply partitionOffset.
           */
-         VBR_ProbeIdentity(&g_SysInfo->volume[volumeIndex], rootCmdVal);
+         VBR_ProbeIdentity(&g_SysInfo->volume[volume_index], root_cmd_val);
 
          // Initialize filesystem on this partition (only for FAT types)
-         Partition *volume = &g_SysInfo->volume[volumeIndex];
+         Partition *volume = &g_SysInfo->volume[volume_index];
          // Defensive: ensure partition has a backing disk before initializing
          if (!volume->disk)
          {
             logfmt(LOG_ERROR,
                    "[DISK] Skipping init: volume[%d] has no disk pointer\n",
-                   volumeIndex);
-            volumeIndex++;
+                   volume_index);
+            volume_index++;
             continue;
          }
 
@@ -214,7 +205,7 @@ int DISK_Scan()
                   logfmt(LOG_ERROR,
                          "[DISK] Warning: FAT init succeeded but Filesystem "
                          "alloc failed for volume[%d]\n",
-                         volumeIndex);
+                         volume_index);
                   free(fat_instance);
                   volume->fs = NULL;
                }
@@ -223,7 +214,7 @@ int DISK_Scan()
             {
                logfmt(LOG_ERROR,
                       "[DISK] Failed to initialize FAT on volume[%d]\n",
-                      volumeIndex);
+                      volume_index);
                volume->fs = NULL; // Explicitly clear to avoid later deref
             }
          }
@@ -245,7 +236,7 @@ int DISK_Scan()
                volume->fs->type = FAT32;
          }
 
-         volumeIndex++;
+         volume_index++;
       }
 
       // Free allocated partition structures
@@ -258,12 +249,12 @@ int DISK_Scan()
          free(parts);
       }
    }
-   g_SysInfo->disk_count = totalDisks;
+   g_SysInfo->disk_count = total_disks;
 
    return 0;
 }
 
-int DISK_GetDevfsIndex()
+int DISK_GetDevfsIndex(void)
 {
    /* Devfs is now always at the reserved volume slot */
    if (g_SysInfo->volume[DEVFS_VOLUME].fs != NULL &&

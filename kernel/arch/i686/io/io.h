@@ -15,7 +15,7 @@ uint32_t __attribute__((cdecl)) i686_inl(uint16_t port);
 uint8_t __attribute__((cdecl)) i686_EnableInterrupts();
 uint8_t __attribute__((cdecl)) i686_DisableInterrupts();
 
-void i686_iowait();
+void i686_iowait(void);
 void __attribute__((cdecl)) i686_Panic();
 
 void __attribute__((cdecl)) i686_Halt();

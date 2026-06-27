@@ -3,6 +3,6 @@
 #ifndef CPU_H
 #define CPU_H
 
-void CPU_Initialize();
+void CPU_Initialize(void);
 
 #endif

@@ -9,18 +9,6 @@
 
 #include <drivers/tty/tty.h>
 
-/* Simple getchar that reads from the active TTY input stream. */
-void setcursor(int x, int y)
-{
-   if (x < 0) x = 0;
-   if (y < 0) y = 0;
-   uint16_t pos = (uint16_t)(y * 80 + x);
-   g_HalIoOperations->outb(0x3D4, 0x0F);
-   g_HalIoOperations->outb(0x3D5, (uint8_t)(pos & 0xFF));
-   g_HalIoOperations->outb(0x3D4, 0x0E);
-   g_HalIoOperations->outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
-}
-
 int getchar(void)
 {
    TTY_Device *tty = TTY_GetDevice();
@@ -45,8 +33,8 @@ void puts(const char *str)
 
 const char g_HexChars[] = "0123456789abcdef";
 
-void printf_unsigned(unsigned long long number, int radix, int width,
-                     bool zero_pad)
+static void printf_unsigned(unsigned long long number, int radix, int width,
+                            bool zero_pad)
 {
    char buffer[32];
    int pos = 0;
@@ -73,7 +61,7 @@ void printf_unsigned(unsigned long long number, int radix, int width,
       putc(buffer[pos]);
 }
 
-void printf_signed(long long number, int radix, int width, bool zero_pad)
+static void printf_signed(long long number, int radix, int width, bool zero_pad)
 {
    if (number < 0)
    {
@@ -106,7 +94,7 @@ static void log_emit_error(const char *fmt, va_list args);
 static void log_emit_fatal(const char *fmt, va_list args);
 static void log_emit_unknown(const char *fmt, va_list args);
 
-static log_emit_func_t g_LogEmitters[] = {log_emit_info, log_emit_warning,
+static log_emit_func_t s_LogEmitters[] = {log_emit_info, log_emit_warning,
                                           log_emit_error, log_emit_fatal,
                                           log_emit_unknown};
 
@@ -307,7 +295,7 @@ static void printf_vimpl(const char *fmt, va_list args)
    }
 }
 
-void LOG_DisableInfo(void) { g_LogEmitters[LOG_INFO] = log_emit_info_disabled; }
+void LOG_DisableInfo(void) { s_LogEmitters[LOG_INFO] = log_emit_info_disabled; }
 
 void logfmt_impl(LogType logtype, const char *fmt, ...)
 {
@@ -316,7 +304,7 @@ void logfmt_impl(LogType logtype, const char *fmt, ...)
 
    va_list args;
    va_start(args, fmt);
-   g_LogEmitters[emitter_index](fmt, args);
+   s_LogEmitters[emitter_index](fmt, args);
    va_end(args);
 }
 

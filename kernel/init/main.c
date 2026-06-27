@@ -25,21 +25,21 @@
 #include <sys/system.h>
 
 extern int Init_MountRoot(void);
-extern void interact();
+extern void Init_Interact(void);
 static void __attribute__((unused, noreturn)) fallback(void);
 
 extern uint8_t __bss_start;
 extern uint8_t __end;
-extern void _init();
+extern void _init(void);
 
-void hold(int sec)
+void Init_Hold(int sec)
 {
    uint32_t last_uptime = 0;
    int run_forever = (sec < 0);
    while (run_forever || g_SysInfo->uptime_seconds < (uint64_t)sec)
    {
       /* Update uptime from tick counter */
-      g_SysInfo->uptime_seconds = system_ticks / 1000;
+      g_SysInfo->uptime_seconds = g_SystemTicks / 1000;
       if (g_SysInfo->uptime_seconds != last_uptime)
       {
          printf("\r\x1B[1;37;46mSystem up for %u seconds\x1B[0m",
@@ -118,7 +118,7 @@ void __attribute__((noreturn)) start(BOOT_Info *boot)
    }
 
 backup:
-   hold(-1);
+   Init_Hold(-1);
 
 end:
    for (;;)
@@ -127,8 +127,8 @@ end:
 
 static void __attribute__((unused, noreturn)) fallback(void)
 {
-   interact();
-   hold(-1);
+   Init_Interact();
+   Init_Hold(-1);
 
    for (;;)
    {}

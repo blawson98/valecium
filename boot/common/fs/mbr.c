@@ -21,26 +21,26 @@ typedef struct
 extern int DISK_Read(uint8_t drive, uint16_t cylinder, uint8_t sector,
                      uint8_t head, uint8_t count, void *buffer);
 
-bool MBR_Probe(int driveId)
+bool MBR_Probe(int drive_id)
 {
    uint8_t sector[512];
 
    /* Read the first sector (CHS 0:0:1) - the MBR */
-   if (DISK_Read((uint8_t)driveId, 0, 1, 0, 1, sector) != 0) return false;
+   if (DISK_Read((uint8_t)drive_id, 0, 1, 0, 1, sector) != 0) return false;
 
    /* Check for the 0xAA55 boot signature at offset 510 */
    uint16_t sig = (uint16_t)(sector[510] | ((uint16_t)sector[511] << 8));
    return (sig == MBR_SIGNATURE);
 }
 
-int MBR_List(int driveId, int **offset)
+int MBR_List(int drive_id, int **offset)
 {
    uint8_t sector[512];
    static int offsets[MBR_PARTITION_COUNT];
    int count = 0;
 
    /* Read the MBR */
-   if (DISK_Read((uint8_t)driveId, 0, 1, 0, 1, sector) != 0) return -1;
+   if (DISK_Read((uint8_t)drive_id, 0, 1, 0, 1, sector) != 0) return -1;
 
    /* Verify signature */
    uint16_t sig = (uint16_t)(sector[510] | ((uint16_t)sector[511] << 8));

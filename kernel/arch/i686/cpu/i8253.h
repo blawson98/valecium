@@ -37,7 +37,7 @@
 #define PIT_FREQ 1193182
 
 // Global tick counter
-extern volatile uint64_t system_ticks;
+extern volatile uint64_t g_SystemTicks;
 
 // Functions
 void i686_i8253_Initialize(uint32_t frequency);

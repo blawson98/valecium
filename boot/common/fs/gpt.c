@@ -81,7 +81,7 @@ static bool gpt_lba_to_chs(uint64_t lba, uint16_t *cylinder, uint8_t *head,
    return true;
 }
 
-bool GPT_Probe(int driveId)
+bool GPT_Probe(int drive_id)
 {
    uint8_t sector[GPT_SECTOR_SIZE];
    uint16_t cylinder = 0;
@@ -89,13 +89,13 @@ bool GPT_Probe(int driveId)
    uint8_t sector_num = 0;
 
    if (!gpt_lba_to_chs(1, &cylinder, &head, &sector_num)) return false;
-   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head, 1, sector) != 0)
+   if (DISK_Read((uint8_t)drive_id, cylinder, sector_num, head, 1, sector) != 0)
       return false;
 
    return gpt_signature_valid(sector);
 }
 
-int GPT_List(int driveId, int **offsets_out)
+int GPT_List(int drive_id, int **offsets_out)
 {
    static int offsets[GPT_MAX_ENTRIES];
    static uint8_t entry_sectors[GPT_MAX_ENTRY_SECTORS * GPT_SECTOR_SIZE];
@@ -106,7 +106,7 @@ int GPT_List(int driveId, int **offsets_out)
 
    if (!offsets_out) return -1;
    if (!gpt_lba_to_chs(1, &cylinder, &head, &sector_num)) return -1;
-   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head, 1,
+   if (DISK_Read((uint8_t)drive_id, cylinder, sector_num, head, 1,
                  header_sector) != 0)
       return -1;
 
@@ -134,7 +134,7 @@ int GPT_List(int driveId, int **offsets_out)
    if (!gpt_lba_to_chs(entry_lba, &cylinder, &head, &sector_num)) return -1;
    if (entry_lba + entry_sectors_needed > GPT_MAX_CHS_SECTOR) return -1;
 
-   if (DISK_Read((uint8_t)driveId, cylinder, sector_num, head,
+   if (DISK_Read((uint8_t)drive_id, cylinder, sector_num, head,
                  (uint8_t)entry_sectors_needed, entry_sectors) != 0)
       return -1;
 

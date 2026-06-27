@@ -12,10 +12,8 @@
 /* Global counter for keypress events for debugging (incremented in IRQ). */
 volatile uint32_t g_kb_count = 0;
 
-/**
- * i686-specific IRQ handler for PS/2 keyboard (IRQ1)
- * Reads scancode from port 0x60 and processes it
- */
+// i686-specific IRQ handler for PS/2 keyboard (IRQ1).
+// Reads scancode from port 0x60 and forwards to Keyboard_HandleScancode.
 void ps2_keyboard_irq(Registers *regs)
 {
    (void)regs;
@@ -26,9 +24,7 @@ void ps2_keyboard_irq(Registers *regs)
    Keyboard_HandleScancode(scancode);
 }
 
-/**
- * Register PS/2 keyboard handler for i686 IRQ1
- */
+// Register PS/2 keyboard handler for i686 IRQ1.
 void i686_PS2_Initialize(void)
 {
    i686_IRQ_RegisterHandler(1, ps2_keyboard_irq);

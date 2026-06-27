@@ -11,7 +11,7 @@
 #define i686_GDT_USER_DATA_SEGMENT 0x20
 #define i686_GDT_TSS_SEGMENT 0x28
 
-void i686_GDT_Initialize();
+void i686_GDT_Initialize(void);
 void i686_GDT_SetTSSEntry(uint32_t base, uint32_t limit);
 
 #endif

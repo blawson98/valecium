@@ -1,18 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-/*
- * kernel/init/mount.c — Root filesystem mount for ValeciumOS.
- *
- * Isolation policy: no kernel-local headers are #included inside kernel/init/.
- * Every external symbol is declared with `extern` directly in this file.
- *
- * Responsibility:
- *   1. Walk g_SysInfo->volume[] looking for the partition tagged as root
- *      by DISK_Scan (Partition.isRootPartition == true).
- *   2. Mount that partition to "/" via FS_Mount.
- *   3. Verify that /boot/init.sys exists to confirm a usable root tree.
- *   4. Panic if no root partition can be mounted.
- */
+// Root filesystem mount for ValeciumOS.
+// Walks g_SysInfo->volume[] for the partition tagged as root by DISK_Scan,
+// mounts it to "/", and verifies /boot/init.sys exists.
 
 #include <fs/fs.h>
 #include <std/stdio.h>
@@ -23,23 +13,8 @@
 #include <sys/system.h>
 #include <sys/valecium.h>
 
-/* -------------------------------------------------------------------------
- * Public interface
- * ---------------------------------------------------------------------- */
-
-/*
- * Init_MountRoot
- *
- * Scans the global volume table for the partition whose isRootPartition
- * flag was set by DISK_Scan (matched via LABEL= or PARTUUID= on the
- * kernel command line), then mounts it to "/".
- *
- * After a successful mount, the function probes for /boot/init.sys to
- * confirm that the root tree is usable and to signal readiness for the
- * userspace transition.
- *
- * Returns 0 on success; calls mount_panic() and does not return on failure.
- */
+// Init_MountRoot — scans volume[] for root partition, mounts to "/",
+// verifies /boot/init.sys exists. Returns 0 on success.
 int Init_MountRoot(void)
 {
    for (int i = 0; i < MAX_DISKS; i++)
@@ -66,11 +41,7 @@ int Init_MountRoot(void)
       logfmt(LOG_INFO,
              "[MOUNT] Root filesystem mounted from volume[%d] at \"/\"\n", i);
 
-      /* -----------------------------------------------------------------
-       * Post-mount probe: verify /boot/init.sys exists so the kernel
-       * knows a well-formed root tree is present before handing off to
-       * userspace initialisation logic.
-       * -------------------------------------------------------------- */
+      // Post-mount probe: verify /boot/init.sys exists
       struct VFS_File *initSys = VFS_Open("/boot/init.sys");
       if (initSys)
       {

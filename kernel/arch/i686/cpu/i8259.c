@@ -56,15 +56,15 @@ enum
    PIC_CMD_READ_ISR = 0x0B,
 } PIC_CMD;
 
-static uint16_t g_PicMask = 0xffff;
-static bool g_AutoEoi = false;
+static uint16_t s_PicMask = 0xffff;
+static bool s_AutoEoi = false;
 
-void i8259_SetMask(uint16_t newMask)
+void i8259_SetMask(uint16_t new_mask)
 {
-   g_PicMask = newMask;
-   i686_outb(PIC1_DATA_PORT, g_PicMask & 0xFF);
+   s_PicMask = new_mask;
+   i686_outb(PIC1_DATA_PORT, s_PicMask & 0xFF);
    i686_iowait();
-   i686_outb(PIC2_DATA_PORT, g_PicMask >> 8);
+   i686_outb(PIC2_DATA_PORT, s_PicMask >> 8);
    i686_iowait();
 }
 
@@ -73,9 +73,9 @@ uint16_t i8259_GetMask()
    return i686_inb(PIC1_DATA_PORT) | (i686_inb(PIC2_DATA_PORT) << 8);
 }
 
-void i8259_Configure(uint8_t offsetPic1, uint8_t offsetPic2, bool autoEoi)
+void i8259_Configure(uint8_t offset_pic1, uint8_t offset_pic2, bool auto_eoi)
 {
-   g_AutoEoi = autoEoi;
+   s_AutoEoi = auto_eoi;
 
    // Mask everything
    i8259_SetMask(0xFFFF);
@@ -87,9 +87,9 @@ void i8259_Configure(uint8_t offsetPic1, uint8_t offsetPic2, bool autoEoi)
    i686_iowait();
 
    // initialization control word 2 - the offsets
-   i686_outb(PIC1_DATA_PORT, offsetPic1);
+   i686_outb(PIC1_DATA_PORT, offset_pic1);
    i686_iowait();
-   i686_outb(PIC2_DATA_PORT, offsetPic2);
+   i686_outb(PIC2_DATA_PORT, offset_pic2);
    i686_iowait();
 
    // initialization control word 3
@@ -102,7 +102,7 @@ void i8259_Configure(uint8_t offsetPic1, uint8_t offsetPic2, bool autoEoi)
 
    // initialization control word 4
    uint8_t icw4 = PIC_ICW4_8086;
-   if (autoEoi)
+   if (auto_eoi)
    {
       icw4 |= PIC_ICW4_AUTO_EOI;
    }
@@ -122,11 +122,11 @@ void i8259_SendEndOfInterrupt(int irq)
    i686_outb(PIC1_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT);
 }
 
-void i8259_Disable() { i8259_SetMask(0xFFFF); }
+void i8259_Disable(void) { i8259_SetMask(0xFFFF); }
 
-void i8259_Mask(int irq) { i8259_SetMask(g_PicMask | (1 << irq)); }
+void i8259_Mask(int irq) { i8259_SetMask(s_PicMask | (1 << irq)); }
 
-void i8259_Unmask(int irq) { i8259_SetMask(g_PicMask & ~(1 << irq)); }
+void i8259_Unmask(int irq) { i8259_SetMask(s_PicMask & ~(1 << irq)); }
 
 uint16_t i8259_ReadIrqRequestRegister()
 {
@@ -151,7 +151,7 @@ int i8259_Probe(void)
    return (i8259_GetMask() == 0x1337) ? SUCCESS : -ENODEV;
 }
 
-static const PICDriver g_PicDriver = {
+static const PICDriver s_PicDriver = {
     .Name = "8259 PIC",
     .Probe = &i8259_Probe,
     .Initialize = &i8259_Configure,
@@ -161,4 +161,4 @@ static const PICDriver g_PicDriver = {
     .Unmask = &i8259_Unmask,
 };
 
-const PICDriver *i8259_GetDriver() { return &g_PicDriver; }
+const PICDriver *i8259_GetDriver() { return &s_PicDriver; }

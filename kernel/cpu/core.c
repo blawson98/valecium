@@ -13,9 +13,9 @@
 #include <std/string.h>
 #include <sys/elf.h>
 
-static Process *g_CurrentProcess = NULL;
-static uint32_t g_NextPid = 1;
-static void *g_KernelPageDirectory = NULL;
+static Process *s_CurrentProcess = NULL;
+static uint32_t s_NextPid = 1;
+static void *s_KernelPageDirectory = NULL;
 
 int Process_InitializeStandardIO(Process *proc)
 {
@@ -119,14 +119,14 @@ static void cleanup_user_address_space(Process *proc)
    }
 }
 
-uint32_t Process_AllocatePid(void) { return g_NextPid++; }
+uint32_t Process_AllocatePid(void) { return s_NextPid++; }
 
 void Process_SetKernelPageDirectory(void *page_directory)
 {
-   g_KernelPageDirectory = page_directory;
+   s_KernelPageDirectory = page_directory;
 }
 
-void *Process_GetKernelPageDirectory(void) { return g_KernelPageDirectory; }
+void *Process_GetKernelPageDirectory(void) { return s_KernelPageDirectory; }
 
 Process *Process_Create(uint32_t entry_point, bool kernel_mode)
 {
@@ -150,17 +150,17 @@ void Process_Destroy(Process *proc)
    FD_CloseAll(proc);
    free_kernel_stack(proc);
 
-   if (g_CurrentProcess == proc)
+   if (s_CurrentProcess == proc)
    {
-      g_CurrentProcess = NULL;
-      if (!g_KernelPageDirectory)
+      s_CurrentProcess = NULL;
+      if (!s_KernelPageDirectory)
       {
-         g_KernelPageDirectory =
+         s_KernelPageDirectory =
              g_HalPagingOperations->GetCurrentPageDirectory();
       }
-      if (g_KernelPageDirectory)
+      if (s_KernelPageDirectory)
       {
-         g_HalPagingOperations->SwitchPageDirectory(g_KernelPageDirectory);
+         g_HalPagingOperations->SwitchPageDirectory(s_KernelPageDirectory);
       }
    }
 
@@ -224,7 +224,7 @@ int Process_Wait(Process *parent, int32_t pid, int *status, int options)
    }
 }
 
-Process *Process_GetCurrent(void) { return g_CurrentProcess; }
+Process *Process_GetCurrent(void) { return s_CurrentProcess; }
 
 void Process_BlockOn(Process *proc, void *wait_channel)
 {
@@ -241,7 +241,7 @@ void Process_Unblock(Process *proc)
    proc->wait_channel = NULL;
    if (proc->state == STATE_BLOCKED)
    {
-      proc->state = (proc == g_CurrentProcess) ? STATE_RUNNING : STATE_READY;
+      proc->state = (proc == s_CurrentProcess) ? STATE_RUNNING : STATE_READY;
    }
 }
 
@@ -258,17 +258,17 @@ void Process_WakeByChannel(void *wait_channel)
       if (proc->wait_channel != wait_channel) continue;
 
       proc->wait_channel = NULL;
-      proc->state = (proc == g_CurrentProcess) ? STATE_RUNNING : STATE_READY;
+      proc->state = (proc == s_CurrentProcess) ? STATE_RUNNING : STATE_READY;
    }
 }
 
 void Process_SetCurrent(Process *proc)
 {
-   g_CurrentProcess = proc;
+   s_CurrentProcess = proc;
 
-   if (!g_KernelPageDirectory)
+   if (!s_KernelPageDirectory)
    {
-      g_KernelPageDirectory = VMM_GetPageDirectory();
+      s_KernelPageDirectory = VMM_GetPageDirectory();
    }
 
    if (proc)
@@ -286,9 +286,9 @@ void Process_SetCurrent(Process *proc)
    }
    else
    {
-      if (g_KernelPageDirectory)
+      if (s_KernelPageDirectory)
       {
-         g_HalPagingOperations->SwitchPageDirectory(g_KernelPageDirectory);
+         g_HalPagingOperations->SwitchPageDirectory(s_KernelPageDirectory);
       }
 
       Stack *kernel_stack = Stack_GetKernel();

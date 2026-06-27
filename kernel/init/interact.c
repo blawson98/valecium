@@ -7,7 +7,7 @@
 #include <std/stdio.h>
 #include <std/string.h>
 
-void interact(void)
+void Init_Interact(void)
 {
    printf("\nInteractive Mode. Type 'exit' to stop.\n$ ");
 

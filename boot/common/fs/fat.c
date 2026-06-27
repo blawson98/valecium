@@ -768,13 +768,13 @@ static int check_partition(uint8_t drive, int part_lba,
    return 1;
 }
 
-int FAT_Initialize(const uint8_t *biosDriveList, uint32_t biosDriveListCount,
+int FAT_Initialize(const uint8_t *biosDriveList, uint32_t bios_drive_list_count,
                    const uint8_t *partitionUuid, const uint8_t *partitionLabel)
 {
-   if (!biosDriveList || biosDriveListCount == 0) return -EINVAL;
+   if (!biosDriveList || bios_drive_list_count == 0) return -EINVAL;
 
    int found = 0;
-   for (uint32_t i = 0; i < biosDriveListCount && !found; i++)
+   for (uint32_t i = 0; i < bios_drive_list_count && !found; i++)
    {
       uint8_t drive = biosDriveList[i];
       int *offsets = NULL;

@@ -9,12 +9,12 @@
 #include <mem/mm_kernel.h>
 
 /* TTY device array and active terminal */
-static TTY_Device *g_TTYDevices[TTY_MAX_DEVICES];
-static TTY_Device *g_ActiveTTY = NULL;
-static bool g_TTYInitialized = false;
+static TTY_Device *s_TTYDevices[TTY_MAX_DEVICES];
+static TTY_Device *s_ActiveTTY = NULL;
+static bool s_TTYInitialized = false;
 
 /* Static BSS input storage for each TTY. */
-static char g_TTYInputBufs[TTY_MAX_DEVICES][TTY_INPUT_SIZE];
+static char s_TTYInputBufs[TTY_MAX_DEVICES][TTY_INPUT_SIZE];
 
 static void buffer_init(TTY_Buffer *buf, char *data, uint32_t size)
 {
@@ -53,14 +53,14 @@ static void buffer_clear(TTY_Buffer *buf)
 static void tty_sync_cursor_from_backend(TTY_Device *tty)
 {
    const HAL_VideoOperations *vdev = g_HalVideoOperations;
-   if (!tty || tty != g_ActiveTTY || !vdev || !vdev->GetCursor) return;
+   if (!tty || tty != s_ActiveTTY || !vdev || !vdev->GetCursor) return;
    vdev->GetCursor(&tty->cursor_x, &tty->cursor_y);
 }
 
 static void tty_emit_to_display(TTY_Device *tty, char c)
 {
    const HAL_VideoOperations *vdev = g_HalVideoOperations;
-   if (!tty || tty != g_ActiveTTY || !vdev || !vdev->PutChar) return;
+   if (!tty || tty != s_ActiveTTY || !vdev || !vdev->PutChar) return;
 
    /* x/y < 0 selects backend stream mode (ANSI + wrapping handled by VGA). */
    vdev->PutChar(c, tty->color, -1, -1);
@@ -149,32 +149,32 @@ static void tty_input_noecho(TTY_Device *tty, char c)
 
 void TTY_Initialize(void)
 {
-   if (g_TTYInitialized) return;
+   if (s_TTYInitialized) return;
 
    for (int i = 0; i < TTY_MAX_DEVICES; i++)
    {
-      g_TTYDevices[i] = NULL;
+      s_TTYDevices[i] = NULL;
    }
 
    TTY_Device *tty0 = TTY_Create(0);
    if (tty0)
    {
-      g_ActiveTTY = tty0;
+      s_ActiveTTY = tty0;
    }
 
-   g_TTYInitialized = true;
+   s_TTYInitialized = true;
    TTY_Clear();
 }
 
 TTY_Device *TTY_Create(uint32_t id)
 {
    if (id >= TTY_MAX_DEVICES) return NULL;
-   if (g_TTYDevices[id] != NULL) return g_TTYDevices[id];
+   if (s_TTYDevices[id] != NULL) return s_TTYDevices[id];
 
    TTY_Device *tty = (TTY_Device *)kzalloc(sizeof(TTY_Device));
    if (!tty) return NULL;
 
-   buffer_init(&tty->input, g_TTYInputBufs[id], TTY_INPUT_SIZE);
+   buffer_init(&tty->input, s_TTYInputBufs[id], TTY_INPUT_SIZE);
 
    tty->id = id;
    tty->active = true;
@@ -192,7 +192,7 @@ TTY_Device *TTY_Create(uint32_t id)
    tty->bytes_read = 0;
    tty->bytes_written = 0;
 
-   g_TTYDevices[id] = tty;
+   s_TTYDevices[id] = tty;
    return tty;
 }
 
@@ -200,24 +200,24 @@ void TTY_Destroy(TTY_Device *tty)
 {
    if (!tty || tty->id >= TTY_MAX_DEVICES) return;
 
-   g_TTYDevices[tty->id] = NULL;
-   if (g_ActiveTTY == tty) g_ActiveTTY = g_TTYDevices[0];
+   s_TTYDevices[tty->id] = NULL;
+   if (s_ActiveTTY == tty) s_ActiveTTY = s_TTYDevices[0];
 
    free(tty);
 }
 
-TTY_Device *TTY_GetDevice(void) { return g_ActiveTTY; }
+TTY_Device *TTY_GetDevice(void) { return s_ActiveTTY; }
 
 TTY_Device *TTY_GetDeviceById(uint32_t id)
 {
    if (id >= TTY_MAX_DEVICES) return NULL;
-   return g_TTYDevices[id];
+   return s_TTYDevices[id];
 }
 
 void TTY_SetActive(TTY_Device *tty)
 {
    if (!tty) return;
-   g_ActiveTTY = tty;
+   s_ActiveTTY = tty;
 
    const HAL_VideoOperations *vdev = g_HalVideoOperations;
    if (vdev && vdev->SetCursor)
@@ -421,7 +421,7 @@ void TTY_ClearDevice(TTY_Device *tty)
    tty->cursor_x = 0;
    tty->cursor_y = 0;
 
-   if (tty == g_ActiveTTY)
+   if (tty == s_ActiveTTY)
    {
       const HAL_VideoOperations *vdev = g_HalVideoOperations;
       if (vdev && vdev->Clear) vdev->Clear(tty->color);
@@ -432,9 +432,9 @@ void TTY_ClearDevice(TTY_Device *tty)
 
 void TTY_Clear(void)
 {
-   if (g_ActiveTTY)
+   if (s_ActiveTTY)
    {
-      TTY_ClearDevice(g_ActiveTTY);
+      TTY_ClearDevice(s_ActiveTTY);
    }
 }
 
@@ -450,7 +450,7 @@ void TTY_SetCursor(TTY_Device *tty, int x, int y)
    tty->cursor_x = x;
    tty->cursor_y = y;
 
-   if (tty == g_ActiveTTY)
+   if (tty == s_ActiveTTY)
    {
       const HAL_VideoOperations *vdev = g_HalVideoOperations;
       if (vdev && vdev->SetCursor) vdev->SetCursor(x, y);
@@ -469,9 +469,9 @@ void TTY_GetCursor(TTY_Device *tty, int *x, int *y)
 
 void TTY_SetColor(uint8_t color)
 {
-   if (g_ActiveTTY)
+   if (s_ActiveTTY)
    {
-      g_ActiveTTY->color = color;
+      s_ActiveTTY->color = color;
    }
 }
 
@@ -493,8 +493,8 @@ uint32_t TTY_DevfsRead(DEVFS_DeviceNode *node, uint32_t offset, uint32_t size,
    (void)offset;
    if (!buffer || size == 0) return 0;
 
-   TTY_Device *tty = node ? (TTY_Device *)node->private_data : g_ActiveTTY;
-   if (!tty) tty = g_ActiveTTY;
+   TTY_Device *tty = node ? (TTY_Device *)node->private_data : s_ActiveTTY;
+   if (!tty) tty = s_ActiveTTY;
    if (!tty) return 0;
 
    return (uint32_t)TTY_Read(tty, (char *)buffer, size);
@@ -506,8 +506,8 @@ uint32_t TTY_DevfsWrite(DEVFS_DeviceNode *node, uint32_t offset, uint32_t size,
    (void)offset;
    if (!buffer || size == 0) return 0;
 
-   TTY_Device *tty = node ? (TTY_Device *)node->private_data : g_ActiveTTY;
-   if (!tty) tty = g_ActiveTTY;
+   TTY_Device *tty = node ? (TTY_Device *)node->private_data : s_ActiveTTY;
+   if (!tty) tty = s_ActiveTTY;
    if (!tty) return 0;
 
    TTY_Write(tty, (const char *)buffer, size);
@@ -516,7 +516,7 @@ uint32_t TTY_DevfsWrite(DEVFS_DeviceNode *node, uint32_t offset, uint32_t size,
 
 int TTY_DevfsIoctl(DEVFS_DeviceNode *node, uint32_t cmd, void *arg)
 {
-   TTY_Device *tty = node ? (TTY_Device *)node->private_data : g_ActiveTTY;
+   TTY_Device *tty = node ? (TTY_Device *)node->private_data : s_ActiveTTY;
    if (!tty) return -1;
 
    switch (cmd)

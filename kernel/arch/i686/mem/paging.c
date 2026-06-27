@@ -16,9 +16,9 @@ extern uint8_t __end; // provided by linker, end of kernel image
 // Identity-map a low window so existing kernel code keeps working.
 #define IDENTITY_MAP_LIMIT (64 * 1024 * 1024u) // 64 MiB
 
-static uint32_t *kernel_page_directory = NULL;
-static uint32_t *current_page_directory = NULL;
-static uintptr_t phys_alloc_ptr = 0;
+static uint32_t *s_KernelPageDir = NULL;
+static uint32_t *s_CurrentPageDir = NULL;
+static uintptr_t s_PhysAllocPtr = 0;
 
 static inline uintptr_t align_up(uintptr_t v, size_t a)
 {
@@ -69,24 +69,24 @@ static uint32_t alloc_frame(void)
    }
 
    // Fallback bump allocator (early bootstrap only)
-   if (!phys_alloc_ptr)
+   if (!s_PhysAllocPtr)
    {
-      phys_alloc_ptr = align_up((uintptr_t)&__end, PAGE_SIZE);
+      s_PhysAllocPtr = align_up((uintptr_t)&__end, PAGE_SIZE);
    }
 
    // Cap to 256MB to avoid wrap/overlap; this is a soft guard for early use.
    const uint32_t MAX_EARLY_BYTES = 256 * 1024 * 1024;
-   if (phys_alloc_ptr >= MAX_EARLY_BYTES)
+   if (s_PhysAllocPtr >= MAX_EARLY_BYTES)
    {
       logfmt(LOG_ERROR,
              "[PAGING] CRITICAL: alloc_frame early allocator exhausted "
              "(ptr=0x%08x)\n",
-             (uint32_t)phys_alloc_ptr);
+             (uint32_t)s_PhysAllocPtr);
       return 0;
    }
 
-   uint32_t frame = (uint32_t)phys_alloc_ptr;
-   phys_alloc_ptr += PAGE_SIZE;
+   uint32_t frame = (uint32_t)s_PhysAllocPtr;
+   s_PhysAllocPtr += PAGE_SIZE;
    return frame;
 }
 
@@ -137,17 +137,17 @@ static void identity_map_range(uint32_t *pd, uint32_t start, uint32_t end)
 void i686_Paging_Initialize(void)
 {
    // Bootstrap identity-mapped kernel directory
-   kernel_page_directory = alloc_page_directory();
-   if (!kernel_page_directory)
+   s_KernelPageDir = alloc_page_directory();
+   if (!s_KernelPageDir)
    {
       logfmt(LOG_FATAL, "[PAGING] Failed to allocate kernel page directory\n");
       return;
    }
-   identity_map_range(kernel_page_directory, 0, IDENTITY_MAP_LIMIT);
+   identity_map_range(s_KernelPageDir, 0, IDENTITY_MAP_LIMIT);
 
    // Set current directory and enable
-   current_page_directory = kernel_page_directory;
-   load_cr3((uint32_t)kernel_page_directory);
+   s_CurrentPageDir = s_KernelPageDir;
+   load_cr3((uint32_t)s_KernelPageDir);
    i686_Paging_Enable();
 }
 
@@ -165,7 +165,7 @@ void *i686_Paging_CreatePageDirectory(void)
    // Copy kernel mappings so shared kernel space stays accessible
    for (size_t i = 0; i < PAGE_DIR_ENTRIES; ++i)
    {
-      pd[i] = kernel_page_directory[i];
+      pd[i] = s_KernelPageDir[i];
    }
    return pd;
 }
@@ -265,14 +265,11 @@ void i686_Paging_FlushTlb(void) { load_cr3(read_cr3()); }
 
 void i686_Paging_SwitchPageDirectory(void *page_dir)
 {
-   current_page_directory = (uint32_t *)page_dir;
+   s_CurrentPageDir = (uint32_t *)page_dir;
    load_cr3((uint32_t)page_dir);
 }
 
-void *i686_Paging_GetCurrentPageDirectory(void)
-{
-   return current_page_directory;
-}
+void *i686_Paging_GetCurrentPageDirectory(void) { return s_CurrentPageDir; }
 
 void *i686_Paging_AllocateKernelPages(int page_count)
 {
@@ -283,8 +280,7 @@ void *i686_Paging_AllocateKernelPages(int page_count)
       uint32_t phys = alloc_frame();
       if (i == 0) first_phys = phys;
       // identity map each page to keep it accessible
-      i686_Paging_MapPage(kernel_page_directory, phys, phys,
-                          PAGE_RW | PAGE_PRESENT);
+      i686_Paging_MapPage(s_KernelPageDir, phys, phys, PAGE_RW | PAGE_PRESENT);
    }
    return (void *)first_phys;
 }

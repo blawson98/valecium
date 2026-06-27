@@ -9,10 +9,7 @@
 #include <stdint.h>
 #include <sys/sys.h>
 
-/**
- * Initialize the devfs filesystem on reserved volume slot
- * This creates an in-memory filesystem for device nodes.
- */
+// Initialize the devfs filesystem on reserved volume slot.
 static int InitializeDevfs(void)
 {
    int rc = DEVFS_Initialize();
@@ -32,11 +29,7 @@ static int InitializeDevfs(void)
    return SUCCESS;
 }
 
-/**
- * Initialize storage system: scan and initialize all disks
- *
- * @return FS_OK on success, negative FS_* error on failure
- */
+// Initialize storage system: scan and initialize all disks.
 int FS_Initialize(void)
 {
    VFS_Init();

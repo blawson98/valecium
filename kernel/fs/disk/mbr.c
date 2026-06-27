@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include <fs/devfs/devfs.h>
 #include <fs/fs.h>
@@ -7,8 +7,8 @@
 #include <stddef.h>
 #include <sys/sys.h>
 
-static DEVFS_DeviceOps partition_ops = {.read = Partition_DevfsRead,
-                                        .write = Partition_DevfsWrite};
+static DEVFS_DeviceOps s_PartitionOps = {.read = Partition_DevfsRead,
+                                         .write = Partition_DevfsWrite};
 
 typedef struct
 {
@@ -96,7 +96,7 @@ Partition **MBR_DetectPartition(DISK *disk, int *outCount)
             uint32_t part_size = part->partitionSize * 512;
             DEVFS_RegisterDevice(devname, DEVFS_TYPE_BLOCK, 3,
                                  disk_idx * 16 + count + 1, part_size,
-                                 &partition_ops, part);
+                                 &s_PartitionOps, part);
 
             list[count++] = part;
          }

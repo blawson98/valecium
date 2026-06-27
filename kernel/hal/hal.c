@@ -81,7 +81,7 @@ const HAL_TssOperations *g_HalTssOperations = &(HAL_TssOperations){
     .GetKernelStack = HAL_ARCH_TSS_GetKernelStack,
 };
 
-void HAL_Initialize()
+void HAL_Initialize(void)
 {
 #if defined(I686)
    i686_GDT_Initialize();

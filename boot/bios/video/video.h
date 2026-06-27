@@ -37,7 +37,7 @@ typedef struct VBE_Info
 extern void outb(uint16_t port, uint8_t val); /* Write port byte. */
 extern uint8_t inb(uint16_t port);            /* Read port byte. */
 
-extern int preferredOutput; /* Preferred output system. */
+extern int g_PreferredOutput; /* Preferred output system. */
 
 int VGATEXT_Initialize(void); /* Initialize VGA text mode. */
 int VGATEXT_PutChar(char c, int x, int y, char color); /* Put text char. */

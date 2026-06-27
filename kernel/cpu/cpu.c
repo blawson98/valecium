@@ -3,4 +3,4 @@
 #include <cpu/process.h>
 #include <cpu/scheduler.h>
 
-void CPU_Initialize() { Scheduler_Initialize(); }
+void CPU_Initialize(void) { Scheduler_Initialize(); }

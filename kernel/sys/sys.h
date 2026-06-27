@@ -72,7 +72,7 @@ typedef struct
 /* Global system info pointer (defined in sys.c) */
 extern SYS_Info *g_SysInfo;
 
-void SYS_Initialize();
-void SYS_Finalize();
+void SYS_Initialize(void);
+void SYS_Finalize(void);
 
 #endif

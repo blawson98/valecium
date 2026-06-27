@@ -99,25 +99,25 @@ typedef struct
 } ExtendedLibData;
 
 // Memory allocator state
-static int kmod_mem_initialized = 0;
-static uint32_t kmod_total_allocated = 0;
+static int s_KmodMemInitialized = 0;
+static uint32_t s_KmodTotalAllocated = 0;
 static LibRecord s_lib_registry[LIB_REGISTRY_MAX];
 static ExtendedLibData extended_data[LIB_REGISTRY_MAX];
 
 // Global symbol table - shared across all loaded libraries and kernel
 static GlobalSymbolEntry global_symtab[KMOD_MAX_GLOBAL_SYMBOLS];
-static int global_symtab_count = 0;
+static int s_GlobalSymtabCount = 0;
 
 // Forward declarations
 static int parse_elf_symbols(ExtendedLibData *ext, uint32_t base_addr,
                              uint32_t size);
 static int find_index(const char *name);
 
-static kmod_register_symbols_t symbol_callback = NULL;
+static kmod_register_symbols_t s_SymbolCallback = NULL;
 
 int KMOD_MemoryInitialize(void)
 {
-   if (kmod_mem_initialized) return 0;
+   if (s_KmodMemInitialized) return 0;
 
    memset(s_lib_registry, 0, sizeof(s_lib_registry));
 
@@ -134,8 +134,8 @@ int KMOD_MemoryInitialize(void)
       extended_data[i].loaded = 0;
    }
 
-   kmod_total_allocated = 0;
-   kmod_mem_initialized = 1;
+   s_KmodTotalAllocated = 0;
+   s_KmodMemInitialized = 1;
 
    uint32_t heap_start = (uint32_t)mem_heap_start();
    uint32_t heap_end = (uint32_t)mem_heap_end();
@@ -157,14 +157,14 @@ int KMOD_MemoryInitialize(void)
 int KMOD_AddGlobalSymbol(const char *name, uint32_t address,
                          const char *lib_name, int is_kernel)
 {
-   if (global_symtab_count >= KMOD_MAX_GLOBAL_SYMBOLS)
+   if (s_GlobalSymtabCount >= KMOD_MAX_GLOBAL_SYMBOLS)
    {
       logfmt(LOG_ERROR, "[ERROR] Global symbol table full (%d entries)\n",
              KMOD_MAX_GLOBAL_SYMBOLS);
       return -1;
    }
 
-   GlobalSymbolEntry *entry = &global_symtab[global_symtab_count];
+   GlobalSymbolEntry *entry = &global_symtab[s_GlobalSymtabCount];
    strncpy(entry->name, name, 63);
    entry->name[63] = '\0';
    entry->address = address;
@@ -172,13 +172,13 @@ int KMOD_AddGlobalSymbol(const char *name, uint32_t address,
    entry->lib_name[63] = '\0';
    entry->is_kernel = is_kernel;
 
-   global_symtab_count++;
+   s_GlobalSymtabCount++;
    return 0;
 }
 
 uint32_t KMOD_LookupGlobalSymbol(const char *name)
 {
-   for (int i = 0; i < global_symtab_count; i++)
+   for (int i = 0; i < s_GlobalSymtabCount; i++)
    {
       if (strcmp(global_symtab[i].name, name) == 0)
          return global_symtab[i].address;
@@ -192,19 +192,19 @@ void KMOD_PrintGlobalSymtab(void)
    logfmt(LOG_INFO, "[KMOD] %-40s 0x%-8x %s", "Symbol", "Address", "Source");
    logfmt(LOG_INFO, "[KMOD] ==========================================\n");
 
-   for (int i = 0; i < global_symtab_count; i++)
+   for (int i = 0; i < s_GlobalSymtabCount; i++)
    {
       GlobalSymbolEntry *e = &global_symtab[i];
       const char *source = e->is_kernel ? "[KERNEL]" : e->lib_name;
       logfmt(LOG_INFO, "[KMOD] %-40s 0x%08x %s\n", e->name, e->address, source);
    }
    logfmt(LOG_INFO, "[KMOD] ==========================================\n");
-   logfmt(LOG_INFO, "[KMOD] Total: %d symbols\n", global_symtab_count);
+   logfmt(LOG_INFO, "[KMOD] Total: %d symbols\n", s_GlobalSymtabCount);
 }
 
 void KMOD_ClearGlobalSymtab(void)
 {
-   global_symtab_count = 0;
+   s_GlobalSymtabCount = 0;
    logfmt(LOG_INFO, "[KMOD] Global symbol table cleared\n");
 }
 
@@ -424,7 +424,7 @@ uint32_t KMOD_MemoryAllocate(const char *lib_name, uint32_t size)
       return 0;
    }
 
-   if (!kmod_mem_initialized)
+   if (!s_KmodMemInitialized)
    {
       logfmt(LOG_INFO, "[KMOD] Initializing memory allocator...\n");
       if (KMOD_MemoryInitialize() != 0)
@@ -452,10 +452,10 @@ uint32_t KMOD_MemoryAllocate(const char *lib_name, uint32_t size)
       extended_data[idx].alloc_size = aligned_size;
    }
 
-   if (kmod_total_allocated <= UINT32_MAX - aligned_size)
-      kmod_total_allocated += aligned_size;
+   if (s_KmodTotalAllocated <= UINT32_MAX - aligned_size)
+      s_KmodTotalAllocated += aligned_size;
    else
-      kmod_total_allocated = UINT32_MAX;
+      s_KmodTotalAllocated = UINT32_MAX;
 
    return (uint32_t)(uintptr_t)alloc;
 }
@@ -772,10 +772,10 @@ int KMOD_MemoryFree(const char *lib_name)
    lib->base = NULL;
    ext->alloc_size = 0;
 
-   if (kmod_total_allocated >= freed)
-      kmod_total_allocated -= freed;
+   if (s_KmodTotalAllocated >= freed)
+      s_KmodTotalAllocated -= freed;
    else
-      kmod_total_allocated = 0;
+      s_KmodTotalAllocated = 0;
 
    logfmt(LOG_INFO, "[KMOD] Freed 0x%x bytes for %s\n", freed, lib_name);
 
@@ -784,7 +784,7 @@ int KMOD_MemoryFree(const char *lib_name)
 
 int KMOD_Load(const char *name, const void *image, uint32_t size)
 {
-   if (!kmod_mem_initialized) KMOD_MemoryInitialize();
+   if (!s_KmodMemInitialized) KMOD_MemoryInitialize();
 
    int idx = ensure_record(name);
    if (idx < 0)
@@ -1122,7 +1122,7 @@ static int parse_elf_symbols(ExtendedLibData *ext, uint32_t base_addr,
 
 int KMOD_LoadFromDisk(const char *name, const char *filepath)
 {
-   if (!kmod_mem_initialized) KMOD_MemoryInitialize();
+   if (!s_KmodMemInitialized) KMOD_MemoryInitialize();
 
    int idx = ensure_record(name);
    if (idx < 0)
@@ -1195,9 +1195,9 @@ int KMOD_LoadFromDisk(const char *name, const char *filepath)
    // Parse ELF symbols from the loaded library
    parse_elf_symbols(ext, load_addr, file_size);
 
-   if (symbol_callback)
+   if (s_SymbolCallback)
    {
-      symbol_callback(name);
+      s_SymbolCallback(name);
    }
 
    return 0;
@@ -1242,7 +1242,7 @@ int KMOD_Remove(const char *name)
 
 void KMOD_MemoryStatus(void)
 {
-   if (!kmod_mem_initialized)
+   if (!s_KmodMemInitialized)
    {
       logfmt(LOG_ERROR, "[KMOD] Memory allocator not initialized\n");
       return;
@@ -1252,7 +1252,7 @@ void KMOD_MemoryStatus(void)
    uint32_t heap_end = (uint32_t)mem_heap_end();
    uint32_t total_available =
        (heap_end >= heap_start) ? (heap_end - heap_start + 1) : 0;
-   uint32_t total_allocated = kmod_total_allocated;
+   uint32_t total_allocated = s_KmodTotalAllocated;
    uint32_t remaining = (total_available > total_allocated)
                             ? (total_available - total_allocated)
                             : 0;
@@ -1286,7 +1286,7 @@ void KMOD_MemoryStatus(void)
 
 void KMOD_RegisterCallback(kmod_register_symbols_t callback)
 {
-   symbol_callback = callback;
+   s_SymbolCallback = callback;
 }
 
 int KMOD_Initialize(void)

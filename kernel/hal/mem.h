@@ -1,22 +1,15 @@
-#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
+
+#include <constants.h>
 
 #ifndef HAL_PAGING_H
 #define HAL_PAGING_H
 #include <stdbool.h>
 #include <stdint.h>
 
-/**
- * HAL Memory and Paging Abstraction
- *
- * This header provides architecture-independent access to:
- * 1. Memory layout constants via architecture-specific vm_layout.h
- * 2. Paging operations via architecture-specific paging.h
- *
- * Each architecture must provide:
- * - arch/<arch>/mem/vm_layout.h with memory constants
- * - arch/<arch>/mem/paging.h with paging functions
- */
+// HAL Memory and Paging Abstraction — provides architecture-independent
+// access to memory layout constants (vm_layout.h) and paging operations
+// (paging.h).
 
 #if defined(I686)
 #include <arch/i686/mem/paging.h>

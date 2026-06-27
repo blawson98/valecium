@@ -16,7 +16,7 @@ typedef struct
    uint32_t timer_freq; /* Timer frequency in Hz */
 } IRQ_Info;
 
-void i686_IRQ_Initialize();
+void i686_IRQ_Initialize(void);
 void i686_IRQ_RegisterHandler(int irq, IRQHandler handler);
 void i686_IRQ_Unmask(int irq);
 

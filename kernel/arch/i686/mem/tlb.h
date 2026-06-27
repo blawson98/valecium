@@ -5,43 +5,18 @@
 
 #include <stdint.h>
 
-/**
- * TLB (Translation Lookaside Buffer) Management for x86 i686
- *
- * The TLB is a hardware cache that speeds up virtual-to-physical address
- * translation. When the CPU needs to translate a virtual address, it first
- * checks the TLB:
- *  - TLB hit: Fast translation (nanoseconds)
- *  - TLB miss: Slow page table walk (hundreds of nanoseconds), then caches in
- * TLB
- *
- * We need to invalidate TLB entries when we modify page tables to ensure
- * the CPU doesn't use stale cached translations.
- */
+// TLB (Translation Lookaside Buffer) Management for x86 i686.
+// The TLB caches virtual-to-physical translations. We must invalidate
+// entries when modifying page tables to prevent stale cached translations.
 
-/**
- * Invalidate a single TLB entry for a virtual address
- *
- * @param vaddr Virtual address to invalidate from TLB
- *
- * This is used when modifying page table entries for a specific address.
- * The inline assembly executes the INVLPG instruction on x86.
- */
+// Invalidate a single TLB entry for a virtual address (INVLPG instruction).
 static inline void tlb_invalidate_entry(uintptr_t vaddr)
 {
    __asm__ __volatile__("invlpg (%0)" : : "r"(vaddr) : "memory");
 }
 
-/**
- * Invalidate the entire TLB
- *
- * This is a heavy operation - used when:
- *  - Switching to a new process (new page directory)
- *  - Major memory subsystem changes
- *
- * Reloading CR3 invalidates all TLB entries.
- * It's slow but necessary for correctness.
- */
+// Invalidate the entire TLB by reloading CR3. Heavy operation, used when
+// switching page directories or during major memory subsystem changes.
 static inline void tlb_invalidate_all(void)
 {
    uint32_t cr3;
@@ -67,12 +42,7 @@ static inline void tlb_invalidate_range(uintptr_t vaddr_start,
    }
 }
 
-/**
- * Get current CR3 (page directory base address)
- *
- * CR3 contains the physical address of the currently active page directory.
- * Used to determine which process's address space is active.
- */
+// Get current CR3 (page directory base address).
 static inline uint32_t tlb_get_cr3(void)
 {
    uint32_t cr3;
@@ -80,35 +50,17 @@ static inline uint32_t tlb_get_cr3(void)
    return cr3;
 }
 
-/**
- * Set CR3 to a new page directory
- *
- * @param page_dir_phys Physical address of new page directory
- *
- * This switches the active page directory and automatically invalidates all TLB
- * entries. Used during process context switches.
- */
+// Set CR3 to a new page directory. Switches address space and invalidates
+// all TLB entries. Used during process context switches.
 static inline void tlb_set_cr3(uint32_t page_dir_phys)
 {
    __asm__ __volatile__("movl %0, %%cr3" : : "r"(page_dir_phys));
 }
 
-/**
- * Get TLB statistics (if implemented by CPU)
- *
- * Note: x86 does not provide direct access to TLB statistics.
- * This is architecture-dependent and not available on i386/i686.
- * For now, this file documents that TLB management is available.
- */
+// TLB statistics: x86 does not provide direct access to TLB stats.
+// Architecture-dependent; not available on i386/i686.
 
-/**
- * Prefetch into TLB (hints the CPU to load a TLB entry)
- *
- * @param vaddr Virtual address to prefetch
- *
- * Some x86 variants support PREFETCHT0 which can help with TLB prefetching,
- * but it's not a direct TLB operation. This is rarely used in practice.
- */
+// Prefetch into TLB (hints CPU to load a TLB entry). Rarely used in practice.
 static inline void tlb_prefetch(uintptr_t vaddr)
 {
    __asm__ __volatile__("prefetcht0 (%0)" : : "r"(vaddr));

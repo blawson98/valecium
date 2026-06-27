@@ -12,80 +12,80 @@
  * bit=0: free, bit=1: allocated
  * We allocate the bitmap itself from identity-mapped kernel space
  */
-static uint8_t *page_bitmap = NULL;
-static uint32_t total_pages = 0;
-static uint32_t allocated_count = 0;
-static int pmm_initialized = 0;
+static uint8_t *s_PageBitmap = NULL;
+static uint32_t s_TotalPages = 0;
+static uint32_t s_AllocatedCount = 0;
+static int s_PmmInitialized = 0;
 
 static void bitmap_set(uint32_t page_idx)
 {
    uint32_t byte_idx = page_idx / BITS_PER_BYTE;
    uint32_t bit_idx = page_idx % BITS_PER_BYTE;
-   page_bitmap[byte_idx] |= (1u << bit_idx);
-   allocated_count++;
+   s_PageBitmap[byte_idx] |= (1u << bit_idx);
+   s_AllocatedCount++;
 }
 
 static void bitmap_clear(uint32_t page_idx)
 {
    uint32_t byte_idx = page_idx / BITS_PER_BYTE;
    uint32_t bit_idx = page_idx % BITS_PER_BYTE;
-   page_bitmap[byte_idx] &= ~(1u << bit_idx);
-   if (allocated_count > 0) allocated_count--;
+   s_PageBitmap[byte_idx] &= ~(1u << bit_idx);
+   if (s_AllocatedCount > 0) s_AllocatedCount--;
 }
 
 static int bitmap_is_set(uint32_t page_idx)
 {
    uint32_t byte_idx = page_idx / BITS_PER_BYTE;
    uint32_t bit_idx = page_idx % BITS_PER_BYTE;
-   return (page_bitmap[byte_idx] & (1u << bit_idx)) != 0;
+   return (s_PageBitmap[byte_idx] & (1u << bit_idx)) != 0;
 }
 
 void PMM_Initialize(uint32_t total_mem_bytes)
 {
-   pmm_initialized = 1;
+   s_PmmInitialized = 1;
    // Calculate number of pages
-   total_pages = (total_mem_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+   s_TotalPages = (total_mem_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
 
    // Bitmap size in bytes
-   uint32_t bitmap_bytes = (total_pages + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
+   uint32_t bitmap_bytes = (s_TotalPages + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
 
    // Allocate bitmap from lower memory (identity-mapped)
    // For now, use a static buffer to avoid chicken-and-egg
    // In a real system, you'd place this in a reserved region
    static uint8_t bitmap_storage[131072]; // max ~1M pages (4 GiB)
-   page_bitmap = bitmap_storage;
+   s_PageBitmap = bitmap_storage;
 
    if (bitmap_bytes > sizeof(bitmap_storage))
    {
       logfmt(LOG_WARNING, "[MEM] WARNING: bitmap too small for %u pages\n",
-             total_pages);
-      total_pages = sizeof(bitmap_storage) * BITS_PER_BYTE;
+             s_TotalPages);
+      s_TotalPages = sizeof(bitmap_storage) * BITS_PER_BYTE;
       bitmap_bytes = sizeof(bitmap_storage);
    }
 
    // Initially all pages are free (bitmap = 0)
-   memset(page_bitmap, 0, bitmap_bytes);
-   allocated_count = 0;
+   memset(s_PageBitmap, 0, bitmap_bytes);
+   s_AllocatedCount = 0;
 
    // Reserve pages 0-2 MiB for kernel/boot (0x00000 - 0x200000)
    uint32_t reserved_pages = (2 * 1024 * 1024) / PAGE_SIZE;
-   for (uint32_t i = 0; i < reserved_pages && i < total_pages; ++i)
+   for (uint32_t i = 0; i < reserved_pages && i < s_TotalPages; ++i)
    {
       bitmap_set(i);
    }
 
    logfmt(LOG_INFO, "[MEM] init: total=%u pages, reserved=%u, free=%u\n",
-          total_pages, reserved_pages, total_pages - allocated_count);
+          s_TotalPages, reserved_pages, s_TotalPages - s_AllocatedCount);
 }
 
-int PMM_IsInitialized(void) { return pmm_initialized; }
+int PMM_IsInitialized(void) { return s_PmmInitialized; }
 
 uint32_t PMM_AllocatePhysicalPage(void)
 {
-   if (!page_bitmap) return 0;
+   if (!s_PageBitmap) return 0;
 
    // Simple linear search for a free page
-   for (uint32_t i = 0; i < total_pages; ++i)
+   for (uint32_t i = 0; i < s_TotalPages; ++i)
    {
       if (!bitmap_is_set(i))
       {
@@ -100,10 +100,10 @@ uint32_t PMM_AllocatePhysicalPage(void)
 
 void PMM_FreePhysicalPage(uint32_t addr)
 {
-   if (!page_bitmap || (addr % PAGE_SIZE) != 0) return;
+   if (!s_PageBitmap || (addr % PAGE_SIZE) != 0) return;
 
    uint32_t page_idx = addr / PAGE_SIZE;
-   if (page_idx >= total_pages) return;
+   if (page_idx >= s_TotalPages) return;
 
    if (bitmap_is_set(page_idx))
    {
@@ -113,19 +113,19 @@ void PMM_FreePhysicalPage(uint32_t addr)
 
 int PMM_IsPhysicalPageFree(uint32_t addr)
 {
-   if (!page_bitmap || (addr % PAGE_SIZE) != 0) return 0;
+   if (!s_PageBitmap || (addr % PAGE_SIZE) != 0) return 0;
 
    uint32_t page_idx = addr / PAGE_SIZE;
-   if (page_idx >= total_pages) return 0;
+   if (page_idx >= s_TotalPages) return 0;
 
    return !bitmap_is_set(page_idx);
 }
 
-uint32_t PMM_TotalMemory(void) { return total_pages * PAGE_SIZE; }
+uint32_t PMM_TotalMemory(void) { return s_TotalPages * PAGE_SIZE; }
 
-uint32_t PMM_FreePages(void) { return total_pages - allocated_count; }
+uint32_t PMM_FreePages(void) { return s_TotalPages - s_AllocatedCount; }
 
-uint32_t PMM_AllocatedPages(void) { return allocated_count; }
+uint32_t PMM_AllocatedPages(void) { return s_AllocatedCount; }
 
 void PMM_SelfTest(void)
 {

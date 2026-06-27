@@ -18,33 +18,33 @@
  */
 
 /* Global device node table */
-static DEVFS_DeviceNode g_DevNodes[DEVFS_MAXFILES];
-static uint32_t g_DevNodeCount = 0;
-static bool g_DevfsInitialized = false;
+static DEVFS_DeviceNode s_DevNodes[DEVFS_MAXFILES];
+static uint32_t s_DevNodeCount = 0;
+static bool s_DevfsInitialized = false;
 
 /* Devfs partition and filesystem structures (in-memory) */
-static Partition g_DevfsPartition;
-static Filesystem g_DevfsFilesystem;
+static Partition s_DevfsPartition;
+static Filesystem s_DevfsFilesystem;
 
 /* Forward declarations for VFS operations */
 static VFS_File *devfs_vfs_open(Partition *partition, const char *path);
 static uint32_t devfs_vfs_read(Partition *partition, void *fs_file,
-                               uint32_t byteCount, void *dataOut);
+                               uint32_t byte_count, void *dataOut);
 static uint32_t devfs_vfs_write(Partition *partition, void *fs_file,
-                                uint32_t byteCount, const void *dataIn);
+                                uint32_t byte_count, const void *dataIn);
 static int devfs_vfs_seek(Partition *partition, void *fs_file, uint32_t pos);
 static void devfs_vfs_close(void *fs_file);
 static uint32_t devfs_vfs_get_size(void *fs_file);
 static int devfs_vfs_delete(Partition *partition, const char *path);
 
 /* VFS operations table */
-static const VFS_Operations devfs_ops = {.open = devfs_vfs_open,
-                                         .read = devfs_vfs_read,
-                                         .write = devfs_vfs_write,
-                                         .seek = devfs_vfs_seek,
-                                         .close = devfs_vfs_close,
-                                         .get_size = devfs_vfs_get_size,
-                                         .delete = devfs_vfs_delete};
+static const VFS_Operations s_DevfsOps = {.open = devfs_vfs_open,
+                                          .read = devfs_vfs_read,
+                                          .write = devfs_vfs_write,
+                                          .seek = devfs_vfs_seek,
+                                          .close = devfs_vfs_close,
+                                          .get_size = devfs_vfs_get_size,
+                                          .delete = devfs_vfs_delete};
 
 /*
  * Helper functions
@@ -84,7 +84,7 @@ DEVFS_DeviceNode *DEVFS_RegisterDevice(const char *name, DEVFS_DeviceType type,
       return NULL;
    }
 
-   if (g_DevNodeCount >= DEVFS_MAXFILES)
+   if (s_DevNodeCount >= DEVFS_MAXFILES)
    {
       logfmt(LOG_ERROR, "[DEVFS] RegisterDevice: device table full\n");
       return NULL;
@@ -93,8 +93,8 @@ DEVFS_DeviceNode *DEVFS_RegisterDevice(const char *name, DEVFS_DeviceType type,
    /* Check for duplicate name */
    for (uint32_t i = 0; i < DEVFS_MAXFILES; i++)
    {
-      if (g_DevNodes[i].in_use &&
-          strncmp(g_DevNodes[i].name, name, DEVFS_PATHMAX) == 0)
+      if (s_DevNodes[i].in_use &&
+          strncmp(s_DevNodes[i].name, name, DEVFS_PATHMAX) == 0)
       {
          logfmt(LOG_ERROR, "[DEVFS] RegisterDevice: '%s' already exists\n",
                 name);
@@ -106,9 +106,9 @@ DEVFS_DeviceNode *DEVFS_RegisterDevice(const char *name, DEVFS_DeviceType type,
    DEVFS_DeviceNode *node = NULL;
    for (uint32_t i = 0; i < DEVFS_MAXFILES; i++)
    {
-      if (!g_DevNodes[i].in_use)
+      if (!s_DevNodes[i].in_use)
       {
-         node = &g_DevNodes[i];
+         node = &s_DevNodes[i];
          break;
       }
    }
@@ -131,7 +131,7 @@ DEVFS_DeviceNode *DEVFS_RegisterDevice(const char *name, DEVFS_DeviceType type,
    node->private_data = private_data;
    node->in_use = true;
 
-   g_DevNodeCount++;
+   s_DevNodeCount++;
 
    logfmt(LOG_INFO,
           "[DEVFS] Registered device: %s (type=%d, major=%u, minor=%u)\n", name,
@@ -148,7 +148,7 @@ int DEVFS_UnregisterDevice(DEVFS_DeviceNode *node)
    bool found = false;
    for (uint32_t i = 0; i < DEVFS_MAXFILES; i++)
    {
-      if (&g_DevNodes[i] == node && node->in_use)
+      if (&s_DevNodes[i] == node && node->in_use)
       {
          found = true;
          break;
@@ -166,7 +166,7 @@ int DEVFS_UnregisterDevice(DEVFS_DeviceNode *node)
    /* Clear the node */
    memset(node, 0, sizeof(DEVFS_DeviceNode));
    node->in_use = false;
-   g_DevNodeCount--;
+   s_DevNodeCount--;
 
    return SUCCESS;
 }
@@ -180,10 +180,10 @@ DEVFS_DeviceNode *DEVFS_FindDevice(const char *name)
 
    for (uint32_t i = 0; i < DEVFS_MAXFILES; i++)
    {
-      if (g_DevNodes[i].in_use &&
-          strncmp(g_DevNodes[i].name, normalized, DEVFS_PATHMAX) == 0)
+      if (s_DevNodes[i].in_use &&
+          strncmp(s_DevNodes[i].name, normalized, DEVFS_PATHMAX) == 0)
       {
-         return &g_DevNodes[i];
+         return &s_DevNodes[i];
       }
    }
 
@@ -196,14 +196,14 @@ void DEVFS_EnumerateDevices(DEVFS_EnumCallback callback, void *context)
 
    for (uint32_t i = 0; i < DEVFS_MAXFILES; i++)
    {
-      if (g_DevNodes[i].in_use)
+      if (s_DevNodes[i].in_use)
       {
-         callback(&g_DevNodes[i], context);
+         callback(&s_DevNodes[i], context);
       }
    }
 }
 
-uint32_t DEVFS_GetDeviceCount(void) { return g_DevNodeCount; }
+uint32_t DEVFS_GetDeviceCount(void) { return s_DevNodeCount; }
 
 /*
  * External standard device implementations (defined in fs/misc/std_dev.c)
@@ -251,15 +251,15 @@ void DEVFS_Close(DEVFS_File *file)
    free(file);
 }
 
-uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byteCount, void *dataOut)
+uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byte_count, void *dataOut)
 {
-   if (!file || !file->node || !dataOut || byteCount == 0) return 0;
+   if (!file || !file->node || !dataOut || byte_count == 0) return 0;
 
    /* Use device-specific read if available */
    if (file->node->ops && file->node->ops->read)
    {
-      uint32_t bytes_read =
-          file->node->ops->read(file->node, file->position, byteCount, dataOut);
+      uint32_t bytes_read = file->node->ops->read(file->node, file->position,
+                                                  byte_count, dataOut);
       file->position += bytes_read;
       return bytes_read;
    }
@@ -268,15 +268,15 @@ uint32_t DEVFS_Read(DEVFS_File *file, uint32_t byteCount, void *dataOut)
    return 0;
 }
 
-uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byteCount, const void *dataIn)
+uint32_t DEVFS_Write(DEVFS_File *file, uint32_t byte_count, const void *dataIn)
 {
-   if (!file || !file->node || !dataIn || byteCount == 0) return 0;
+   if (!file || !file->node || !dataIn || byte_count == 0) return 0;
 
    /* Use device-specific write if available */
    if (file->node->ops && file->node->ops->write)
    {
-      uint32_t bytes_written =
-          file->node->ops->write(file->node, file->position, byteCount, dataIn);
+      uint32_t bytes_written = file->node->ops->write(
+          file->node, file->position, byte_count, dataIn);
       file->position += bytes_written;
       return bytes_written;
    }
@@ -327,21 +327,21 @@ static VFS_File *devfs_vfs_open(Partition *partition, const char *path)
 }
 
 static uint32_t devfs_vfs_read(Partition *partition, void *fs_file,
-                               uint32_t byteCount, void *dataOut)
+                               uint32_t byte_count, void *dataOut)
 {
    (void)partition;
-   if (!fs_file || !dataOut || byteCount == 0) return 0;
+   if (!fs_file || !dataOut || byte_count == 0) return 0;
 
-   return DEVFS_Read((DEVFS_File *)fs_file, byteCount, dataOut);
+   return DEVFS_Read((DEVFS_File *)fs_file, byte_count, dataOut);
 }
 
 static uint32_t devfs_vfs_write(Partition *partition, void *fs_file,
-                                uint32_t byteCount, const void *dataIn)
+                                uint32_t byte_count, const void *dataIn)
 {
    (void)partition;
-   if (!fs_file || !dataIn || byteCount == 0) return 0;
+   if (!fs_file || !dataIn || byte_count == 0) return 0;
 
-   return DEVFS_Write((DEVFS_File *)fs_file, byteCount, dataIn);
+   return DEVFS_Write((DEVFS_File *)fs_file, byte_count, dataIn);
 }
 
 static int devfs_vfs_seek(Partition *partition, void *fs_file, uint32_t pos)
@@ -377,52 +377,52 @@ static int devfs_vfs_delete(Partition *partition, const char *path)
 
 int DEVFS_Initialize(void)
 {
-   if (g_DevfsInitialized)
+   if (s_DevfsInitialized)
    {
       logfmt(LOG_WARNING, "[DEVFS] Already initialized\n");
       return SUCCESS;
    }
 
    /* Clear device node table */
-   memset(g_DevNodes, 0, sizeof(g_DevNodes));
-   g_DevNodeCount = 0;
+   memset(s_DevNodes, 0, sizeof(s_DevNodes));
+   s_DevNodeCount = 0;
 
    /* Initialize the in-memory filesystem structure */
-   memset(&g_DevfsFilesystem, 0, sizeof(Filesystem));
-   g_DevfsFilesystem.type = DEVFS;
-   g_DevfsFilesystem.ops = &devfs_ops;
-   g_DevfsFilesystem.mounted = 0;
-   g_DevfsFilesystem.read_only = 0;
-   g_DevfsFilesystem.block_size = 0; /* No block device backing */
+   memset(&s_DevfsFilesystem, 0, sizeof(Filesystem));
+   s_DevfsFilesystem.type = DEVFS;
+   s_DevfsFilesystem.ops = &s_DevfsOps;
+   s_DevfsFilesystem.mounted = 0;
+   s_DevfsFilesystem.read_only = 0;
+   s_DevfsFilesystem.block_size = 0; /* No block device backing */
 
    /* Initialize the in-memory partition structure */
-   memset(&g_DevfsPartition, 0, sizeof(Partition));
-   g_DevfsPartition.disk = NULL; /* No backing disk */
-   g_DevfsPartition.partitionOffset = 0;
-   g_DevfsPartition.partitionSize = 0;
-   g_DevfsPartition.partitionType = 0;
-   g_DevfsPartition.fs = &g_DevfsFilesystem;
-   g_DevfsPartition.uuid = 0xDEADBEEF; /* Marker UUID for devfs */
-   strncpy(g_DevfsPartition.label, "devfs", sizeof(g_DevfsPartition.label) - 1);
-   g_DevfsPartition.isRootPartition = false;
+   memset(&s_DevfsPartition, 0, sizeof(Partition));
+   s_DevfsPartition.disk = NULL; /* No backing disk */
+   s_DevfsPartition.partitionOffset = 0;
+   s_DevfsPartition.partitionSize = 0;
+   s_DevfsPartition.partitionType = 0;
+   s_DevfsPartition.fs = &s_DevfsFilesystem;
+   s_DevfsPartition.uuid = 0xDEADBEEF; /* Marker UUID for devfs */
+   strncpy(s_DevfsPartition.label, "devfs", sizeof(s_DevfsPartition.label) - 1);
+   s_DevfsPartition.isRootPartition = false;
 
    /* Place devfs partition in the reserved volume slot */
-   g_SysInfo->volume[DEVFS_VOLUME] = g_DevfsPartition;
-   g_SysInfo->volume[DEVFS_VOLUME].fs = &g_DevfsFilesystem;
+   g_SysInfo->volume[DEVFS_VOLUME] = s_DevfsPartition;
+   g_SysInfo->volume[DEVFS_VOLUME].fs = &s_DevfsFilesystem;
 
    /* Register standard devices */
    register_standard_devices();
 
-   g_DevfsInitialized = true;
+   s_DevfsInitialized = true;
    logfmt(LOG_INFO, "[DEVFS] Initialized on volume[%d]\n", DEVFS_VOLUME);
 
    return SUCCESS;
 }
 
-const VFS_Operations *DEVFS_GetVFSOperations(void) { return &devfs_ops; }
+const VFS_Operations *DEVFS_GetVFSOperations(void) { return &s_DevfsOps; }
 
 Partition *DEVFS_GetPartition(void)
 {
-   if (!g_DevfsInitialized) return NULL;
+   if (!s_DevfsInitialized) return NULL;
    return &g_SysInfo->volume[DEVFS_VOLUME];
 }

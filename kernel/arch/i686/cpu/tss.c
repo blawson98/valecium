@@ -36,23 +36,23 @@ typedef struct
    uint16_t iomap_base;
 } __attribute__((packed)) i686_TSS;
 
-static i686_TSS g_Tss;
+static i686_TSS s_Tss;
 
 void i686_TSS_Initialize(void)
 {
-   memset(&g_Tss, 0, sizeof(g_Tss));
-   g_Tss.ss0 = i686_GDT_DATA_SEGMENT;
-   g_Tss.iomap_base = sizeof(g_Tss);
+   memset(&s_Tss, 0, sizeof(s_Tss));
+   s_Tss.ss0 = i686_GDT_DATA_SEGMENT;
+   s_Tss.iomap_base = sizeof(s_Tss);
 
    Stack *kernel_stack = Stack_GetKernel();
-   g_Tss.esp0 = kernel_stack ? kernel_stack->base : 0;
+   s_Tss.esp0 = kernel_stack ? kernel_stack->base : 0;
 
-   i686_GDT_SetTSSEntry((uint32_t)&g_Tss, sizeof(g_Tss) - 1);
+   i686_GDT_SetTSSEntry((uint32_t)&s_Tss, sizeof(s_Tss) - 1);
 
    uint16_t selector = i686_GDT_TSS_SEGMENT;
    __asm__ __volatile__("ltr %0" : : "r"(selector));
 }
 
-void i686_TSS_SetKernelStack(uint32_t esp0) { g_Tss.esp0 = esp0; }
+void i686_TSS_SetKernelStack(uint32_t esp0) { s_Tss.esp0 = esp0; }
 
-uint32_t i686_TSS_GetKernelStack(void) { return g_Tss.esp0; }
+uint32_t i686_TSS_GetKernelStack(void) { return s_Tss.esp0; }

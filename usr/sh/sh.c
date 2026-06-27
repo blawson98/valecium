@@ -12,11 +12,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-char *version = "1.0";
+char *g_Version = "1.0";
 
 typedef struct
 {
-   char *version;
+   char *g_Version;
    char *cwd;
    char starter;
 } Shell;
@@ -45,13 +45,13 @@ typedef struct
 
 #define MAX_VARS 100
 Variable vars[MAX_VARS];
-int var_count = 0;
+int g_VarCount = 0;
 char remaining_command[PATH_MAX] = {0};
 
 Shell g_Shell;
 
-void init();
-void loop();
+void init(void);
+void loop(void);
 void execute(Command *command);
 void execute_pipeline(Pipeline *pipeline);
 Command *parse(char command[PATH_MAX]);
@@ -73,7 +73,7 @@ void sigint_handler(int sig)
 void set(const char *var, const char *value)
 {
    // Check if variable already exists
-   for (int i = 0; i < var_count; i++)
+   for (int i = 0; i < g_VarCount; i++)
    {
       if (strcmp(vars[i].name, var) == 0)
       {
@@ -86,13 +86,13 @@ void set(const char *var, const char *value)
    }
 
    // Add new variable
-   if (var_count < MAX_VARS)
+   if (g_VarCount < MAX_VARS)
    {
-      vars[var_count].name = malloc(strlen(var) + 1);
-      strcpy(vars[var_count].name, var);
-      vars[var_count].value = malloc(strlen(value) + 1);
-      strcpy(vars[var_count].value, value);
-      var_count++;
+      vars[g_VarCount].name = malloc(strlen(var) + 1);
+      strcpy(vars[g_VarCount].name, var);
+      vars[g_VarCount].value = malloc(strlen(value) + 1);
+      strcpy(vars[g_VarCount].value, value);
+      g_VarCount++;
       printf("Set %s=%s\n", var, value);
    }
    else
@@ -103,7 +103,7 @@ void set(const char *var, const char *value)
 
 const char *get_var(const char *name)
 {
-   for (int i = 0; i < var_count; i++)
+   for (int i = 0; i < g_VarCount; i++)
    {
       if (strcmp(vars[i].name, name) == 0)
       {
@@ -674,7 +674,7 @@ void loop()
 {
    while (true)
    {
-      printf("sh-%s %s %c ", g_Shell.version, g_Shell.cwd, g_Shell.starter);
+      printf("sh-%s %s %c ", g_Shell.g_Version, g_Shell.cwd, g_Shell.starter);
 
       char input[PATH_MAX];
       if (remaining_command[0] != '\0')
@@ -727,7 +727,7 @@ void loop()
 
 void init()
 {
-   g_Shell.version = version;
+   g_Shell.g_Version = g_Version;
    g_Shell.starter = '$';
 
    // Set up signal handler for Ctrl+C

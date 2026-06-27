@@ -9,21 +9,13 @@
 #include <std/string.h>
 #include <sys/sys.h>
 
-/**
- * Generic stack management implementation
- * Platform-specific setup in arch/i686/mem/stack.c
- */
+// Generic stack management; platform-specific setup in arch/i686/mem/stack.c
 
-static Stack *kernel_stack = NULL;
+static Stack *s_KernelStack = NULL;
 
-/**
- * Initialize stack subsystem for the OS
- */
 void Stack_Initialize(void) { Stack_InitializeKernel(); }
 
-/**
- * Initialize kernel stack (delegates to architecture code)
- */
+// Initialize kernel stack (delegates to architecture code)
 void Stack_InitializeKernel(void)
 {
    // Initialize architecture-specific kernel stack
@@ -35,16 +27,14 @@ void Stack_InitializeKernel(void)
                              : 65536;
 
    // Create kernel stack
-   kernel_stack = Stack_Create(stack_size);
-   if (!kernel_stack)
+   s_KernelStack = Stack_Create(stack_size);
+   if (!s_KernelStack)
    {
       logfmt(LOG_ERROR, "[MEM] failed to create kernel stack\n");
    }
 }
 
-/**
- * Create a new user stack
- */
+// Create a new user stack
 Stack *Stack_Create(size_t size)
 {
    if (size == 0) return NULL;
@@ -71,9 +61,7 @@ Stack *Stack_Create(size_t size)
    return stack;
 }
 
-/**
- * Initialize a process's user stack
- */
+// Initialize a process's user stack.
 int Stack_ProcessInitialize(Process *proc, uint32_t stack_top_va, size_t size)
 {
    if (!proc || size == 0) return -1;
@@ -135,9 +123,7 @@ int Stack_ProcessInitialize(Process *proc, uint32_t stack_top_va, size_t size)
    return 0;
 }
 
-/**
- * Destroy a user stack
- */
+// Destroy a user stack.
 void Stack_Destroy(Stack *stack)
 {
    if (!stack) return;
@@ -152,9 +138,7 @@ void Stack_Destroy(Stack *stack)
    free(stack);
 }
 
-/**
- * Push data onto a stack (grows downward on x86)
- */
+// Push data onto a stack (grows downward on x86).
 uint32_t Stack_Push(Stack *stack, const void *data, size_t size)
 {
    if (!stack || !data || size == 0) return 0;
@@ -174,9 +158,7 @@ uint32_t Stack_Push(Stack *stack, const void *data, size_t size)
    return stack->current;
 }
 
-/**
- * Pop data from a stack
- */
+// Pop data from a stack.
 uint32_t Stack_Pop(Stack *stack, void *data, size_t size)
 {
    if (!stack || !data || size == 0) return 0;
@@ -196,9 +178,7 @@ uint32_t Stack_Pop(Stack *stack, void *data, size_t size)
    return stack->current;
 }
 
-/**
- * Set stack pointer with bounds checking
- */
+// Set stack pointer with bounds checking.
 int Stack_SetSP(Stack *stack, uint32_t sp)
 {
    if (!stack) return 0;
@@ -216,9 +196,7 @@ int Stack_SetSP(Stack *stack, uint32_t sp)
    return 0;
 }
 
-/**
- * Check if stack has enough free space
- */
+// Check if stack has enough free space.
 int Stack_HasSpace(Stack *stack, size_t required)
 {
    if (!stack || required == 0) return 0;
@@ -235,14 +213,10 @@ int Stack_HasSpace(Stack *stack, size_t required)
    return free_space >= required;
 }
 
-/**
- * Get kernel stack
- */
-Stack *Stack_GetKernel(void) { return kernel_stack; }
+// Get kernel stack.
+Stack *Stack_GetKernel(void) { return s_KernelStack; }
 
-/**
- * Platform wrappers -> architecture-specific implementations
- */
+// Platform wrappers -> architecture-specific implementations.
 
 void Stack_SetupProcess(Stack *stack, uint32_t entry_point)
 {
@@ -258,9 +232,7 @@ void Stack_SetRegisters(uint32_t esp, uint32_t ebp)
    g_HalStackOperations->SetRegisters(esp, ebp);
 }
 
-/**
- * Stack self-test (returns 1 on success, 0 on failure)
- */
+// Stack self-test (returns 1 on success, 0 on failure).
 int Stack_SelfTest(void)
 {
    // Create/destroy

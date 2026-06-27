@@ -95,14 +95,14 @@ static const uint8_t s_AnsiToVgaBg[] = {0x00, 0x40, 0x20, 0x60,
 
 /* ── Text-mode descriptor table ─────────────────────────────────────────── */
 
-/** One CRTC (index, value) write; sentinel has index == 0xFF. */
+// One CRTC (index, value) write; sentinel has index == 0xFF.
 typedef struct
 {
    uint8_t reg;
    uint8_t val;
 } VGA_RegVal;
 
-/** Complete CRTC programming for a supported text mode. */
+// Complete CRTC programming for a supported text mode.
 typedef struct
 {
    int cols;

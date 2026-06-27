@@ -1,5 +1,6 @@
-#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
+
+#include <constants.h>
 
 #ifndef MEMORY_H
 #define MEMORY_H
@@ -140,9 +141,7 @@ void VMM_SelfTest(void);
 
 /* Stack Management - Kernel level */
 
-/**
- * Stack information for a process or kernel context
- */
+// Stack information for a process or kernel context.
 typedef struct
 {
    uint32_t base;    // Base address (top of stack, high address on x86)
@@ -151,45 +150,25 @@ typedef struct
    uint8_t *data;    // Allocated stack memory
 } Stack;
 
-/**
- * Initialize stack subsystem for the OS
- * Sets up kernel stack infrastructure.
- * Called during kernel initialization (before creating processes).
- */
+// Initialize stack subsystem for the OS. Sets up kernel stack infrastructure.
 void Stack_Initialize(void);
 
-/**
- * Initialize kernel stack
- * Sets up the kernel stack at a fixed location in kernel memory.
- * Called during kernel initialization.
- */
+// Initialize kernel stack at a fixed location in kernel memory.
 void Stack_InitializeKernel(void);
 
-/**
- * Get kernel stack
- * @return Pointer to kernel stack structure
- */
+// Get kernel stack.
 Stack *Stack_GetKernel(void);
 
-/**
- * Platform-specific: Get current ESP register
- */
+// Platform-specific: Get current ESP register.
 uint32_t Stack_GetESP(void);
 
-/**
- * Platform-specific: Get current EBP register
- */
+// Platform-specific: Get current EBP register.
 uint32_t Stack_GetEBP(void);
 
-/**
- * Platform-specific: Set ESP and EBP registers
- */
+// Platform-specific: Set ESP and EBP registers.
 void Stack_SetRegisters(uint32_t esp, uint32_t ebp);
 
-/**
- * Stack subsystem self-test
- * @return 1 on success, 0 on failure
- */
+// Stack subsystem self-test. Returns 1 on success, 0 on failure.
 int Stack_SelfTest(void);
 
 /* Architecture page size (4 KiB) */

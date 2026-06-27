@@ -17,7 +17,7 @@ typedef enum
    LOG_FATAL = 3
 } LogType;
 
-void clrscr();
+void clrscr(void);
 void putc(char c);
 void puts(const char *str);
 void printf(const char *fmt, ...);

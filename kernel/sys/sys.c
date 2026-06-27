@@ -11,7 +11,7 @@
 static SYS_Info s_SysInfoStorage;
 SYS_Info *g_SysInfo = &s_SysInfoStorage;
 
-void SYS_Initialize()
+void SYS_Initialize(void)
 {
    /* Initialize SYS_Info structure */
    strncpy(g_SysInfo->kernel_version, KERNEL_VERSION,
@@ -45,11 +45,8 @@ void SYS_Initialize()
    g_SysInfo->arch.cpu_brand[63] = '\0';
 }
 
-/**
- * Finalize system initialization
- * Call this after all subsystems have been initialized
- */
-void SYS_Finalize()
+// Finalize system initialization — call after all subsystems are initialized.
+void SYS_Finalize(void)
 {
    g_SysInfo->initialized = 1;
 

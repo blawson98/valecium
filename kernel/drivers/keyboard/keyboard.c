@@ -6,14 +6,14 @@
 #include <stdint.h>
 
 /* modifier state */
-static int shift = 0;
-static int caps = 0;
-static int extended = 0; /* set when 0xE0 prefix received */
+static int s_Shift = 0;
+static int s_Caps = 0;
+static int s_Extended = 0; /* set when 0xE0 prefix received */
 
 /* Minimal set-1 scancode -> ASCII map for printable keys.
    Extend as needed (this is not full; handles letters, digits, space, enter,
    backspace). */
-static const char scancode_map[128] = {
+static const char s_ScancodeMap[128] = {
     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
     '\b', /* 0x00 - 0x0F */
     '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -26,10 +26,8 @@ static const char scancode_map[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-/**
- * Generic scancode handler (platform-independent)
- * Processes PS/2 scancodes and forwards characters into the active TTY.
- */
+// Generic scancode handler (platform-independent).
+// Processes PS/2 scancodes and forwards characters into the active TTY.
 void Keyboard_HandleScancode(uint8_t scancode)
 {
    /* handle key releases and modifier keys */
@@ -37,7 +35,7 @@ void Keyboard_HandleScancode(uint8_t scancode)
    /* handle 0xE0 extended prefix */
    if (scancode == 0xE0)
    {
-      extended = 1;
+      s_Extended = 1;
       return;
    }
 
@@ -46,11 +44,11 @@ void Keyboard_HandleScancode(uint8_t scancode)
    {
       /* key release: clear shift if shift released */
       uint8_t key = scancode & 0x7F;
-      if (key == 0x2A || key == 0x36) shift = 0; /* left/right shift */
+      if (key == 0x2A || key == 0x36) s_Shift = 0; /* left/right shift */
       /* if this was an extended key release, clear extended state */
-      if (extended)
+      if (s_Extended)
       {
-         extended = 0;
+         s_Extended = 0;
          return;
       }
       return;
@@ -59,19 +57,19 @@ void Keyboard_HandleScancode(uint8_t scancode)
    /* check for shift press */
    if (scancode == 0x2A || scancode == 0x36)
    {
-      shift = 1;
+      s_Shift = 1;
       return;
    }
 
    /* caps lock toggle (make only) */
    if (scancode == 0x3A)
    {
-      caps = !caps;
+      s_Caps = !s_Caps;
       return;
    }
 
    /* Emit ANSI CSI escapes for cursor keys (ESC [ A/B/C/D). */
-   if (extended)
+   if (s_Extended)
    {
       TTY_Device *dev = TTY_GetDevice();
       if (dev)
@@ -95,21 +93,21 @@ void Keyboard_HandleScancode(uint8_t scancode)
          }
       }
 
-      extended = 0;
+      s_Extended = 0;
       return;
    }
 
    /* map scancode to character, apply shift/caps */
-   if (scancode < sizeof(scancode_map))
+   if (scancode < sizeof(s_ScancodeMap))
    {
-      char base = scancode_map[scancode];
+      char base = s_ScancodeMap[scancode];
       if (!base) return;
 
       char out = base;
-      /* simple alphabetic handling for caps/shift */
+      /* simple alphabetic handling for s_Caps/s_Shift */
       if (out >= 'a' && out <= 'z')
       {
-         if ((caps && !shift) || (shift && !caps))
+         if ((s_Caps && !s_Shift) || (s_Shift && !s_Caps))
          {
             out = out - 'a' + 'A';
          }
@@ -117,7 +115,7 @@ void Keyboard_HandleScancode(uint8_t scancode)
       else
       {
          /* rudimentary shifted symbols for digits/punctuation */
-         if (shift)
+         if (s_Shift)
          {
             switch (out)
             {
@@ -196,15 +194,13 @@ void Keyboard_HandleScancode(uint8_t scancode)
    }
 }
 
-/**
- * Initialize keyboard state.
- */
+// Initialize keyboard state.
 void Keyboard_Initialize(void)
 {
    /* Reset modifier state */
-   shift = 0;
-   caps = 0;
-   extended = 0;
+   s_Shift = 0;
+   s_Caps = 0;
+   s_Extended = 0;
 
    logfmt(LOG_INFO, "[KEYBOARD] Initialized\n");
 }

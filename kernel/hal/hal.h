@@ -20,6 +20,6 @@
 #error "Unsupported architecture for HAL"
 #endif
 
-void HAL_Initialize();
+void HAL_Initialize(void);
 
 #endif

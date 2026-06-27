@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "vfs.h"
 
 #include <fs/devfs/devfs.h>
@@ -8,8 +11,6 @@
 #include <mem/mm_kernel.h>
 #include <std/stdio.h>
 #include <std/string.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <sys/sys.h>
 
 /* Get VFS operations for a filesystem type */
@@ -39,13 +40,13 @@ typedef struct
    Partition *partition;
 } VFS_MountEntry;
 
-static VFS_MountEntry g_mounts[VFS_MAX_MOUNTS];
-static uint8_t g_mount_count = 0;
+static VFS_MountEntry s_Mounts[VFS_MAX_MOUNTS];
+static uint8_t s_MountCount = 0;
 
 void VFS_Init(void)
 {
-   g_mount_count = 0;
-   memset(g_mounts, 0, sizeof(g_mounts));
+   s_MountCount = 0;
+   memset(s_Mounts, 0, sizeof(s_Mounts));
 }
 
 static int vfs_normalize_mount(const char *location, char *normalized,
@@ -76,14 +77,14 @@ static int vfs_normalize_mount(const char *location, char *normalized,
 static const VFS_MountEntry *vfs_match_mount(const char *path,
                                              size_t *prefix_len_out)
 {
-   if (!path || g_mount_count == 0) return NULL;
+   if (!path || s_MountCount == 0) return NULL;
 
    const VFS_MountEntry *best = NULL;
    size_t best_len = 0;
 
-   for (uint8_t i = 0; i < g_mount_count; i++)
+   for (uint8_t i = 0; i < s_MountCount; i++)
    {
-      const char *mount = g_mounts[i].mount_point;
+      const char *mount = s_Mounts[i].mount_point;
       size_t mount_len = strlen(mount);
 
       if (strncmp(path, mount, mount_len) != 0) continue;
@@ -95,7 +96,7 @@ static const VFS_MountEntry *vfs_match_mount(const char *path,
 
       if (mount_len > best_len)
       {
-         best = &g_mounts[i];
+         best = &s_Mounts[i];
          best_len = mount_len;
       }
    }
@@ -166,7 +167,7 @@ int FS_Mount(Partition *volume, const char *location)
       return -1;
    }
 
-   if (g_mount_count >= VFS_MAX_MOUNTS)
+   if (s_MountCount >= VFS_MAX_MOUNTS)
    {
       logfmt(LOG_ERROR, "Mount table full\n");
       return -1;
@@ -187,9 +188,9 @@ int FS_Mount(Partition *volume, const char *location)
    }
 
    /* Avoid duplicate mounts on the same path */
-   for (uint8_t i = 0; i < g_mount_count; i++)
+   for (uint8_t i = 0; i < s_MountCount; i++)
    {
-      if (strncmp(g_mounts[i].mount_point, normalized, VFS_MAX_PATH) == 0)
+      if (strncmp(s_Mounts[i].mount_point, normalized, VFS_MAX_PATH) == 0)
       {
          logfmt(LOG_ERROR, "[VFS] Mount point '%s' already in use\n",
                 normalized);
@@ -216,12 +217,12 @@ int FS_Mount(Partition *volume, const char *location)
           (void *)volume, (void *)volume->fs,
           (void *)(volume->fs ? volume->fs->ops : NULL), normalized);
 
-   strncpy(g_mounts[g_mount_count].mount_point, normalized,
-           sizeof(g_mounts[g_mount_count].mount_point) - 1);
-   g_mounts[g_mount_count]
-       .mount_point[sizeof(g_mounts[g_mount_count].mount_point) - 1] = '\0';
-   g_mounts[g_mount_count].partition = volume;
-   g_mount_count++;
+   strncpy(s_Mounts[s_MountCount].mount_point, normalized,
+           sizeof(s_Mounts[s_MountCount].mount_point) - 1);
+   s_Mounts[s_MountCount]
+       .mount_point[sizeof(s_Mounts[s_MountCount].mount_point) - 1] = '\0';
+   s_Mounts[s_MountCount].partition = volume;
+   s_MountCount++;
 
    volume->fs->mounted = 1;
    const char *fs_name = volume->disk ? volume->disk->brand : "devfs";
@@ -233,13 +234,13 @@ int FS_Umount(Partition *volume)
 {
    if (!volume || !volume->fs) return -1;
 
-   for (uint8_t i = 0; i < g_mount_count; i++)
+   for (uint8_t i = 0; i < s_MountCount; i++)
    {
-      if (g_mounts[i].partition == volume)
+      if (s_Mounts[i].partition == volume)
       {
          /* Compact the table by moving the last entry down */
-         g_mounts[i] = g_mounts[g_mount_count - 1];
-         g_mount_count--;
+         s_Mounts[i] = s_Mounts[s_MountCount - 1];
+         s_MountCount--;
          volume->fs->mounted = 0;
          return 0;
       }
@@ -357,7 +358,8 @@ int VFS_Delete(const char *path)
    return result;
 }
 
-int VFS_Access(const char *path, uint32_t uid, uint32_t gid, uint8_t accessMask)
+int VFS_Access(const char *path, uint32_t uid, uint32_t gid,
+               uint8_t access_mask)
 {
    Partition *part = NULL;
    char *relative = kmalloc(VFS_MAX_PATH);
@@ -382,7 +384,7 @@ int VFS_Access(const char *path, uint32_t uid, uint32_t gid, uint8_t accessMask)
       return SUCCESS;
    }
 
-   int result = part->fs->ops->access(part, relative, uid, gid, accessMask);
+   int result = part->fs->ops->access(part, relative, uid, gid, access_mask);
    free(relative);
    return result;
 }
@@ -435,27 +437,27 @@ int VFS_Chown(const char *path, uint32_t uid, uint32_t gid)
    return result;
 }
 
-uint32_t VFS_Read(VFS_File *file, uint32_t byteCount, void *dataOut)
+uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *dataOut)
 {
-   if (!file || !dataOut || byteCount == 0) return 0;
+   if (!file || !dataOut || byte_count == 0) return 0;
    if (!file->partition || !file->partition->fs || !file->partition->fs->ops ||
        !file->partition->fs->ops->read)
       return 0;
 
    uint32_t result = file->partition->fs->ops->read(
-       file->partition, file->fs_file, byteCount, dataOut);
+       file->partition, file->fs_file, byte_count, dataOut);
    return result;
 }
 
-uint32_t VFS_Write(VFS_File *file, uint32_t byteCount, const void *dataIn)
+uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *dataIn)
 {
-   if (!file || !dataIn || byteCount == 0) return 0;
+   if (!file || !dataIn || byte_count == 0) return 0;
    if (!file->partition || !file->partition->fs || !file->partition->fs->ops ||
        !file->partition->fs->ops->write)
       return 0;
 
    return file->partition->fs->ops->write(file->partition, file->fs_file,
-                                          byteCount, dataIn);
+                                          byte_count, dataIn);
 }
 
 int VFS_Seek(VFS_File *file, uint32_t position)

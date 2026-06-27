@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-/**
- * Dynamic math library for kernel
- * Exports: integer ops, floating-point trig, exponential, power, rounding
- */
+// Dynamic math library. Exports: integer ops, FP trig, exponential, power,
+// rounding.
 
 #include <float.h>
 

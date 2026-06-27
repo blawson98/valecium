@@ -50,9 +50,9 @@ typedef struct
    uint64_t size;  // Total size in bytes
 } DISK;
 
-int DISK_Initialize();
-int DISK_Scan();
-int DISK_GetDevfsIndex(); // Get volume index for devfs (-1 if not found)
+int DISK_Initialize(void);
+int DISK_Scan(void);
+int DISK_GetDevfsIndex(void); // Get volume index for devfs (-1 if not found)
 int DISK_ReadSectors(DISK *disk, uint32_t lba, uint8_t sectors,
                      void *lowerDataOut);
 int DISK_WriteSectors(DISK *disk, uint32_t lba, uint8_t sectors,

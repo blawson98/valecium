@@ -13,8 +13,8 @@
 #include <sys/sys.h>
 #include <sys/system.h>
 
-static DEVFS_DeviceOps disk_ops = {.read = DISK_DevfsRead,
-                                   .write = DISK_DevfsWrite};
+static DEVFS_DeviceOps s_DiskOps = {.read = DISK_DevfsRead,
+                                    .write = DISK_DevfsWrite};
 
 #define FDC_BASE 0x3F0
 #define FDC_DOR (FDC_BASE + 2)
@@ -51,7 +51,7 @@ static DEVFS_DeviceOps disk_ops = {.read = DISK_DevfsRead,
 #define FDC_DMA_BUFFER 0x1000
 
 // Global IRQ synchronization flag
-static volatile bool g_fdc_irq_received = false;
+static volatile bool s_FdcIrqReceived = false;
 
 // Read a CMOS register (index in 0x00-0x7F)
 static uint8_t cmos_read(uint8_t idx)
@@ -143,7 +143,7 @@ static void fdc_motor_off(uint8_t drive)
 static void fdc_irq_handler(Registers *regs)
 {
    (void)regs;
-   g_fdc_irq_received = true;
+   s_FdcIrqReceived = true;
 }
 
 // Wait for FDC IRQ with timeout
@@ -152,13 +152,13 @@ static int fdc_wait_irq(void)
    uint8_t interrupts_were_enabled = g_HalIoOperations->EnableInterrupts();
 
    unsigned timeout = 0x100000;
-   while (!g_fdc_irq_received && timeout > 0)
+   while (!s_FdcIrqReceived && timeout > 0)
    {
       timeout--;
       g_HalIoOperations->iowait();
    }
 
-   if (!g_fdc_irq_received)
+   if (!s_FdcIrqReceived)
    {
       if (!interrupts_were_enabled)
       {
@@ -167,7 +167,7 @@ static int fdc_wait_irq(void)
       return -EIO;
    }
 
-   g_fdc_irq_received = false;
+   s_FdcIrqReceived = false;
 
    if (!interrupts_were_enabled)
    {
@@ -220,7 +220,7 @@ static uint8_t fdc_read_byte(void)
 // Recalibrate a specific drive and verify cylinder 0 reached
 static int fdc_recalibrate(uint8_t drive)
 {
-   g_fdc_irq_received = false;
+   s_FdcIrqReceived = false;
 
    fdc_send_byte(FDC_CMD_RECALIBRATE);
    fdc_send_byte(drive & 0x03);
@@ -272,7 +272,7 @@ void FDC_Reset(void)
 
 static int fdc_seek(uint8_t drive, uint8_t head, uint8_t track)
 {
-   g_fdc_irq_received = false;
+   s_FdcIrqReceived = false;
 
    fdc_send_byte(FDC_CMD_SEEK);
    fdc_send_byte((head << 2) | (drive & 0x03)); // head | drive
@@ -346,7 +346,7 @@ int FDC_ReadLba(DISK *disk, uint32_t lba, uint8_t *buffer, size_t count)
          /* Set up DMA for a single-sector read */
          fdc_dma_init(true);
 
-         g_fdc_irq_received = false;
+         s_FdcIrqReceived = false;
 
          /* Issue READ DATA command */
          fdc_send_byte(FDC_CMD_READ_DATA);
@@ -443,7 +443,7 @@ int FDC_WriteLba(DISK *disk, uint32_t lba, const uint8_t *buffer, size_t count)
 
          fdc_dma_init(false);
 
-         g_fdc_irq_received = false;
+         s_FdcIrqReceived = false;
 
          fdc_send_byte(FDC_CMD_WRITE_DATA);
          fdc_send_byte((head << 2) | (drive & 0x03));
@@ -495,13 +495,11 @@ int FDC_WriteLba(DISK *disk, uint32_t lba, const uint8_t *buffer, size_t count)
    return 0;
 }
 
-/**
- * Scan for floppy disks by recalibrating each possible drive (0-3)
- */
-int FDC_Scan(DISK *disks, int maxDisks)
+// Scan for floppy disks by recalibrating each possible drive (0-3).
+int FDC_Scan(DISK *disks, int max_disks)
 {
    int count = 0;
-   if (maxDisks <= 0) return 0;
+   if (max_disks <= 0) return 0;
 
    uint8_t equip = cmos_read(0x10);
    uint8_t drive_types[2] = {(uint8_t)((equip >> 4) & 0x0F),
@@ -518,7 +516,7 @@ int FDC_Scan(DISK *disks, int maxDisks)
    g_HalIoOperations->outb(FDC_DOR,
                            fdc_make_dor(0, false)); // Ensure all motors are off
 
-   for (uint8_t drive = 0; drive < 2 && count < maxDisks; drive++)
+   for (uint8_t drive = 0; drive < 2 && count < max_disks; drive++)
    {
       if (drive_types[drive] == 0)
       {
@@ -594,7 +592,7 @@ int FDC_Scan(DISK *disks, int maxDisks)
       /* Major 2 for floppy disks, minor = drive number */
       uint32_t disk_size = (uint32_t)(disk->size & 0xFFFFFFFF);
       DEVFS_RegisterDevice(devname, DEVFS_TYPE_BLOCK, 2, drive, disk_size,
-                           &disk_ops, disk);
+                           &s_DiskOps, disk);
 
       count++;
    }

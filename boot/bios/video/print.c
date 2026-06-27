@@ -23,8 +23,8 @@ static void put_signed(long long val, unsigned radix, const char *digits,
 #define PRINTF_LENGTH_LONG 1
 #define PRINTF_LENGTH_LONG_LONG 2
 
-static const char g_HexLower[] = "0123456789abcdef";
-static const char g_HexUpper[] = "0123456789ABCDEF";
+static const char s_HexLower[] = "0123456789abcdef";
+static const char s_HexUpper[] = "0123456789ABCDEF";
 
 static void put_reverse(const char *buf, int len)
 {
@@ -69,7 +69,7 @@ static void put_signed(long long val, unsigned radix, const char *digits,
 
 void putc(char c)
 {
-   switch (preferredOutput)
+   switch (g_PreferredOutput)
    {
    case OUTPUT_VBE:
       VBE_PutChar(c, -1, -1, VGATEXT_DEFAULT_COLOR);
@@ -96,45 +96,45 @@ void puts(const char *str)
       putc(*str);
 }
 
-void puti(int val) { put_signed(val, 10, g_HexLower, 0, false); }
-void putd(int val) { put_signed(val, 10, g_HexLower, 0, false); }
-void putl(long val) { put_signed(val, 10, g_HexLower, 0, false); }
-void putll(long long val) { put_signed(val, 10, g_HexLower, 0, false); }
+void puti(int val) { put_signed(val, 10, s_HexLower, 0, false); }
+void putd(int val) { put_signed(val, 10, s_HexLower, 0, false); }
+void putl(long val) { put_signed(val, 10, s_HexLower, 0, false); }
+void putll(long long val) { put_signed(val, 10, s_HexLower, 0, false); }
 
-void putu(unsigned val) { put_unsigned(val, 10, g_HexLower, 0, false); }
-void putul(unsigned long val) { put_unsigned(val, 10, g_HexLower, 0, false); }
+void putu(unsigned val) { put_unsigned(val, 10, s_HexLower, 0, false); }
+void putul(unsigned long val) { put_unsigned(val, 10, s_HexLower, 0, false); }
 void putull(unsigned long long val)
 {
-   put_unsigned(val, 10, g_HexLower, 0, false);
+   put_unsigned(val, 10, s_HexLower, 0, false);
 }
 
 void putx(unsigned long long val)
 {
-   put_unsigned(val, 16, g_HexLower, 0, false);
+   put_unsigned(val, 16, s_HexLower, 0, false);
 }
 void putX(unsigned long long val)
 {
-   put_unsigned(val, 16, g_HexUpper, 0, false);
+   put_unsigned(val, 16, s_HexUpper, 0, false);
 }
 
 void puto(unsigned long long val)
 {
-   put_unsigned(val, 8, g_HexLower, 0, false);
+   put_unsigned(val, 8, s_HexLower, 0, false);
 }
 
 void putb(unsigned long long val)
 {
-   put_unsigned(val, 2, g_HexLower, 0, false);
+   put_unsigned(val, 2, s_HexLower, 0, false);
 }
 
 void putp(const void *ptr)
 {
    puts("0x");
    if (sizeof(ptr) == 8)
-      put_unsigned((unsigned long long)(uintptr_t)ptr, 16, g_HexLower, 16,
+      put_unsigned((unsigned long long)(uintptr_t)ptr, 16, s_HexLower, 16,
                    true);
    else
-      put_unsigned((unsigned long long)(uintptr_t)ptr, 16, g_HexLower, 8, true);
+      put_unsigned((unsigned long long)(uintptr_t)ptr, 16, s_HexLower, 8, true);
 }
 
 void printf(const char *fmt, ...)
@@ -222,14 +222,14 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_signed(va_arg(args, long), 10, g_HexLower, width, zero_pad);
+               put_signed(va_arg(args, long), 10, s_HexLower, width, zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_signed(va_arg(args, long long), 10, g_HexLower, width,
+               put_signed(va_arg(args, long long), 10, s_HexLower, width,
                           zero_pad);
                break;
             default:
-               put_signed(va_arg(args, int), 10, g_HexLower, width, zero_pad);
+               put_signed(va_arg(args, int), 10, s_HexLower, width, zero_pad);
                break;
             }
             break;
@@ -238,15 +238,15 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_unsigned(va_arg(args, unsigned long), 10, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned long), 10, s_HexLower, width,
                             zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_unsigned(va_arg(args, unsigned long long), 10, g_HexLower,
+               put_unsigned(va_arg(args, unsigned long long), 10, s_HexLower,
                             width, zero_pad);
                break;
             default:
-               put_unsigned(va_arg(args, unsigned int), 10, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned int), 10, s_HexLower, width,
                             zero_pad);
                break;
             }
@@ -256,15 +256,15 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_unsigned(va_arg(args, unsigned long), 16, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned long), 16, s_HexLower, width,
                             zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_unsigned(va_arg(args, unsigned long long), 16, g_HexLower,
+               put_unsigned(va_arg(args, unsigned long long), 16, s_HexLower,
                             width, zero_pad);
                break;
             default:
-               put_unsigned(va_arg(args, unsigned int), 16, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned int), 16, s_HexLower, width,
                             zero_pad);
                break;
             }
@@ -274,15 +274,15 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_unsigned(va_arg(args, unsigned long), 16, g_HexUpper, width,
+               put_unsigned(va_arg(args, unsigned long), 16, s_HexUpper, width,
                             zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_unsigned(va_arg(args, unsigned long long), 16, g_HexUpper,
+               put_unsigned(va_arg(args, unsigned long long), 16, s_HexUpper,
                             width, zero_pad);
                break;
             default:
-               put_unsigned(va_arg(args, unsigned int), 16, g_HexUpper, width,
+               put_unsigned(va_arg(args, unsigned int), 16, s_HexUpper, width,
                             zero_pad);
                break;
             }
@@ -292,15 +292,15 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_unsigned(va_arg(args, unsigned long), 8, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned long), 8, s_HexLower, width,
                             zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_unsigned(va_arg(args, unsigned long long), 8, g_HexLower,
+               put_unsigned(va_arg(args, unsigned long long), 8, s_HexLower,
                             width, zero_pad);
                break;
             default:
-               put_unsigned(va_arg(args, unsigned int), 8, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned int), 8, s_HexLower, width,
                             zero_pad);
                break;
             }
@@ -314,15 +314,15 @@ void vprintf(const char *fmt, va_list args)
             switch (length)
             {
             case PRINTF_LENGTH_LONG:
-               put_unsigned(va_arg(args, unsigned long), 2, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned long), 2, s_HexLower, width,
                             zero_pad);
                break;
             case PRINTF_LENGTH_LONG_LONG:
-               put_unsigned(va_arg(args, unsigned long long), 2, g_HexLower,
+               put_unsigned(va_arg(args, unsigned long long), 2, s_HexLower,
                             width, zero_pad);
                break;
             default:
-               put_unsigned(va_arg(args, unsigned int), 2, g_HexLower, width,
+               put_unsigned(va_arg(args, unsigned int), 2, s_HexLower, width,
                             zero_pad);
                break;
             }

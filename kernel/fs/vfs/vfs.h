@@ -37,9 +37,9 @@ typedef struct VFS_Operations
    VFS_File *(*open)(Partition *partition, const char *path);
    VFS_File *(*create)(Partition *partition, const char *path, uint16_t mode);
    int (*readdir)(Partition *partition, void *fs_file, VFS_DirEntry *entryOut);
-   uint32_t (*read)(Partition *partition, void *fs_file, uint32_t byteCount,
+   uint32_t (*read)(Partition *partition, void *fs_file, uint32_t byte_count,
                     void *dataOut);
-   uint32_t (*write)(Partition *partition, void *fs_file, uint32_t byteCount,
+   uint32_t (*write)(Partition *partition, void *fs_file, uint32_t byte_count,
                      const void *dataIn);
    int (*seek)(Partition *partition, void *fs_file, uint32_t position);
    void (*close)(void *fs_file);
@@ -77,8 +77,8 @@ VFS_File *VFS_Open(const char *path);
 VFS_File *VFS_OpenDir(const char *path);
 VFS_File *VFS_Create(const char *path, uint16_t mode);
 int VFS_ReadDir(VFS_File *directory, VFS_DirEntry *entryOut);
-uint32_t VFS_Read(VFS_File *file, uint32_t byteCount, void *dataOut);
-uint32_t VFS_Write(VFS_File *file, uint32_t byteCount, const void *dataIn);
+uint32_t VFS_Read(VFS_File *file, uint32_t byte_count, void *dataOut);
+uint32_t VFS_Write(VFS_File *file, uint32_t byte_count, const void *dataIn);
 int VFS_Seek(VFS_File *file, uint32_t position);
 void VFS_Close(VFS_File *file);
 int VFS_Delete(const char *path);

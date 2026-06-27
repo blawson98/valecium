@@ -16,7 +16,7 @@ extern uint8_t __end;
 /* Runtime-controlled memory debug flag. Set non-zero to make the handler
  * call `i686_Panic()` when a memory safety fault is detected. Default is 0.
  */
-int memory_debug = 0;
+int g_MemoryDebug = 0;
 
 /* Called from assembly on memory faults (overflow/null/unsafe).
  * Parameters (cdecl): void *addr, size_t len, int code
@@ -27,7 +27,7 @@ void mem_fault_handler(void *addr, size_t len, int code)
    (void)addr;
    (void)len;
    (void)code;
-   if (memory_debug)
+   if (g_MemoryDebug)
    {
       i686_Panic();
    }
@@ -111,20 +111,9 @@ int strncmp(const char *s1, const char *s2, size_t n)
    return (0);
 }
 
-/**
- * PollTotalMemory
- *
- * Derives total physical memory from the bootloader-agnostic BOOT_Info
- * stored in g_SysInfo->boot.
- *
- * Priority:
- *  1. Walk the BOOT_MemMapEntry table (memMapAddr / memMapLength) and find
- *     the highest physical address covered by a type-1 (available RAM) region.
- *  2. Fall back to totalMemoryUpper * 1024 (simple mem_upper KB field).
- *  3. Hard-coded 256 MB default if neither source is usable.
- *
- * Returns total addressable RAM in bytes (clamped to 32-bit space).
- */
+// Derive total physical memory from g_SysInfo->boot. Walks the
+// BOOT_MemMapEntry table (type-1 regions), falls back to totalMemoryUpper,
+// then to a 256 MB default. Returns total RAM in bytes (32-bit clamped).
 static uint32_t PollTotalMemory(void)
 {
    const uint32_t defaultMem = 256 * 1024 * 1024; /* 256 MB fallback */
