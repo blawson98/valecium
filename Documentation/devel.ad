@@ -1,128 +1,100 @@
 = Valecium OS Development Guide
 :toc: left
 :icons: font
+:sectlinks:
 
 See also: link:index.html[Home], link:building.html[Build Guide], link:roadmap.html[Roadmap]
 
-== Contributing to Valecium
+== Contributing
 
-First, thank you all for being interested into joining the development of Valecium OS, we are very happy to recieve patches from all of you. Below are the basic guidelines for contributing to Valecium, you should always read this before you open a Pull Request for submit an issue.
+Thank you for your interest in contributing to Valecium OS. Please read this guide fully before opening a pull request or submitting a patch.
 
-== Setting Up a Development Environment
+== Setting Up and Building
 
-This part is explained in link:building.html[Building Valecium OS], see there for a detailed explanation of how to build Valecium.
+Building is covered in detail in link:building.html[Building Valecium OS]. The build system uses SCons. Key files are:
 
-== Build System
-
-This part is also explained in link:building.html[Building Valecium OS]; see that document for details of the build system.
-
-The kernel uses SCons for building. Key files:
-
-* `SConstruct` - Top-level build configuration (version 0.28)
-* `kernel/SConscript` - Kernel build configuration
-* `scripts/scons/arch.py` - Architecture detection and configuration (i686, x86_64, aarch64)
-* `scripts/base/toolchain.py` - Cross-compiler toolchain builder (binutils 2.45 + musl 1.2.6 + GCC 15.2.0)
+* `SConstruct` — Top-level build configuration (version 0.28)
+* `kernel/SConscript` — Kernel build configuration
+* `scripts/scons/arch.py` — Architecture detection (i686, x86_64, aarch64)
+* `scripts/base/toolchain.py` — Cross-compiler builder (binutils 2.45 + musl 1.2.6 + GCC 15.2.0)
 
 Common build commands:
 
 [source,bash]
 ----
-scons                        # Build everything (debug mode)
-scons BuildConfig=release    # Build release version
-scons BuildArch=i686 BuildConfig=debug  # Specific architecture
-scons BuildType=kernel       # Build only kernel
-scons BuildType=bootloader   # Build only custom bootloader
+scons                                        # Build everything (debug)
+scons BuildConfig=release                    # Release build
+scons BuildArch=i686 BuildConfig=debug       # Specific architecture
+scons BuildType=kernel                       # Kernel only
+scons BuildType=bootloader                   # Bootloader only
 ----
 
 == Testing and Debugging
 
-=== Using GDB
-
-Launch GDB debugger:
+=== GDB
 
 [source,bash]
 ----
 scons debug
 ----
 
-=== Self-tests
+This launches QEMU with `-s -S` (waits for GDB on TCP port 1234) and opens GDB with kernel symbols pre-loaded.
 
-Various subsystems include self-tests called during initialization:
+=== Self-Tests
+
+Several subsystems run self-tests on initialisation:
 
 [source,c]
 ----
-void Crypto_SelfTest(void);    // MD5 and SHA1 algorithm verification
+void Crypto_SelfTest(void);    // MD5 and SHA1 verification
 void VFS_SelfTest(void);       // Virtual filesystem operations
 void Process_SelfTest(void);   // Process creation and scheduling
 void Heap_SelfTest(void);      // Kernel heap allocator
 ----
 
-=== QEMU Debugging
+== Git Workflow
 
-The `scons debug` target launches QEMU with `-s -S` flags (wait for GDB on TCP port 1234) and opens GDB with kernel symbols pre-loaded from the build directory.
+This project uses Git. Requirements for contributions:
 
-== Git Workflow and Version Control
+*Commits:* The message must describe the change meaningfully. Placeholders like `update` are not acceptable.
 
-This project use Git for version controls and file managment, below are the few requirements for submiting PRs or patches.
+*Pull requests:* Always branch off a feature branch, never your fork's `master`. Keep one PR per logical change. Describe what changed and why.
 
-Commit:
+*Patches:* Send via email, generated from committed changes with `git send-email` (not a raw diff). Include a brief explanation in the email body.
 
-* The commit message must describe the update
-* Cannot be just random letters and words like `update`
+== Coding Style
 
-Pull Request:
+=== Licensing Headers
 
-* Always use a feature branch of your fork instead of the master branch
-* Describe what has changed in the PR
-* Keep 1 PR dedicated to 1 thing, if you changed multiple, add multiple PRs
-
-Patches:
-
-* Patches can be sent to me via e-mail
-* It has to be a patch generated from committed changes, not a diff
-* Explain the patch briefly in the body of the email if necessary
-* Use `git send-email` when you can
-
-== Coding Style Conventions
-
-This document outlines the coding style and conventions used throughout the Valecium OS kernel.
-
-=== Licensing and Headers
-
-All source files must begin with a SPDX license identifier comment:
-
-* Kernel files: `// SPDX-License-Identifier: GPL-3.0-only`
-* Build scripts: `# SPDX-License-Identifier: BSD-3-Clause`
-* Assembly files: `# SPDX-License-Identifier: GPL-3.0-only`
-* Documentation: `// SPDX-License-Identifier: CC-BY-SA-4.0`
+Every source file must begin with an SPDX identifier:
 
 [source,c]
 ----
-// SPDX-License-Identifier: GPL-3.0-only
-
-#include <...>
+// SPDX-License-Identifier: GPL-3.0-only   // kernel C/assembly files
+# SPDX-License-Identifier: BSD-3-Clause    // build scripts
+// SPDX-License-Identifier: CC-BY-SA-4.0   // documentation
 ----
 
-=== Indentation and Whitespace
+=== Indentation and Formatting
 
-* Use 3 spaces for indentation (no tabs)
-* Maximum line length: ~100 characters (though not strictly enforced)
-* Use spaces around operators: `a + b`, `x = y`
-* Include spaces after keywords: `if (x)`, `for (;;)`
+* 3 spaces per indent level. No tabs.
+* Maximum line length: 80 characters (enforced by the formatter).
+* Spaces around binary operators: `a + b`, `x = y`.
+* Space after control-flow keywords: `if (x)`, `for (;;)`, `while (c)`.
 
 === Naming Conventions
 
 ==== Functions
-Functions use PascalCase (CapitalizedWords) for public functions:
+
+Global (non-static) functions use `PascalCase` with a subsystem prefix:
 
 [source,c]
 ----
 void CPU_Initialize(void);
-intptr_t sys_open(const char *path, int flags);
 void Keyboard_HandleScancode(uint8_t scancode);
 ----
 
-Static/private functions use snake_case:
+Static (file-local) functions use `snake_case`:
 
 [source,c]
 ----
@@ -130,103 +102,372 @@ static void keyboard_buffer_push(char c);
 static inline void mark_dirty(TTY_Device *tty, int row);
 ----
 
-==== Macros and Constants
-All macros and compile-time constants use UPPER_SNAKE_CASE:
+==== Variables
+
+Variable naming depends on scope — this distinction is mandatory:
+
+[cols="1,2,2"]
+|===
+|Scope |Convention |Example
+
+|Global (extern or file-scope non-static)
+|`g_PascalCase`
+|`g_KeyboardBuffer`, `g_HalVideoOperations`
+
+|File-scope static
+|`s_PascalCase`
+|`s_BootDrive`, `s_RootDirLBA`
+
+|Local (function-scope)
+|`snake_case`
+|`page_dir`, `fault_address`
+
+|Struct members — values and nested structs
+|`snake_case`
+|`limit_low`, `base_addr`, `ref_count`
+
+|Struct members — function pointers
+|`Subsystem_Name` or `Name` (if parent struct is subsystem)
+|`Stack_GetEBP`, `PutChar`
+|===
+
+Function pointer members follow the global function convention because they behave as callable operations. A struct mixing both kinds looks like:
 
 [source,c]
 ----
-#define PAGE_SIZE 4096
-#define KEYBOARD_BUFFER_SIZE 256
-#define VMM_MAX_REGIONS 16
-#define PAGE_ALIGN_UP(v) (((v) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
+typedef struct
+{
+   // value and nested-struct members: snake_case
+   uint32_t base_addr;
+   uint32_t size;
+   FS_File  root_file;
+
+   // function pointer members: Subsystem_Name
+   int (*FS_Open)(const char *path, int flags);
+   void (*FS_Close)(int fd);
+} FS_Operations;
 ----
 
-==== Variables and Structs
-* Global variables prefixed with `g_`: `g_KeyboardBuffer`, `g_HalVideoOperations`
-* Struct members use snake_case: `page_dir`, `fault_address`
-* Typedef structs keep the struct name: `typedef struct { } MyStruct`
+==== Macros and Constants
+
+All macros and compile-time constants use `UPPER_SNAKE_CASE` with at most three underscore-separated words excluding suffixes:
+
+[source,c]
+----
+#define PAGE_SIZE       4096
+#define MAX_OPEN_FILES  8
+#define SECTOR_SIZE_ISO 2048
+
+#define PAGE_ALIGN_UP(v)   (((v) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
+#define PAGE_ALIGN_DOWN(v) ((v) & ~(PAGE_SIZE - 1))
+----
+
+==== Types and Structs
+
+Struct typedefs use `PascalCase` prefixed by the subsystem:
+
+[source,c]
+----
+typedef struct { ... } FS_File;
+typedef struct { ... } MBR_PartitionEntry;
+typedef struct { ... } GDTEntry;
+----
+
+Enums follow the same pattern, with members prefixed by the enum name:
+
+[source,c]
+----
+typedef enum
+{
+   GDT_ACCESS_CODE_READABLE = 0x02,
+   GDT_ACCESS_RING0         = 0x00,
+   GDT_ACCESS_PRESENT       = 0x80,
+} GDT_ACCESS;
+----
 
 === Comments
 
-==== C Comment Style
-Single-line comments use `//` syntax:
+*Keep comments short and purposeful.* A comment should explain why something is done, not restate what the code already says. Avoid large decorative comment blocks.
+
+Single-line C comments use `//`:
 
 [source,c]
 ----
 // Initialize the keyboard subsystem
 void Keyboard_Initialize(void);
-
-// Get number of characters in buffer
-static uint32_t keyboard_buffer_count(void)
 ----
 
-Multi-line documentation uses `/** ... */` style:
+Multi-line documentation should be short and simple, keep it at 1 line after the function prototype.
 
 [source,c]
 ----
-/**
- * Generic scancode handler (platform-independent)
- * Processes PS/2 scancodes and manages line buffering
- */
-void Keyboard_HandleScancode(uint8_t scancode);
+void Keyboard_HandleScancode(uint8_t scancode); // Generic keyboard handler
 ----
 
-Complex block comments explaining logic:
+Inline clarifications use `/* */` sparingly:
 
 [source,c]
 ----
-/* Check for overflow and cap at 32-bit max */
-if (desired_end < heap_start || desired_end > 0xFFFFFFFFu)
-{
+/* Cap at 32-bit max to prevent wrap-around */
+if (desired_end > 0xFFFFFFFFu)
    heap_end = 0xFFFFFFFFu;
+----
+
+Assembly (`.S` files) uses `#`:
+
+[source,asm]
+----
+pushl %ebp        # save old call frame
+movl %esp, %ebp   # initialize new call frame
+----
+
+Avoid:
+
+* Multi-line banners or box-drawing comments
+* Redundant comments that repeat the function name or variable type
+* Comments that become stale and contradict the code
+
+=== Brace Style
+
+Opening braces go on the *next* line (Allman style):
+
+[source,c]
+----
+void CPU_Initialize(void)
+{
+   Process_SelfTest();
+}
+
+if (x < y)
+{
+   do_something();
+}
+else
+{
+   do_other();
 }
 ----
 
-==== Assembly Comment Style
-Assembly uses hash/pound comments:
+=== Source File Layout
 
-[source,asm]
-----
-# make new call frame
-pushl %ebp             # save old call frame
-movl %esp, %ebp        # initialize new call frame
+Files must follow this top-down order:
 
-# load gdt
-movl 8(%ebp), %eax
-lgdt (%eax)
-----
-
-=== Assembly and HAL Strategy
-
-**Critical: No x86-specific assembly in platform-independent code.**
-
-Valecium OS is designed for multi-architecture support. All architecture-specific operations must go through the HAL (Hardware Abstraction Layer).
-
-==== HAL-Provided Assembly Operations
-
-Instead of calling assembly directly, use HAL operations:
+1. License identifier and `#include` directives
+2. Forward declarations (struct tags and `static` function prototypes)
+3. Macros (`#define` constants, at most 3 underscore-separated words per name)
+4. Struct and typedef definitions
+5. Global and static variable definitions
+6. External declarations
+7. Private (static) helper functions
+8. Public API functions
 
 [source,c]
 ----
-// Platform-independent: use HAL
-g_HalStackOperations->GetEBP();
-g_HalPagingOperations->FlushTlb();
-g_HalIoOperations->Panic();
+// 1. License & includes
+// SPDX-License-Identifier: GPL-3.0-only
+#include <stdbool.h>
+#include <stdint.h>
+#include <cpu/cpu.h>
+
+// 2. Forward declarations
+struct FS_File;
+static int resolve_path(const char *path, uint32_t *out_lba);
+
+// 3. Macros
+#define MAX_OPEN_FILES 8
+
+// 4. Structs
+typedef struct { int used; uint64_t start_lba; uint32_t size; uint32_t pos; } FS_File;
+
+// 5. Variables
+static uint32_t s_BootDrive = 0;
+
+// 6. External declarations
+extern int DISK_ReadLBA(uint8_t drive, uint64_t lba, uint16_t count, void *buf);
+
+// 7. Private functions
+static int resolve_path(const char *path, uint32_t *out_lba) { /* ... */ }
+
+// 8. Public functions
+int FS_Open(const char *path) { /* ... */ }
 ----
 
-==== Assembly File Organization
+==== Include Order
 
-Assembly implementations must be:
-* Placed in separate `.S` files (GNU assembler with C preprocessor)
-* Located in architecture-specific directories (`kernel/arch/<arch>/cpu/`, `kernel/arch/<arch>/mem/`, etc.)
-* Exported as C-callable functions via `.global` labels
-* Wrapped by HAL function pointers in `kernel/hal/`
+System headers first, then project headers, separated by a blank line. Within each group, headers are sorted alphabetically (enforced by the formatter):
 
-Example assembly file structure:
+[source,c]
+----
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <cpu/cpu.h>
+#include <mem/mm_kernel.h>
+#include <std/stdio.h>
+----
+
+=== Inline Functions
+
+Use `static inline` for simple, frequently-called operations:
+
+[source,c]
+----
+static inline void invalidate_tlb_entry(uint32_t vaddr)
+{
+   __asm__ volatile("invlpg (%0)" ::"r"(vaddr) : "memory");
+}
+
+static inline FAT_Instance *fat_inst(const Partition *disk)
+{
+   return (FAT_Instance *)disk->fs_instance;
+}
+----
+
+=== Pointer Style
+
+Pointer declarators attach to the variable name:
+
+[source,c]
+----
+void *ptr;
+char *str;
+int  *array;
+----
+
+Always check pointers before dereferencing:
+
+[source,c]
+----
+if (!page_dir)
+{
+   logfmt(LOG_ERROR, "[MEM] no kernel page directory!\n");
+   return;
+}
+----
+
+=== Error Handling
+
+Follow Unix conventions: return `0` on success, `-ERRNO` on failure (list of errnos can be found at `/include/constants.h`). Use `NULL` for pointer-returning functions that fail:
+
+[source,c]
+----
+int Mem_Brk(void *addr);      // 0 on success, -EINVAL on failure
+void *Mem_Sbrk(intptr_t inc); // previous break, or NULL on failure
+
+int SYS_Open(const char *path, int flags)
+{
+   if (!path) return -EINVAL;
+   // ...
+}
+
+void *DL_Open(const char *path)
+{
+   if (!path) return NULL;
+   // ...
+}
+----
+
+Log errors and events with `logfmt()` in kernel:
+
+[source,c]
+----
+logfmt(LOG_INFO,  "[MEM] start=0x%08x end=0x%08x size=%u MB\n",
+       (uint32_t)heap_start, (uint32_t)heap_end, size_mb);
+
+logfmt(LOG_ERROR, "[VFS] Mount point '%s' must start with '/'", location);
+----
+
+=== Header Guards
+
+Prefer `#pragma once`:
+
+[source,c]
+----
+#pragma once
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+----
+
+Traditional guards are acceptable for compatibility:
+
+[source,c]
+----
+#ifndef SCHEDULER_H
+#define SCHEDULER_H
+// ...
+#endif
+----
+
+=== Low-Level Structs and Macros
+
+Use `__attribute__((packed))` for hardware-mapped structures:
+
+[source,c]
+----
+typedef struct
+{
+   uint16_t limit_low;
+   uint16_t base_low;
+   uint8_t  base_mid;
+   uint8_t  access;
+   uint8_t  flags_limit_hi;
+   uint8_t  base_high;
+} __attribute__((packed)) GDT_Entry;
+----
+
+Parametric macros for structure construction:
+
+[source,c]
+----
+#define GDT_ENTRY(base, limit, access, flags) \
+   {                                           \
+      GDT_LIMIT_LOW(limit),                   \
+      GDT_BASE_LOW(base),                     \
+      GDT_BASE_MID(base),                     \
+      access,                                  \
+      GDT_FLAGS_LIMIT_HI(limit, flags),       \
+      GDT_BASE_HIGH(base)                     \
+   }
+----
+
+== Hardware Abstraction Layer (HAL)
+
+Valecium targets multiple architectures. *Never put x86-specific assembly in platform-independent code.* All architecture-specific operations go through the HAL.
+
+=== Using HAL Operations
+
+[source,c]
+----
+// Correct: platform-independent
+uintptr_t ebp = g_HalStackOperations->Stack_GetEBP();
+g_HalPagingOperations->Paging_FlushTlb();
+g_HalIoOperations->IO_Panic();
+
+// Wrong: never call arch functions directly from kernel code
+// i686_Stack_GetEBP();
+----
+
+=== Architecture Directory Layout
+
+Architecture implementations live under `kernel/arch/<arch>/`:
+
+* `boot/` — Entry point, multiboot parsing
+* `cpu/` — GDT, IDT, ISR, IRQ, TSS, PIT, PIC, scheduler, usermode
+* `drivers/` — PS/2, serial
+* `io/` — Port I/O and interrupt control
+* `mem/` — Paging, TLB, stack, memory layout
+* `signal/` — Signal frame, sigreturn
+* `syscall/` — `int 0x80` handler
+* `video/` — VGA text mode
+
+=== Assembly File Rules
+
+Assembly implementations must be placed in `.S` files (GNU assembler with C preprocessor) inside the appropriate `kernel/arch/<arch>/` subdirectory, exported via `.global`:
 
 [source,asm]
 ----
-# in kernel/arch/i686/cpu/gdt_asm.S
+# kernel/arch/i686/cpu/gdt_asm.S
 # SPDX-License-Identifier: GPL-3.0-only
 
 .code32
@@ -242,9 +483,9 @@ i686_GDT_Load:
    ret
 ----
 
-==== HAL Mapping Pattern
+=== HAL Mapping Pattern
 
-Architecture functions are mapped to HAL in headers:
+Architecture functions are mapped in headers with `#if defined(ARCH)`:
 
 [source,c]
 ----
@@ -253,414 +494,114 @@ Architecture functions are mapped to HAL in headers:
 #include <arch/i686/cpu/stack.h>
 #define HAL_ARCH_Stack_GetEBP i686_Stack_GetEBP
 #define HAL_ARCH_Stack_GetESP i686_Stack_GetESP
-#endif
-----
-
-Then initialized in hal.c:
-
-[source,c]
-----
-// kernel/hal/hal.c
-const HAL_StackOperations *g_HalStackOperations = &(HAL_StackOperations){
-   .GetEBP = HAL_ARCH_Stack_GetEBP,
-   .GetESP = HAL_ARCH_Stack_GetESP,
-};
-----
-
-Kernel code never references architecture names:
-
-[source,c]
-----
-// kernel code is architecture-agnostic
-uintptr_t ebp = g_HalStackOperations->GetEBP();
-----
-
-=== Struct and Type Definitions
-
-Use standard C struct definitions with `__attribute__((packed))` for low-level structures:
-
-[source,c]
-----
-typedef struct
-{
-   uint16_t LimitLow;
-   uint16_t BaseLow;
-   uint8_t BaseMiddle;
-   uint8_t access;
-   uint8_t FlagLimitHigh;
-   uint8_t BaseHigh;
-} __attribute__((packed)) GDTEntry;
-----
-
-Enums for related constants:
-
-[source,c]
-----
-typedef enum
-{
-   GDT_ACCESS_CODE_READABLE = 0x02,
-   GDT_ACCESS_DATA_WRITEABLE = 0x02,
-   GDT_ACCESS_RING0 = 0x00,
-   GDT_ACCESS_RING1 = 0x20,
-   GDT_ACCESS_PRESENT = 0x80,
-} GDT_ACCESS;
-----
-
-=== Macro Patterns
-
-Parametric macros for structure construction:
-
-[source,c]
-----
-#define GDT_ENTRY(base, limit, access, flags)                                  \
-   {                                                                           \
-      GDT_LIMIT_LOW(limit), GDT_BASE_LOW(base), GDT_BASE_MIDDLE(base), access, \
-          GDT_FLAGS_LIMIT_HI(limit, flags), GDT_BASE_HIGH(base)                \
-   }
-
-#define PAGE_ALIGN_UP(v) (((v) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
-#define PAGE_ALIGN_DOWN(v) ((v) & ~(PAGE_SIZE - 1))
-----
-
-Simple utility macros:
-
-[source,c]
-----
-#define SIZE(array) (sizeof(array) / sizeof(array[0]))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-----
-
-=== Function Organization
-
-==== Include Order
-System headers first, then project headers:
-
-[source,c]
-----
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
-#include <cpu/cpu.h>
-#include <mem/mm_kernel.h>
-#include <std/stdio.h>
-----
-
-==== Static Functions
-Use `static` for module-local functions (not exposed via headers):
-
-[source,c]
-----
-// Private helper (static)
-static const VFS_Operations *get_fs_operations(FilesystemType type)
-{
-   // ...
-}
-
-// Public function (declared in header)
-void VFS_Init(void)
-{
-   // ...
-}
-----
-
-==== Inline Functions
-Appropriate for simple operations and performance-critical code:
-
-[source,c]
-----
-static inline void invalidate_tlb_entry(uint32_t vaddr)
-{
-   __asm__ __volatile__("invlpg (%0)" ::"r"(vaddr) : "memory");
-}
-
-static inline FAT_Instance *fat_inst(const Partition *disk)
-{
-   return (FAT_Instance *)disk->fs_instance;
-}
-----
-
-==== File Layout
-Source files should follow this top-down order:
-
-1.  License and includes (`#include`)
-2.  Forward declarations — struct tags and `static` function prototypes
-3.  Macros — all `#define` constants (keep names to at most 3 underscore-separated words)
-4.  Structures — full struct definitions (PascalCase with subsystem prefix, e.g. `FS_File`)
-5.  Global / static variables — including `extern` declarations for external functions
-6.  Private functions — `static` helpers, called by the public API
-7.  Public functions — the API entry points
-
-[source,c]
-----
-// 1. License & includes
-// SPDX-License-Identifier: GPL-3.0-only
-#include <stdint.h>
-
-// 2. Forward declarations
-struct FS_File;
-static int resolve_path(const char *path, uint32_t *out_lba);
-
-// 3. Macros (≤3 words)
-#define MAX_OPEN_FILES 8
-
-// 4. Structures
-struct FS_File { int used; uint64_t start_lba; uint32_t size; uint32_t position; };
-
-// 5. Global / static variables
-static uint32_t s_BootDrive = 0;
-extern int DISK_ReadLBA(uint8_t drive, uint64_t lba, uint16_t count, void *buf);
-
-// 6. Private functions
-static int resolve_path(const char *path, uint32_t *out_lba) { /* ... */ }
-
-// 7. Public functions
-int FS_Open(const char *path) { /* ... */ }
-----
-
-===== Naming Conventions
-
-* Struct types: PascalCase prefixed by the subsystem, e.g. `FS_File`, `FS_Operations`, `MBR_PartitionEntry`.
-* Functions: PascalCase with subsystem prefix, e.g. `FS_Initialize`, `DISK_ReadLBA`.
-* Macros: UPPER_SNAKE_CASE, at most 3 words, e.g. `SECTOR_SIZE_ISO`, `MAX_OPEN_FILES`.
-* Static globals: `s_CamelCase`, e.g. `s_BootDrive`, `s_RootDirLBA`.
-
-=== Architecture-Specific Code
-
-Architecture-specific implementations reside in `kernel/arch/<arch>/` directories.
-
-Currently only `kernel/arch/i686/` has implementations. The architecture directory structure includes:
-
-* `boot/` — Entry point, multiboot parsing
-* `cpu/` — GDT, IDT, ISR, IRQ, TSS, PIT, PIC, scheduler, usermode
-* `drivers/` — PS/2 controller, serial port
-* `io/` — Port I/O (inb/outb) and interrupt control
-* `mem/` — Paging, TLB, stack, memory layout
-* `signal/` — Signal frame setup, sigreturn
-* `syscall/` — Syscall IRQ handler (int 0x80)
-* `video/` — VGA text mode driver
-
-General pattern for architecture abstraction (HAL):
-
-[source,c]
-----
-// In kernel/hal/hal.h - maps arch functions to HAL interface
-#if defined(I686)
-#include <arch/i686/video/vga.h>
-#define HAL_ARCH_Video_PutChar i686_VGA_PutChar
-#define HAL_ARCH_Video_Clear i686_VGA_Clear
-#endif
-
-// In kernel/hal/hal.c - populate operations struct
-const HAL_VideoOperations *g_HalVideoOperations = &(HAL_VideoOperations){
-    .PutChar = HAL_ARCH_Video_PutChar,
-    .Clear = HAL_ARCH_Video_Clear,
-};
-
-// Usage throughout kernel (arch-agnostic)
-g_HalVideoOperations->PutChar('X', color, x, y);
-----
-
-=== Error Handling
-
-Return codes for errors (following Unix convention):
-
-[source,c]
-----
-int brk(void *addr)        /* returns 0 on success, -1 on failure */
-void *sbrk(intptr_t inc)   /* returns previous break or (void*)-1 on failure */
-
-intptr_t sys_open(const char *path, int flags)
-{
-   if (!path) return -1;
-   // ... implementation
-}
-----
-
-Use `logfmt()` for logging errors and important events:
-
-[source,c]
-----
-logfmt(LOG_INFO, "[MEM] start=0x%08x end=0x%08x size=%u MB\n",
-       (uint32_t)heap_start, (uint32_t)heap_end,
-       (uint32_t)((heap_end - heap_start) / (1024 * 1024)));
-
-logfmt(LOG_ERROR, "[VFS] Mount point '%s' must start with '/'", location);
-----
-
-=== Brace Style
-
-Opening braces on the same line (K&R style):
-
-[source,c]
-----
-void CPU_Initialize()
-{
-   Process_SelfTest();
-}
-
-if (x < y)
-{
-   do_something();
-}
-else
-{
-   do_other();
-}
-----
-
-=== Pointers and NULL Checks
-
-Pointer declarations:
-
-[source,c]
-----
-void *ptr;      // pointer to void
-char *str;      // pointer to char
-int *array;     // pointer to int
-----
-
-Always check for NULL before dereference:
-
-[source,c]
-----
-if (!page_dir)
-{
-   logfmt(LOG_ERROR, "[MEM] no kernel page directory!\n");
-   return;
-}
-
-if (!path) return -1;
-----
-
-=== Preprocessor Patterns
-
-Header guards with `#pragma once` (modern approach):
-
-[source,c]
-----
-// kernel/std/minmax.h
-#pragma once
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-----
-
-Or traditional guards for compatibility:
-
-[source,c]
-----
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
-// ...
-#endif
-----
-
-Conditional compilation for architecture-specific code:
-
-[source,c]
-----
-#if defined(I686)
-#include <arch/i686/video/vga.h>
-#define HAL_ARCH_Video_PutChar i686_VGA_PutChar
 #else
-#error "Unsupported architecture for HAL Video"
+#error "Unsupported architecture for HAL Stack"
 #endif
 ----
 
-=== Performance Considerations
+Then wired up in `hal.c`:
 
-* Use `static inline` for frequently-called small functions
-* Always use HAL operations instead of calling assembly directly
-* Minimize lock contention in critical sections
-* Use explicit register keywords sparingly and only when necessary
-* Profile early and focus optimizations on measured bottlenecks
+[source,c]
+----
+const HAL_StackOperations *g_HalStackOperations = &(HAL_StackOperations){
+   .Stack_GetEBP = HAL_ARCH_Stack_GetEBP,
+   .Stack_GetESP = HAL_ARCH_Stack_GetESP,
+};
+----
 
-=== Crypto Subsystem
+Kernel code only ever touches `g_Hal*` — never arch-specific names.
 
-The kernel includes a cryptographic subsystem at `kernel/crypto/` with:
+== Subsystems
 
-* **MD5** — Init/Update/Final/Calculate/ToHex/SelfTest (16-byte digest)
-* **SHA1** — Init/Update/Final/Calculate/ToHex/SelfTest (20-byte digest)
+=== Crypto (`kernel/crypto/`)
 
-Self-tests run during kernel initialization to verify algorithm correctness.
+MD5 and SHA1 implementations, each with `Init`, `Update`, `Final`, `Calculate`, `ToHex`, and `SelfTest` functions. Self-tests run during kernel initialisation to verify correctness.
 
-=== Kernel Module System
+=== Kernel Module System (`kernel/sys/kmod/`)
 
-The kernel supports dynamic loading of kernel modules (kmod) via `kernel/sys/kmod/`:
+Supports dynamic loading of kernel modules (kmod):
 
-* Loading modules from disk or memory image
-* Symbol resolution via global symbol table
-* Dependency tracking between modules
+* Loading from disk or memory image
+* Symbol resolution via a global symbol table
+* Dependency tracking
 * PLT/GOT relocation patching
 * Up to 16 modules, 256 symbols per module, 1024 global symbols
 
-=== Virtual Memory Layout
+=== Virtual Memory Layout (i686)
 
-The i686 virtual memory layout is defined in `kernel/arch/i686/mem/vm_layout.h`:
+Defined in `kernel/arch/i686/mem/vm_layout.h`:
 
-* KERNEL_BASE = 0xC0000000 (3 GB)
-* USER_SPACE_END = 0xC0000000
-* USER_CODE_START = 0x08048000 (standard x86 ELF entry)
-* USER_HEAP_START = 0x10000000 (256 MB)
-* USER_STACK_START = 0xBFFF0000 (just below 3 GB)
-* USER_STACK_SIZE = 0x10000 (64 KB)
+[cols="2,1"]
+|===
+|Region |Address
+
+|`KERNEL_BASE`         |`0xC0000000` (3 GB)
+|`USER_SPACE_END`      |`0xC0000000`
+|`USER_CODE_START`     |`0x08048000`
+|`USER_HEAP_START`     |`0x10000000` (256 MB)
+|`USER_STACK_START`    |`0xBFFF0000`
+|`USER_STACK_SIZE`     |`0x10000` (64 KB)
+|===
 
 == Documentation Standards
 
-=== Versioning and Changelog
+All documentation uses AsciiDoc (`.ad`). Files must include:
 
-All documentation files must include a *Revision History* section at the end tracking changes.
+[source,asciidoc]
+----
+= Document Title
+:toc: left
+:icons: font
+:sectlinks:
+----
 
-Version numbering follows semantic versioning:
+Ensure compatibility with pandoc conversion to PDF, HTML, and man pages.
 
-* *Major* — Significant content reorganization or major feature additions
-* *Minor* — Clarifications, corrections, new sections, or examples
-* *Patch* — Typo fixes, formatting improvements (can batch into next minor)
+=== Revision History
 
-Each changelog entry should be concise but descriptive. Example:
+Every documentation file must include a *Revision History* section at the end. Use semantic versioning: major for significant reorganisation, minor for clarifications or new sections, patch for typo fixes (batch into next minor).
 
 [source,asciidoc]
 ----
 == Revision History
 
 === v1.0
-
-Initial documentation of feature/subsystem
+Initial documentation.
 
 === v1.1
-
-Clarified specific aspects, added examples
+Clarified X, added examples for Y.
 ----
-
-=== Documentation Format
-
-All documentation files use AsciiDoc (`.ad`) format:
-
-* Start with a title: `= Document Title`
-* Use `:toc: left` for left-side table of contents
-* Use `:icons: font` for icon support
-* Include `:sectlinks:` for linkable sections
-* Ensure compatibility with pandoc conversion to PDF, HTML, and man pages
 
 == Revision History
 
+=== v3.2
+
+Added struct member naming exception: function pointer members use `Subsystem_Name` (same as global functions); plain value and nested-struct members keep `snake_case`. Added illustrative mixed-member struct example. Updated HAL examples accordingly.
+
+=== v3.1
+
+Fixed all code examples to comply with stated conventions: struct members corrected to `snake_case` (GDTEntry fields, HAL function pointer members); global functions corrected to `PascalCase` subsystem prefix (`Mem_Brk`, `Mem_Sbrk`, `Sys_Open`, `Dl_Open`); assembly comment style corrected to `#`; column limit updated to 80; include examples sorted alphabetically per `SortIncludes: true`; HAL macro names updated to match corrected member names.
+
+=== v3.0
+
+Complete reorganisation: unified structure, expanded and clarified coding style (scope-based variable naming, comment rules, file layout order, naming convention table), removed redundancy, converted tables to AsciiDoc format.
+
 === v2.0
 
-Updated for v0.28: added crypto subsystem section, kernel module system section, virtual memory layout section, expanded architecture-specific code section with directory structure, updated debugging docs with self-test details
+Updated for v0.28: added crypto subsystem, kernel module system, virtual memory layout, expanded architecture section, updated debugging with self-test details.
 
 === v1.3
 
-Added Git version control part
+Added Git version control section.
 
 === v1.2
 
-Added structures for other components of this file including welcome message and Git version controls
+Added structures for other components including welcome message and Git version controls.
 
 === v1.1
 
-Clarified HAL assembly strategy for multi-architecture support, 3-space indentation
+Clarified HAL assembly strategy for multi-architecture support, documented 3-space indentation.
 
 === v1.0
 
-Documented current kernel coding style and conventions
+Documented initial coding style and conventions.
