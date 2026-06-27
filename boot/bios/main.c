@@ -115,45 +115,42 @@ static void print_bios_drive_list(const uint8_t *driveList, uint32_t driveCount)
 {
    uint32_t i;
 
-   puts("Detected BIOS drives:\n");
+   printf("Detected BIOS drives:\n");
 
    if (!driveList || driveCount == 0)
    {
-      puts("  (none)\n\n");
+      printf("  (none)\n\n");
       return;
    }
 
    for (i = 0; i < driveCount; i++)
    {
-      puts("  0x");
-      putx(driveList[i]);
-      putc('\n');
+      printf("  0x%x\n", driveList[i]);
    }
 
-   putc('\n');
+   printf("\n");
 }
 
 static void print_stage3_fs_location(const BootParams *bootParams)
 {
-   puts("Partition label: \"");
-   puts((const char *)(uintptr_t)bootParams->corefsPartitionLabelAddr);
-   puts("\".\n");
+   printf("Partition label: \"%s\".\n",
+          (const char *)(uintptr_t)bootParams->corefsPartitionLabelAddr);
 
-   puts("Partition UUID: ");
+   printf("Partition UUID: ");
    {
       const uint8_t *uuid =
           (const uint8_t *)bootParams->corefsPartitionUuidAddr;
       for (int i = 0; i < 16; i++)
       {
-         putx(uuid[i]);
+         printf("%x", uuid[i]);
       }
    }
-   puts(".\n\n");
+   printf(".\n\n");
 }
 
 void print_memory_map(uint8_t *ptr)
 {
-   puts("Memory Map:\n");
+   printf("Memory Map:\n");
    for (;;)
    {
       uint32_t type = *(uint32_t *)ptr;
@@ -176,19 +173,10 @@ void print_memory_map(uint8_t *ptr)
             uint64_t len = *(uint64_t *)(entry + 8);
             uint32_t type2 = *(uint32_t *)(entry + 16);
 
-            puts("  base=");
-            putx(base);
-            putc('\n');
-
-            puts("  len =");
-            putx(len);
-            putc('\n');
-
-            puts("  type=");
-            puti((int)type2);
-            putc('\n');
-
-            puts("  --\n");
+            printf("  base=%x\n", base);
+            printf("  len =%x\n", len);
+            printf("  type=%d\n", (int)type2);
+            printf("  --\n");
 
             entry += entry_size;
          }
@@ -198,20 +186,20 @@ void print_memory_map(uint8_t *ptr)
       ptr += size;
       ptr = (uint8_t *)(((uintptr_t)ptr + 7) & ~(uintptr_t)7);
    }
-   putc('\n');
+   printf("\n");
 }
 
 /* Print which output systems are reported as available. */
 void print_available_outputs(uint8_t availableOutputs)
 {
-   puts("Available outputs:\n");
+   printf("Available outputs:\n");
 
-   if (availableOutputs & (1 << OUTPUT_VBE)) puts("  VBE\n");
-   if (availableOutputs & (1 << OUTPUT_VGA)) puts("  VGA graphics\n");
-   if (availableOutputs & (1 << OUTPUT_VGATEXT)) puts("  VGA text\n");
-   if (availableOutputs & (1 << OUTPUT_SERIAL)) puts("  Serial (COM1)\n");
+   if (availableOutputs & (1 << OUTPUT_VBE)) printf("  VBE\n");
+   if (availableOutputs & (1 << OUTPUT_VGA)) printf("  VGA graphics\n");
+   if (availableOutputs & (1 << OUTPUT_VGATEXT)) printf("  VGA text\n");
+   if (availableOutputs & (1 << OUTPUT_SERIAL)) printf("  Serial (COM1)\n");
 
-   putc('\n');
+   printf("\n");
 }
 
 void print_boot_drive_number(int bootDrive)
@@ -224,23 +212,37 @@ void print_boot_drive_number(int bootDrive)
    else
       driveType = "Hard Disk";
 
-   puts("Boot drive information:\n");
+   printf("Boot drive information:\n");
 
-   puts("  Boot Drive Number: ");
-   puts("0x");
-   putx(bootDrive);
-   puts(".\n");
+   printf("  Boot Drive Number: 0x%x.\n", bootDrive);
 
-   puts("  Booted from a ");
-   puts(driveType);
-   puts(".\n\n");
+   printf("  Booted from a %s.\n\n", driveType);
 }
 
 void print_corefs_memory_address(uint32_t address)
 {
-   puts("Corefs Module location: ");
-   putx(address);
-   puts(".\n\n");
+   printf("Corefs Module location: %x.\n\n", address);
+}
+
+void init_fs(FsOperations *fs_ops, const uint8_t *biosDriveList,
+             uint32_t biosDriveListCount, const uint8_t *partitionUuid,
+             const uint8_t *partitionLabel)
+{
+   printf("Entering filesystem setup.\n");
+
+   typedef int (*fs_init_fn)(const uint8_t *, uint32_t, const uint8_t *,
+                             const uint8_t *);
+   fs_init_fn FS_Initialize = (fs_init_fn)fs_ops->FS_Initialize;
+   int rc = FS_Initialize(biosDriveList, biosDriveListCount, partitionUuid,
+                          partitionLabel);
+   if (rc != SUCCESS)
+   {
+      printf("  FS_Initialize failed: %d.\n", rc);
+   }
+   else
+   {
+      printf("  FS initialized successful.\n");
+   }
 }
 
 int main(const BootParams *bootParams)
@@ -248,9 +250,14 @@ int main(const BootParams *bootParams)
    uint8_t *ptr = (uint8_t *)(uintptr_t)bootParams->mbiAddr + 8;
    uint8_t availableOutputs = (uint8_t)bootParams->availableOutputs;
    uint8_t bootDrive = (uint8_t)bootParams->bootDrive;
+   uint32_t biosDriveListCount = bootParams->biosDriveListCount;
+   FsOperations *fs_ops = (FsOperations *)bootParams->corefsAddr;
+   const uint8_t *partitionUuid =
+       (const uint8_t *)(uintptr_t)bootParams->corefsPartitionUuidAddr;
+   const uint8_t *partitionLabel =
+       (const uint8_t *)(uintptr_t)bootParams->corefsPartitionLabelAddr;
    const uint8_t *biosDriveList =
        (const uint8_t *)(uintptr_t)bootParams->biosDriveListAddr;
-   uint32_t biosDriveListCount = bootParams->biosDriveListCount;
 
    /* Determine preferred output - highest available wins.
       Priority (ascending): serial - VGA text - VGA graphics - VBE. */
@@ -292,62 +299,8 @@ int main(const BootParams *bootParams)
    print_corefs_memory_address(bootParams->corefsAddr);
    print_stage3_fs_location(bootParams);
 
-   {
-      puts("Entering filesystem setup.\n");
-      FsOperations *fs_ops = (FsOperations *)bootParams->corefsAddr;
-      const uint8_t *partitionUuid =
-          (const uint8_t *)(uintptr_t)bootParams->corefsPartitionUuidAddr;
-      const uint8_t *partitionLabel =
-          (const uint8_t *)(uintptr_t)bootParams->corefsPartitionLabelAddr;
-
-      typedef int (*fs_init_fn)(const uint8_t *, uint32_t, const uint8_t *,
-                                const uint8_t *);
-      fs_init_fn FS_Initialize = (fs_init_fn)fs_ops->FS_Initialize;
-      int rc = FS_Initialize(biosDriveList, biosDriveListCount, partitionUuid,
-                             partitionLabel);
-      if (rc != SUCCESS)
-      {
-         puts("  FS_Initialize failed: ");
-         puti(rc);
-         puts(".\n");
-      }
-      else
-      {
-         puts("  FS initialized successful.\n");
-
-         typedef int (*fs_open_fn)(const char *);
-         typedef int (*fs_read_fn)(int, void *, int);
-         typedef int (*fs_close_fn)(int);
-
-         fs_open_fn FS_Open = (fs_open_fn)fs_ops->FS_Open;
-         fs_read_fn FS_Read = (fs_read_fn)fs_ops->FS_Read;
-         fs_close_fn FS_Close = (fs_close_fn)fs_ops->FS_Close;
-
-         {
-            int fd = FS_Open("/test/test.txt");
-            if (fd < 0)
-            {
-               puts("  open failed: ");
-               puti(fd);
-               puts("\n");
-            }
-            else
-            {
-               puts("--- /test/test.txt ---\n");
-               for (;;)
-               {
-                  char chunk[64];
-                  int bytes = FS_Read(fd, chunk, sizeof(chunk));
-                  if (bytes <= 0) break;
-                  for (int ci = 0; ci < bytes; ci++)
-                     putc(chunk[ci]);
-               }
-               FS_Close(fd);
-               puts("\n--- EOF ---\n");
-            }
-         }
-      }
-   }
+   init_fs(fs_ops, biosDriveList, biosDriveListCount, partitionUuid,
+           partitionLabel);
 
    for (;;)
       ;

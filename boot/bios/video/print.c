@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -12,6 +13,15 @@ static void put_unsigned(unsigned long long val, unsigned radix,
                          const char *digits, int min_width, bool zero_pad);
 static void put_signed(long long val, unsigned radix, const char *digits,
                        int min_width, bool zero_pad);
+
+#define PRINTF_STATE_NORMAL 0
+#define PRINTF_STATE_LENGTH 1
+#define PRINTF_STATE_LENGTH_LONG 2
+#define PRINTF_STATE_SPEC 3
+
+#define PRINTF_LENGTH_DEFAULT 0
+#define PRINTF_LENGTH_LONG 1
+#define PRINTF_LENGTH_LONG_LONG 2
 
 static const char g_HexLower[] = "0123456789abcdef";
 static const char g_HexUpper[] = "0123456789ABCDEF";
@@ -125,4 +135,210 @@ void putp(const void *ptr)
                    true);
    else
       put_unsigned((unsigned long long)(uintptr_t)ptr, 16, g_HexLower, 8, true);
+}
+
+void printf(const char *fmt, ...)
+{
+   va_list args;
+   va_start(args, fmt);
+   vprintf(fmt, args);
+   va_end(args);
+}
+
+void vprintf(const char *fmt, va_list args)
+{
+   int state = PRINTF_STATE_NORMAL;
+   int length = PRINTF_LENGTH_DEFAULT;
+   int width = 0;
+   bool zero_pad = false;
+
+   while (*fmt)
+   {
+      switch (state)
+      {
+      case PRINTF_STATE_NORMAL:
+         if (*fmt == '%')
+         {
+            state = PRINTF_STATE_LENGTH;
+            width = 0;
+            zero_pad = false;
+         }
+         else
+         {
+            putc(*fmt);
+         }
+         break;
+
+      case PRINTF_STATE_LENGTH:
+         if (*fmt == '0')
+         {
+            zero_pad = true;
+         }
+         else if (*fmt >= '1' && *fmt <= '9')
+         {
+            width = width * 10 + (*fmt - '0');
+         }
+         else if (*fmt == 'l')
+         {
+            length = PRINTF_LENGTH_LONG;
+            state = PRINTF_STATE_LENGTH_LONG;
+         }
+         else
+         {
+            goto handle_spec;
+         }
+         break;
+
+      case PRINTF_STATE_LENGTH_LONG:
+         if (*fmt == 'l')
+         {
+            length = PRINTF_LENGTH_LONG_LONG;
+            state = PRINTF_STATE_SPEC;
+         }
+         else
+         {
+            goto handle_spec;
+         }
+         break;
+
+      case PRINTF_STATE_SPEC:
+      handle_spec:
+         switch (*fmt)
+         {
+         case 'c':
+            putc((char)va_arg(args, int));
+            break;
+
+         case 's':
+            puts(va_arg(args, const char *));
+            break;
+
+         case '%':
+            putc('%');
+            break;
+
+         case 'd':
+         case 'i':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_signed(va_arg(args, long), 10, g_HexLower, width, zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_signed(va_arg(args, long long), 10, g_HexLower, width,
+                          zero_pad);
+               break;
+            default:
+               put_signed(va_arg(args, int), 10, g_HexLower, width, zero_pad);
+               break;
+            }
+            break;
+
+         case 'u':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_unsigned(va_arg(args, unsigned long), 10, g_HexLower, width,
+                            zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_unsigned(va_arg(args, unsigned long long), 10, g_HexLower,
+                            width, zero_pad);
+               break;
+            default:
+               put_unsigned(va_arg(args, unsigned int), 10, g_HexLower, width,
+                            zero_pad);
+               break;
+            }
+            break;
+
+         case 'x':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_unsigned(va_arg(args, unsigned long), 16, g_HexLower, width,
+                            zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_unsigned(va_arg(args, unsigned long long), 16, g_HexLower,
+                            width, zero_pad);
+               break;
+            default:
+               put_unsigned(va_arg(args, unsigned int), 16, g_HexLower, width,
+                            zero_pad);
+               break;
+            }
+            break;
+
+         case 'X':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_unsigned(va_arg(args, unsigned long), 16, g_HexUpper, width,
+                            zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_unsigned(va_arg(args, unsigned long long), 16, g_HexUpper,
+                            width, zero_pad);
+               break;
+            default:
+               put_unsigned(va_arg(args, unsigned int), 16, g_HexUpper, width,
+                            zero_pad);
+               break;
+            }
+            break;
+
+         case 'o':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_unsigned(va_arg(args, unsigned long), 8, g_HexLower, width,
+                            zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_unsigned(va_arg(args, unsigned long long), 8, g_HexLower,
+                            width, zero_pad);
+               break;
+            default:
+               put_unsigned(va_arg(args, unsigned int), 8, g_HexLower, width,
+                            zero_pad);
+               break;
+            }
+            break;
+
+         case 'p':
+            putp(va_arg(args, const void *));
+            break;
+
+         case 'b':
+            switch (length)
+            {
+            case PRINTF_LENGTH_LONG:
+               put_unsigned(va_arg(args, unsigned long), 2, g_HexLower, width,
+                            zero_pad);
+               break;
+            case PRINTF_LENGTH_LONG_LONG:
+               put_unsigned(va_arg(args, unsigned long long), 2, g_HexLower,
+                            width, zero_pad);
+               break;
+            default:
+               put_unsigned(va_arg(args, unsigned int), 2, g_HexLower, width,
+                            zero_pad);
+               break;
+            }
+            break;
+
+         default:
+            break;
+         }
+
+         state = PRINTF_STATE_NORMAL;
+         length = PRINTF_LENGTH_DEFAULT;
+         width = 0;
+         zero_pad = false;
+         break;
+      }
+
+      fmt++;
+   }
 }

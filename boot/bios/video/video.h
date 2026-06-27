@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #pragma once
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -17,10 +18,6 @@
 #define VGATEXT_WIDTH 80
 #define VGATEXT_HEIGHT 25
 
-/* ================================================================== */
-/*  Structures                                                         */
-/* ================================================================== */
-
 /* VBE framebuffer details (populated from boot-time mode selection). */
 typedef struct VBE_Info
 {
@@ -36,10 +33,6 @@ typedef struct VBE_Info
    uint8_t blue_field_position;
    uint8_t blue_mask_size;
 } VBE_Info;
-
-/* ================================================================== */
-/*  Functions                                                          */
-/* ================================================================== */
 
 extern void outb(uint16_t port, uint8_t val); /* Write port byte. */
 extern uint8_t inb(uint16_t port);            /* Read port byte. */
@@ -68,11 +61,14 @@ int VGA_Initialize(void); /* Initialize VGA graphics. */
 int VGA_PutChar(char c, int x, int y, char color); /* Put VGA char. */
 int VGA_PutPixel(int pixel, int x, int y);         /* Put VGA pixel. */
 
-void putc(char c);                   /* Write a single character. */
-void puts(const char *str);          /* Write a null-terminated string. */
-void puti(int val);                  /* Write signed int as decimal. */
-void putd(int val);                  /* Write signed int as decimal. */
-void putl(long val);                 /* Write signed long as decimal. */
+void putc(char c);          /* Write a single character. */
+void puts(const char *str); /* Write a null-terminated string. */
+void printf(const char *fmt,
+            ...); /* Formatted print, supports %[0width][l|ll]csdiu xXopb%. */
+void vprintf(const char *fmt, va_list args); /* Formatted print with va_list. */
+void puti(int val);                          /* Write signed int as decimal. */
+void putd(int val);                          /* Write signed int as decimal. */
+void putl(long val);                         /* Write signed long as decimal. */
 void putll(long long val);           /* Write signed long long as decimal. */
 void putu(unsigned val);             /* Write unsigned int as decimal. */
 void putul(unsigned long val);       /* Write unsigned long as decimal. */
