@@ -227,12 +227,12 @@ def GenerateHeader(Functions: list[tuple[str, str]]) -> str:
         "",
         "#ifdef DL_RESOLVE",
         "",
-        "// Backing storage and public pointer \u2013 populated by dl_resolve_all().",
+        "// Backing storage and public pointer - populated by dl_resolve_all().",
         "static MainBootOperations s_MainBootOperations;",
         "MainBootOperations *g_MainBootOperations = NULL;",
         "",
-        "// Resolver \u2013 call once during init. Returns 0 on success, -1 on failure.",
-        "static inline int dl_resolve_all(void)",
+        "// Resolver - call once during init. Returns 0 on success, -1 on failure.",
+        "static inline int dl_resolve_all(void *handle)",
         "{",
         "    g_MainBootOperations = &s_MainBootOperations;",
     ]
@@ -241,7 +241,7 @@ def GenerateHeader(Functions: list[tuple[str, str]]) -> str:
     for Name, _Sig in Functions:
         FpType = FunctionPointerType(_Sig, Name)
         Lines.append(
-            f'    g_MainBootOperations->{Name} = ({FpType})DL_LoadSymbol(NULL, "{Name}");'
+            f'    g_MainBootOperations->{Name} = ({FpType})DL_LoadSymbol(handle, "{Name}");'
         )
         Lines.append(f"    if (!g_MainBootOperations->{Name}) return -1;")
 
