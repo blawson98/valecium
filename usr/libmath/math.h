@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 /**
  * @file math.h
  * @brief Math library header for ValeciumOS kernel

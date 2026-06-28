@@ -96,13 +96,31 @@ void puts(const char *str)
       putc(*str);
 }
 
-void puti(int val) { put_signed(val, 10, s_HexLower, 0, false); }
-void putd(int val) { put_signed(val, 10, s_HexLower, 0, false); }
-void putl(long val) { put_signed(val, 10, s_HexLower, 0, false); }
-void putll(long long val) { put_signed(val, 10, s_HexLower, 0, false); }
+void puti(int val)
+{
+   put_signed(val, 10, s_HexLower, 0, false);
+}
+void putd(int val)
+{
+   put_signed(val, 10, s_HexLower, 0, false);
+}
+void putl(long val)
+{
+   put_signed(val, 10, s_HexLower, 0, false);
+}
+void putll(long long val)
+{
+   put_signed(val, 10, s_HexLower, 0, false);
+}
 
-void putu(unsigned val) { put_unsigned(val, 10, s_HexLower, 0, false); }
-void putul(unsigned long val) { put_unsigned(val, 10, s_HexLower, 0, false); }
+void putu(unsigned val)
+{
+   put_unsigned(val, 10, s_HexLower, 0, false);
+}
+void putul(unsigned long val)
+{
+   put_unsigned(val, 10, s_HexLower, 0, false);
+}
 void putull(unsigned long long val)
 {
    put_unsigned(val, 10, s_HexLower, 0, false);

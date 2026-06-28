@@ -13,7 +13,10 @@
 
 static Stack *s_KernelStack = NULL;
 
-void Stack_Initialize(void) { Stack_InitializeKernel(); }
+void Stack_Initialize(void)
+{
+   Stack_InitializeKernel();
+}
 
 // Initialize kernel stack (delegates to architecture code)
 void Stack_InitializeKernel(void)
@@ -214,7 +217,10 @@ int Stack_HasSpace(Stack *stack, size_t required)
 }
 
 // Get kernel stack.
-Stack *Stack_GetKernel(void) { return s_KernelStack; }
+Stack *Stack_GetKernel(void)
+{
+   return s_KernelStack;
+}
 
 // Platform wrappers -> architecture-specific implementations.
 
@@ -223,9 +229,15 @@ void Stack_SetupProcess(Stack *stack, uint32_t entry_point)
    g_HalStackOperations->SetupProcess(stack, entry_point);
 }
 
-uint32_t Stack_GetESP(void) { return g_HalStackOperations->GetESP(); }
+uint32_t Stack_GetESP(void)
+{
+   return g_HalStackOperations->GetESP();
+}
 
-uint32_t Stack_GetEBP(void) { return g_HalStackOperations->GetEBP(); }
+uint32_t Stack_GetEBP(void)
+{
+   return g_HalStackOperations->GetEBP();
+}
 
 void Stack_SetRegisters(uint32_t esp, uint32_t ebp)
 {

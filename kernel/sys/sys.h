@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef SYS_H
 #define SYS_H
 #include <fs/fs.h>

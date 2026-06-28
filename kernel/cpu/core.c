@@ -119,14 +119,20 @@ static void cleanup_user_address_space(Process *proc)
    }
 }
 
-uint32_t Process_AllocatePid(void) { return s_NextPid++; }
+uint32_t Process_AllocatePid(void)
+{
+   return s_NextPid++;
+}
 
 void Process_SetKernelPageDirectory(void *page_directory)
 {
    s_KernelPageDirectory = page_directory;
 }
 
-void *Process_GetKernelPageDirectory(void) { return s_KernelPageDirectory; }
+void *Process_GetKernelPageDirectory(void)
+{
+   return s_KernelPageDirectory;
+}
 
 Process *Process_Create(uint32_t entry_point, bool kernel_mode)
 {
@@ -224,7 +230,10 @@ int Process_Wait(Process *parent, int32_t pid, int *status, int options)
    }
 }
 
-Process *Process_GetCurrent(void) { return s_CurrentProcess; }
+Process *Process_GetCurrent(void)
+{
+   return s_CurrentProcess;
+}
 
 void Process_BlockOn(Process *proc, void *wait_channel)
 {

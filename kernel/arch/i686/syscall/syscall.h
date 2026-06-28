@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef I686_syscall_H
 #define I686_syscall_H
 #include <arch/i686/cpu/irq.h>

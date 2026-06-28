@@ -16,11 +16,20 @@
 
 /* ===== Integer Arithmetic ===== */
 
-int add(int a, int b) { return a + b; }
+int add(int a, int b)
+{
+   return a + b;
+}
 
-int subtract(int a, int b) { return a - b; }
+int subtract(int a, int b)
+{
+   return a - b;
+}
 
-int multiply(int a, int b) { return a * b; }
+int multiply(int a, int b)
+{
+   return a * b;
+}
 
 int divide(int a, int b)
 {
@@ -34,13 +43,22 @@ int modulo(int a, int b)
    return a % b;
 }
 
-int abs_int(int x) { return x < 0 ? -x : x; }
+int abs_int(int x)
+{
+   return x < 0 ? -x : x;
+}
 
 /* ===== Floating-Point Absolute Value ===== */
 
-float fabsf(float x) { return x < 0.0f ? -x : x; }
+float fabsf(float x)
+{
+   return x < 0.0f ? -x : x;
+}
 
-double fabs(double x) { return x < 0.0 ? -x : x; }
+double fabs(double x)
+{
+   return x < 0.0 ? -x : x;
+}
 
 /* ===== Trigonometric Functions ===== */
 
@@ -120,9 +138,15 @@ double cos(double x)
 }
 
 /* tan(x) = sin(x) / cos(x) */
-float tanf(float x) { return sinf(x) / cosf(x); }
+float tanf(float x)
+{
+   return sinf(x) / cosf(x);
+}
 
-double tan(double x) { return sin(x) / cos(x); }
+double tan(double x)
+{
+   return sin(x) / cos(x);
+}
 
 /* ===== Exponential & Logarithm ===== */
 
@@ -177,12 +201,21 @@ double log(double x)
    return y;
 }
 
-float logf(float x) { return (float)log((double)x); }
+float logf(float x)
+{
+   return (float)log((double)x);
+}
 
 /* log10(x) = log(x) / log(10) */
-double log10(double x) { return log(x) / log(10.0); }
+double log10(double x)
+{
+   return log(x) / log(10.0);
+}
 
-float log10f(float x) { return (float)log10((double)x); }
+float log10f(float x)
+{
+   return (float)log10((double)x);
+}
 
 /* ===== Power Function ===== */
 
@@ -197,7 +230,10 @@ double pow(double x, double y)
    return exp(y * log(fabs(x)));
 }
 
-float powf(float x, float y) { return (float)pow((double)x, (double)y); }
+float powf(float x, float y)
+{
+   return (float)pow((double)x, (double)y);
+}
 
 /* sqrt(x) using Newton's method: x_{n+1} = (x_n + x/x_n) / 2 */
 float sqrtf(float x)
@@ -266,13 +302,25 @@ double round(double x) { return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5); }
 
 /* ===== Min/Max ===== */
 
-float fminf(float x, float y) { return x < y ? x : y; }
+float fminf(float x, float y)
+{
+   return x < y ? x : y;
+}
 
-double fmin(double x, double y) { return x < y ? x : y; }
+double fmin(double x, double y)
+{
+   return x < y ? x : y;
+}
 
-float fmaxf(float x, float y) { return x > y ? x : y; }
+float fmaxf(float x, float y)
+{
+   return x > y ? x : y;
+}
 
-double fmax(double x, double y) { return x > y ? x : y; }
+double fmax(double x, double y)
+{
+   return x > y ? x : y;
+}
 
 /* ===== Floating-Point Modulo ===== */
 
@@ -294,4 +342,7 @@ double fmod(double x, double y)
  * Library initialization
  * @return Always returns 0
  */
-int libmath_init(void) { return 0; }
+int libmath_init(void)
+{
+   return 0;
+}

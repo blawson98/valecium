@@ -186,8 +186,14 @@ void *kzalloc(size_t size)
    return p;
 }
 
-uintptr_t mem_heap_start(void) { return s_HeapStart; }
-uintptr_t mem_heap_end(void) { return s_HeapEnd; }
+uintptr_t mem_heap_start(void)
+{
+   return s_HeapStart;
+}
+uintptr_t mem_heap_end(void)
+{
+   return s_HeapEnd;
+}
 
 void heap_check_integrity(void)
 {

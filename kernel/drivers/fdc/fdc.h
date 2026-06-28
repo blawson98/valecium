@@ -1,5 +1,7 @@
-#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
+
+#pragma once
+#include <constants.h>
 
 #ifndef FDC_H
 #define FDC_H

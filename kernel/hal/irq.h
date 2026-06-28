@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef HAL_IRQ_H
 #define HAL_IRQ_H
 

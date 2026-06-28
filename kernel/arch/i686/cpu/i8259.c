@@ -122,11 +122,20 @@ void i8259_SendEndOfInterrupt(int irq)
    i686_outb(PIC1_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT);
 }
 
-void i8259_Disable(void) { i8259_SetMask(0xFFFF); }
+void i8259_Disable(void)
+{
+   i8259_SetMask(0xFFFF);
+}
 
-void i8259_Mask(int irq) { i8259_SetMask(s_PicMask | (1 << irq)); }
+void i8259_Mask(int irq)
+{
+   i8259_SetMask(s_PicMask | (1 << irq));
+}
 
-void i8259_Unmask(int irq) { i8259_SetMask(s_PicMask & ~(1 << irq)); }
+void i8259_Unmask(int irq)
+{
+   i8259_SetMask(s_PicMask & ~(1 << irq));
+}
 
 uint16_t i8259_ReadIrqRequestRegister(void)
 {
@@ -161,4 +170,7 @@ static const PICDriver s_PicDriver = {
     .Unmask = &i8259_Unmask,
 };
 
-const PICDriver *i8259_GetDriver() { return &s_PicDriver; }
+const PICDriver *i8259_GetDriver()
+{
+   return &s_PicDriver;
+}

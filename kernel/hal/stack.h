@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef HAL_STACK_H
 #define HAL_STACK_H
 #include <mem/mm_kernel.h>

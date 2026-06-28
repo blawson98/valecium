@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+
+#pragma once
 /*
  * kernel/arch/i686/boot/parser.h
  *

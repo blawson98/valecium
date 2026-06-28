@@ -55,4 +55,7 @@ void i686_TSS_Initialize(void)
 
 void i686_TSS_SetKernelStack(uint32_t esp0) { s_Tss.esp0 = esp0; }
 
-uint32_t i686_TSS_GetKernelStack(void) { return s_Tss.esp0; }
+uint32_t i686_TSS_GetKernelStack(void)
+{
+   return s_Tss.esp0;
+}

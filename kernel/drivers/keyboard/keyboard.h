@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 

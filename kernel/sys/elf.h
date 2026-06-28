@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 // Simple ELF32 loader for stage2 bootloader
 #ifndef ELF_H
 #define ELF_H

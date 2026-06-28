@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef I686_IO_H
 #define I686_IO_H
 #include <stdbool.h>
