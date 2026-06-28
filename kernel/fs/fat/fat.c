@@ -2643,4 +2643,7 @@ static const VFS_Operations s_FatVfsOps = {
     .chown = fat_vfs_chown};
 
 // Public function to get FAT VFS operations
-const VFS_Operations *FAT_GetVFSOperations(void) { return &s_FatVfsOps; }
+const VFS_Operations *FAT_GetVFSOperations(void)
+{
+   return &s_FatVfsOps;
+}

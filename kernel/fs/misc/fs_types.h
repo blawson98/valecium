@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef FS_TYPES_H
 #define FS_TYPES_H
 

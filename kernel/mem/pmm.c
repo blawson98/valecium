@@ -78,7 +78,10 @@ void PMM_Initialize(uint32_t total_mem_bytes)
           s_TotalPages, reserved_pages, s_TotalPages - s_AllocatedCount);
 }
 
-int PMM_IsInitialized(void) { return s_PmmInitialized; }
+int PMM_IsInitialized(void)
+{
+   return s_PmmInitialized;
+}
 
 uint32_t PMM_AllocatePhysicalPage(void)
 {
@@ -121,11 +124,20 @@ int PMM_IsPhysicalPageFree(uint32_t addr)
    return !bitmap_is_set(page_idx);
 }
 
-uint32_t PMM_TotalMemory(void) { return s_TotalPages * PAGE_SIZE; }
+uint32_t PMM_TotalMemory(void)
+{
+   return s_TotalPages * PAGE_SIZE;
+}
 
-uint32_t PMM_FreePages(void) { return s_TotalPages - s_AllocatedCount; }
+uint32_t PMM_FreePages(void)
+{
+   return s_TotalPages - s_AllocatedCount;
+}
 
-uint32_t PMM_AllocatedPages(void) { return s_AllocatedCount; }
+uint32_t PMM_AllocatedPages(void)
+{
+   return s_AllocatedCount;
+}
 
 void PMM_SelfTest(void)
 {

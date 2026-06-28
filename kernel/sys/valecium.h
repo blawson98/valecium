@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef VALECIUM_H
 #define VALECIUM_H
 

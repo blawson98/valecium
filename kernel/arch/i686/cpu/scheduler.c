@@ -43,9 +43,15 @@ static Registers *build_initial_frame(Process *proc)
    return frame;
 }
 
-void i686_Scheduler_SaveCpuState(void) {}
+void i686_Scheduler_SaveCpuState(void)
+{
 
-void i686_Scheduler_RestoreCpuState(void) {}
+}
+
+void i686_Scheduler_RestoreCpuState(void)
+{
+
+}
 
 Registers *i686_Scheduler_ContextSwitch_Impl(void)
 {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef ARCH_I686_VIDEO_VGA_H
 #define ARCH_I686_VIDEO_VGA_H
 

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef ATA_H
 #define ATA_H
 #include <fs/fs.h>

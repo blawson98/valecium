@@ -10,7 +10,8 @@
 #include "tss.h"
 #include "video.h"
 
-const HAL_IoOperations *g_HalIoOperations = &(HAL_IoOperations){
+const HAL_IoOperations *g_HalIoOperations = &(HAL_IoOperations)
+{
     .outb = HAL_ARCH_outb,
     .outw = HAL_ARCH_outw,
     .outl = HAL_ARCH_outl,
@@ -25,19 +26,22 @@ const HAL_IoOperations *g_HalIoOperations = &(HAL_IoOperations){
     .Reboot = HAL_ARCH_Reboot,
 };
 
-const HAL_VideoOperations *g_HalVideoOperations = &(HAL_VideoOperations){
+const HAL_VideoOperations *g_HalVideoOperations = &(HAL_VideoOperations)
+{
     .PutChar = HAL_ARCH_Video_PutChar,
     .Clear = HAL_ARCH_Video_Clear,
     .SetCursor = HAL_ARCH_Video_SetCursor,
     .GetCursor = HAL_ARCH_Video_GetCursor,
 };
 
-const HAL_IrqOperations *g_HalIrqOperations = &(HAL_IrqOperations){
+const HAL_IrqOperations *g_HalIrqOperations = &(HAL_IrqOperations)
+{
     .RegisterHandler = HAL_ARCH_IRQ_RegisterHandler,
     .Unmask = HAL_ARCH_IRQ_Unmask,
 };
 
-const HAL_PagingOperations *g_HalPagingOperations = &(HAL_PagingOperations){
+const HAL_PagingOperations *g_HalPagingOperations = &(HAL_PagingOperations)
+{
     .Initialize = HAL_ARCH_Paging_Initialize,
     .Enable = HAL_ARCH_Paging_Enable,
     .CreatePageDirectory = HAL_ARCH_Paging_CreatePageDirectory,
@@ -56,7 +60,8 @@ const HAL_PagingOperations *g_HalPagingOperations = &(HAL_PagingOperations){
     .SelfTest = HAL_ARCH_Paging_SelfTest,
 };
 
-const HAL_StackOperations *g_HalStackOperations = &(HAL_StackOperations){
+const HAL_StackOperations *g_HalStackOperations = &(HAL_StackOperations)
+{
     .GetEBP = HAL_ARCH_Stack_GetEBP,
     .GetESP = HAL_ARCH_Stack_GetESP,
     .GetRegisters = HAL_ARCH_Stack_GetRegisters,
@@ -67,15 +72,18 @@ const HAL_StackOperations *g_HalStackOperations = &(HAL_StackOperations){
 };
 
 const HAL_SchedulerOperations *g_HalSchedulerOperations =
-    &(HAL_SchedulerOperations){
+    &(HAL_SchedulerOperations)
+    {
         .ContextSwitch = HAL_ARCH_Scheduler_ContextSwitch,
     };
 
-const HAL_SyscallOperations *g_HalSyscallOperations = &(HAL_SyscallOperations){
+const HAL_SyscallOperations *g_HalSyscallOperations = &(HAL_SyscallOperations)
+{
     .Handler = HAL_ARCH_Syscall_Handler,
 };
 
-const HAL_TssOperations *g_HalTssOperations = &(HAL_TssOperations){
+const HAL_TssOperations *g_HalTssOperations = &(HAL_TssOperations)
+{
     .Initialize = HAL_ARCH_TSS_Initialize,
     .SetKernelStack = HAL_ARCH_TSS_SetKernelStack,
     .GetKernelStack = HAL_ARCH_TSS_GetKernelStack,

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 

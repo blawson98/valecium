@@ -117,7 +117,10 @@ void Scheduler_Schedule(void)
    Process_SetCurrent(next);
 }
 
-uint32_t Scheduler_GetProcessCount(void) { return s_ProcessCount; }
+uint32_t Scheduler_GetProcessCount(void)
+{
+   return s_ProcessCount;
+}
 
 Process *Scheduler_GetProcessAt(uint32_t index)
 {

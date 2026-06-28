@@ -206,7 +206,10 @@ void TTY_Destroy(TTY_Device *tty)
    free(tty);
 }
 
-TTY_Device *TTY_GetDevice(void) { return s_ActiveTTY; }
+TTY_Device *TTY_GetDevice(void)
+{
+   return s_ActiveTTY;
+}
 
 TTY_Device *TTY_GetDeviceById(uint32_t id)
 {

@@ -106,7 +106,10 @@ void printf(const char *fmt, ...)
    va_end(args);
 }
 
-void vprintf(const char *fmt, va_list args) { printf_vimpl(fmt, args); }
+void vprintf(const char *fmt, va_list args)
+{
+   printf_vimpl(fmt, args);
+}
 
 static void printf_vimpl(const char *fmt, va_list args)
 {

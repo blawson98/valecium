@@ -203,7 +203,10 @@ void DEVFS_EnumerateDevices(DEVFS_EnumCallback callback, void *context)
    }
 }
 
-uint32_t DEVFS_GetDeviceCount(void) { return s_DevNodeCount; }
+uint32_t DEVFS_GetDeviceCount(void)
+{
+   return s_DevNodeCount;
+}
 
 /*
  * External standard device implementations (defined in fs/misc/std_dev.c)
@@ -419,7 +422,10 @@ int DEVFS_Initialize(void)
    return SUCCESS;
 }
 
-const VFS_Operations *DEVFS_GetVFSOperations(void) { return &s_DevfsOps; }
+const VFS_Operations *DEVFS_GetVFSOperations(void)
+{
+   return &s_DevfsOps;
+}
 
 Partition *DEVFS_GetPartition(void)
 {

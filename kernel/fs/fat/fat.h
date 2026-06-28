@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #include <constants.h>
 
 // This is a local header file, and it is not allowed to directly include

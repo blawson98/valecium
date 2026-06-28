@@ -1,5 +1,7 @@
-#include <constants.h>
 // SPDX-License-Identifier: GPL-3.0-only
+
+#pragma once
+#include <constants.h>
 
 // Kernel module helpers: maintain a loaded-module registry and provide
 // insmod/rmmod/lsmod-style operations for ELF modules.

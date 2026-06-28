@@ -115,7 +115,10 @@ void VBE_SetInfo(const VBE_Info *info)
    s_HasInfo = 1;
 }
 
-int VBE_HasInfo(void) { return s_HasInfo; }
+int VBE_HasInfo(void)
+{
+   return s_HasInfo;
+}
 
 int VBE_Initialize(void)
 {
@@ -215,8 +218,17 @@ uint32_t VBE_PackRGB(uint8_t r, uint8_t g, uint8_t b)
    return pack_rgb(r, g, b);
 }
 
-uint32_t VBE_GetWidth(void) { return s_HasInfo ? s_Info.width : 0; }
+uint32_t VBE_GetWidth(void)
+{
+   return s_HasInfo ? s_Info.width : 0;
+}
 
-uint32_t VBE_GetHeight(void) { return s_HasInfo ? s_Info.height : 0; }
+uint32_t VBE_GetHeight(void)
+{
+   return s_HasInfo ? s_Info.height : 0;
+}
 
-void VBE_ClearScreen(uint32_t pixel) { clear_screen(pixel); }
+void VBE_ClearScreen(uint32_t pixel)
+{
+   clear_screen(pixel);
+}

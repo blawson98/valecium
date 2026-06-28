@@ -151,7 +151,10 @@ void i686_Paging_Initialize(void)
    i686_Paging_Enable();
 }
 
-void i686_Paging_Enable(void) { enable_paging_hw(); }
+void i686_Paging_Enable(void)
+{
+   enable_paging_hw();
+}
 
 void *i686_Paging_CreatePageDirectory(void)
 {
@@ -259,9 +262,15 @@ void i686_Paging_PageFaultHandler(uint32_t fault_address, uint32_t error_code)
       __asm__ __volatile__("hlt");
 }
 
-void i686_Paging_InvalidateTlbEntry(uint32_t vaddr) { invlpg(vaddr); }
+void i686_Paging_InvalidateTlbEntry(uint32_t vaddr)
+{
+   invlpg(vaddr);
+}
 
-void i686_Paging_FlushTlb(void) { load_cr3(read_cr3()); }
+void i686_Paging_FlushTlb(void)
+{
+   load_cr3(read_cr3());
+}
 
 void i686_Paging_SwitchPageDirectory(void *page_dir)
 {
@@ -269,7 +278,10 @@ void i686_Paging_SwitchPageDirectory(void *page_dir)
    load_cr3((uint32_t)page_dir);
 }
 
-void *i686_Paging_GetCurrentPageDirectory(void) { return s_CurrentPageDir; }
+void *i686_Paging_GetCurrentPageDirectory(void)
+{
+   return s_CurrentPageDir;
+}
 
 void *i686_Paging_AllocateKernelPages(int page_count)
 {

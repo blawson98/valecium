@@ -230,7 +230,10 @@ uint32_t VMM_GetPhys(uint32_t vaddr)
    return VMM_GetPhysInDir(s_KernelPageDir, vaddr);
 }
 
-void *VMM_GetPageDirectory(void) { return s_KernelPageDir; }
+void *VMM_GetPageDirectory(void)
+{
+   return s_KernelPageDir;
+}
 
 void VMM_SelfTest(void)
 {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#pragma once
+
 #ifndef HAL_SCHEDULER_H
 #define HAL_SCHEDULER_H
 
