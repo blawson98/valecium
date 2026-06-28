@@ -235,6 +235,73 @@ static int check_partition(uint8_t drive, int part_lba,
    return 0;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Rock Ridge NM (Alternate Name) SUSP entry scan.                   */
+/*  Returns 1 if the NM name matches component / comp_len, else 0.    */
+/* ------------------------------------------------------------------ */
+static int suspend_match_nm(const uint8_t *buf, int off, int rec_len,
+                            int name_len, const char *component, int comp_len)
+{
+   /* System Use area starts after the file identifier.
+    * SUSP requires it to be at an even offset from the record start.
+    * File identifier is at offset 33 (odd), so padding is needed
+    * when name_len is EVEN (making 33+even = odd → pad → even).      */
+   int su_off = off + 33 + name_len;
+   if (!(name_len & 1)) su_off++;
+   int su_end = off + rec_len;
+
+   int nm_pos = 0;
+   int in_continue = 0;
+
+   while (su_off + 4 <= su_end)
+   {
+      if (buf[su_off] == 'N' && buf[su_off + 1] == 'M')
+      {
+         uint8_t entry_len = buf[su_off + 2];
+         if (entry_len < 5) return 0;
+         if (su_off + entry_len > su_end) return 0;
+
+         uint8_t flags_rr = buf[su_off + 4];
+         const uint8_t *nm_data = &buf[su_off + 5];
+         int nm_len = entry_len - 5;
+
+         /* Compare this piece against the remaining component chars. */
+         for (int i = 0; i < nm_len; i++)
+         {
+            if (nm_pos >= comp_len) return 0; /* NM longer than component */
+            char c1 = component[nm_pos];
+            char c2 = (char)nm_data[i];
+            if (c1 >= 'a' && c1 <= 'z') c1 -= 32;
+            if (c2 >= 'a' && c2 <= 'z') c2 -= 32;
+            if (c1 != c2) return 0;
+            nm_pos++;
+         }
+
+         in_continue = 1;
+
+         if (flags_rr & 0x01)
+         {
+            /* CONTINUE set – more NM entries follow. */
+            su_off += entry_len;
+            continue;
+         }
+
+         /* Last NM entry in chain.  Require exact length match. */
+         return (nm_pos == comp_len) ? 1 : 0;
+      }
+
+      /* If we already saw NM entries and this is not NM, the
+       * Rock Ridge name chain is broken – fall back to ISO name. */
+      if (in_continue) return 0;
+
+      uint8_t entry_len = buf[su_off + 2];
+      if (entry_len < 4) break;
+      su_off += entry_len;
+   }
+
+   return 0;
+}
+
 static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
                             const char *component, int comp_len,
                             uint32_t *out_lba, uint32_t *out_size,
@@ -265,6 +332,17 @@ static int lookup_component(uint64_t dir_lba, uint32_t dir_size,
             continue;
          }
 
+         /* Try Rock Ridge NM name first (handles long filenames). */
+         if (suspend_match_nm(buf, off, rec_len, name_len,
+                              component, comp_len))
+         {
+            *out_lba = extent_lba;
+            *out_size = extent_size;
+            *out_flags = flags;
+            return 0;
+         }
+
+         /* Fall back to ISO9660 basic-name matching. */
          if (comp_len == name_len ||
              (name_len > comp_len && buf[off + 33 + comp_len] == ';'))
          {

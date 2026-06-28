@@ -5,10 +5,11 @@
 #include "video/video.h"
 #include <constants.h>
 
-// #define DL_RESOLVE
-// #include <dl/binding_gen.h.h>
-// #include <dl/dl.h>
-// #undef DL_RESOLVE
+#define DL_RESOLVE
+#include <dl/loader.h>
+#include <dl/binding_gen.h>
+#include <dl/callback.h>
+#undef DL_RESOLVE
 
 typedef struct FsOperations FsOperations;
 typedef struct MbiTagFramebuffer MbiTagFramebuffer;
@@ -32,10 +33,11 @@ static void print_stage3_fs_location(const BootParams *boot_params);
 
 struct FsOperations
 {
-   uint32_t FS_Initialize;
-   uint32_t FS_Open;
-   uint32_t FS_Read;
-   uint32_t FS_Close;
+   int (*Initialize)(const uint8_t *, uint32_t, const uint8_t *,
+                        const uint8_t *);
+   int (*Open)(const char *);
+   int (*Read)(int, void *, int);
+   int (*Close)(int);
 };
 
 struct MbiTagFramebuffer
@@ -231,19 +233,65 @@ void init_fs(FsOperations *fs_ops, const uint8_t *bios_drive_list,
 {
    printf("Entering filesystem setup.\n");
 
-   typedef int (*fs_init_fn)(const uint8_t *, uint32_t, const uint8_t *,
-                             const uint8_t *);
-   fs_init_fn FS_Initialize = (fs_init_fn)fs_ops->FS_Initialize;
-   int rc = FS_Initialize(bios_drive_list, bios_drive_list_count,
-                          partition_uuid, partition_label);
+   int rc = fs_ops->Initialize(bios_drive_list, bios_drive_list_count,
+                                partition_uuid, partition_label);
    if (rc != SUCCESS)
    {
       printf("  FS_Initialize failed: %d.\n", rc);
    }
    else
    {
-      printf("  FS initialized successful.\n");
+      printf("  FS initialized successful.\n\n");
    }
+}
+
+void init_main_boot(FsOperations *fs_ops)
+{
+   printf("Loading libTheBootloader.\n");
+
+   int fd = fs_ops->Open(g_Stage3Path);
+   if (fd < 0)
+   {
+      printf("  Failed to open %s: %d\n", g_Stage3Path, fd);
+      return;
+   }
+
+   static uint8_t stage3_buf[512 * 1024];
+   int total = 0;
+   int rc;
+
+   while (total < (int)sizeof(stage3_buf))
+   {
+      rc = fs_ops->Read(fd, stage3_buf + total,
+                        (int)sizeof(stage3_buf) - total);
+      if (rc <= 0) break;
+      total += rc;
+   }
+
+   fs_ops->Close(fd);
+
+   if (rc < 0 || total == 0)
+   {
+      printf("  Failed to read %s\n", g_Stage3Path);
+      return;
+   }
+
+   printf("  Read %d bytes from %s\n", total, g_Stage3Path);
+
+   void *handle = DL_LoadLibrary(stage3_buf);
+   if (!handle)
+   {
+      printf("  DL_LoadLibrary failed\n");
+      return;
+   }
+
+   if (dl_resolve_all(handle) != 0)
+   {
+      printf("  dl_resolve_all failed\n");
+      return;
+   }
+
+   printf("  Stage3 loaded and resolved successfully.\n");
 }
 
 int main(const BootParams *boot_params)
@@ -252,7 +300,14 @@ int main(const BootParams *boot_params)
    uint8_t available_outputs = (uint8_t)boot_params->available_outputs;
    uint8_t boot_drive = (uint8_t)boot_params->boot_drive;
    uint32_t bios_drive_list_count = boot_params->bios_drive_list_count;
-   FsOperations *fs_ops = (FsOperations *)boot_params->corefs_addr;
+   FsOperations fs_ops;
+   uint32_t *corefs_raw = (uint32_t *)boot_params->corefs_addr;
+   fs_ops.Initialize =
+       (int (*)(const uint8_t *, uint32_t, const uint8_t *, const uint8_t *))corefs_raw[0];
+   fs_ops.Open = (int (*)(const char *))corefs_raw[1];
+   fs_ops.Read = (int (*)(int, void *, int))corefs_raw[2];
+   fs_ops.Close = (int (*)(int))corefs_raw[3];
+
    const uint8_t *partition_uuid =
        (const uint8_t *)(uintptr_t)boot_params->corefs_partition_uuid_addr;
    const uint8_t *partition_label =
@@ -300,8 +355,9 @@ int main(const BootParams *boot_params)
    print_corefs_memory_address(boot_params->corefs_addr);
    print_stage3_fs_location(boot_params);
 
-   init_fs(fs_ops, bios_drive_list, bios_drive_list_count, partition_uuid,
+   init_fs(&fs_ops, bios_drive_list, bios_drive_list_count, partition_uuid,
            partition_label);
+   init_main_boot(&fs_ops);
 
    for (;;)
       ;

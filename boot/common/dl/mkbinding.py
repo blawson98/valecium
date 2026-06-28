@@ -143,6 +143,11 @@ def IsStatic(Text: str, MatchStart: int) -> bool:
     return "static" in Words
 
 
+# Core functions that live in the stage2 binary and must NOT be resolved
+# from the stage3 .so (which does not export them).
+_CoreOnlySymbols = {"DL_LoadLibrary", "DL_LoadSymbol"}
+
+
 def FindPublicFunctions() -> list[tuple[str, str]]:
     """Walk boot/common/ and return list of (name, full_signature)."""
     Functions: list[tuple[str, str]] = []
@@ -173,6 +178,10 @@ def FindPublicFunctions() -> list[tuple[str, str]]:
 
                 # Skip static functions
                 if IsStatic(Text, M.start()):
+                    continue
+
+                # Skip core-only symbols (defined in core, not in stage3 .so)
+                if Name in _CoreOnlySymbols:
                     continue
 
                 # Skip duplicates (e.g. same name across multiple files)
