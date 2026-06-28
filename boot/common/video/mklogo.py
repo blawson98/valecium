@@ -118,11 +118,11 @@ def main():
 #define VALECIUM_LOGO_H {LogoH}
 #define VALECIUM_LOGO_PALETTE_SIZE {len(Colours)}
 
-static const uint8_t g_ValeciumLogo_PaletteRGB[] = {{
+static const uint8_t s_ValeciumLogo_PaletteRGB[] = {{
    {PalStr}
 }};
 
-static const uint8_t g_ValeciumLogo_Data4bpp[] = {{
+static const uint8_t s_ValeciumLogo_Data4bpp[] = {{
 {DataStr}
 }};
 """
